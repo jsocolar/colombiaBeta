@@ -120,7 +120,28 @@ wandes$Species[wandes$Species == "Leucopternis princeps"] <- "Morphnarchus princ
 wandes$Species[wandes$Species == "Buteo albicaudatus"] <- "Geranoaetus albicaudatus"
 wandes$Species[wandes$Species == "Buteo magnirostris"] <- "Rupornis magnirostris"
 wandes$Species[wandes$Species == "Buteo polysoma"] <- "Geranoaetus polyosoma"
+
+wandes <- wandes[-which(wandes$Species %in% c("Stelgidopteryx ruficollis", "Atticora tibialis", "Hirundo rustica",
+                                              "Pygochelidon cyanoleuca", "Orochelidon murina")), ]
+# The above species (all Swallows) are not noted as flyovers but it is certain that most records were flyovers.
+# JGG confirms that there is no good way to separate the flyovers from the perched birds, so we are discarding
+# all swallows from the West Andes data
+
 wandes <- wandes[-which(wandes$Species %in% c("Hummingbird sp", "Chaetura sp", "Unkn.", "Chaetura_cinereiventris", "Vireo_olivaceus")), ]
+# The above either are not species level taxa, or were seen exclusively in flight (Chaetura cinereiventris, pers. comm. JGG),
+# or in the case of Vireo olivaceus cannot be reliably assigned to olivaceus vs. chivi (pers. comm. JGG).
+
+unique(wandes$Species[wandes$Migrant.or.transient. == "Y"])
+wandes <- wandes[-which(wandes$Migrant.or.transient. == "Y" & wandes$Species %in% c('Bubulcus ibis', 'Streptoprocne zonaris',
+                                                                                'Coragyps atratus', 'Falco sparverius',
+                                                                                'Geranoaetus polyosoma', 'Cathartes aura',
+                                                                                'Caracara cheriway', 'Rupornis magnirostris',
+                                                                                'Streptoprocne rutila', 'Milvago chimachima',
+                                                                                'Elanoides forficatus', 'Morphnarchus princeps',
+                                                                                'Geranoaetus albicaudatus', 'Accipiter striatus')), ]
+# Remove all species that have this designation because they are flyovers, but not species that have this designation
+# because they are migrants
+
 
 unique(wandes$Species[wandes$Species %ni% t2$HBW_LATIN & wandes$Species %ni% t2$CLEM_SCI_2019])
 p1 <- unique(wandes$Species[wandes$Species %ni% t2$HBW_LATIN])
@@ -128,8 +149,7 @@ p2 <- unique(wandes$Species[wandes$Species %ni% t2$CLEM_SCI_2019])
 p1
 p2
 
-wandes <- wandes[-which(wandes$Species %in% c("Stelgidopteryx ruficollis", "Atticora tibialis", "Hirundo rustica",
-                                              "Pygochelidon cyanoleuca", "Orochelidon murina")), ]
+
 dim(wandes)
 wandes2 <- wandes
 wandes <- wandes[wandes$Point %in% goodpts,]
@@ -200,6 +220,7 @@ llanos$Species[llanos$Species == "Clavaris pretiosa"] <- "Claravis pretiosa"
 llanos$Species[llanos$Species == "Philherodias pileatus"] <- "Pilherodius pileatus"
 llanos$Species[llanos$Species == "Tringites subruficollis"] <- "Calidris subruficollis"
 llanos$Species[llanos$Species == "Tityra squamiger"] <- "Tityra cayana"
+llanos$Species[llanos$Species == "Momotus subrufescens"] <- "Momotus momota"
 llanos <- llanos[llanos$Species != "Vireo olivaceus", ] # Records are in February and March, when there's no way to separate true olivaceus from resident chivi after the fact
 
 llanos1 <- llanos
@@ -241,7 +262,7 @@ WAndesSpp <- gsub(" ", "_", unique(wandes$Species))
 allSpp <- unique(c(jacobSpp, simonSpp, LlanosSpp, WAndesSpp))
 allSpp
 
-allSpp[grep("Henicorhina", allSpp)]
+allSpp[grep("Momotus", allSpp)]
 
 
 
