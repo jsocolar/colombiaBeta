@@ -239,8 +239,9 @@ dim(jacob)
 dim(jacob2)[1] - dim(jacob)[1]
 
 jacobSpp <- as.character(unique(jacob$Species)[order(unique(jacob$Species))])
+jacobSpp[gsub("_", " ", jacobSpp) %ni% t2$CLEM_SCI_2019]
 jacobSpp
-#734
+#735
 
 simon <- read.csv("Data/Birds/Simon_list.csv")
 simon_species <- as.character(simon$English.Ebird)
@@ -256,11 +257,14 @@ for(i in 1:nrow(simon)){
 }
 
 simonSpp <- gsub(" ", "_", simon$scientific)
+simonSpp[simonSpp == "Grallaria_quitensis"] <- "Grallaria_alticola"
 LlanosSpp <- gsub(" ", "_", unique(llanos$Species))
 WAndesSpp <- gsub(" ", "_", unique(wandes$Species))
 
 allSpp <- unique(c(jacobSpp, simonSpp, LlanosSpp, WAndesSpp))
+allSpp <- allSpp[-which(allSpp %in% c('Henicorhina_bangsi', 'Grallaria_rufula_sm'))]
 allSpp
+#942
 
 allSpp[grep("Momotus", allSpp)]
 
