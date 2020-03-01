@@ -5,10 +5,6 @@ setwd("/Users/JacobSocolar/Dropbox/Work/Colombia")
 taxonomy <- read.csv("Data/Birds/HBW_eBird_taxonomy.csv")
 t2 <- taxonomy[taxonomy$HBW_CAT == "sp" | taxonomy$CLEM_CAT_2019 == "sp", ] # remove taxa that are not treated as species by either eBird or HBW
 
-jacob1 <- read.csv("Data/Birds/Jacob_data_v1.1.csv")
-jacob2 <- jacob1[jacob1$Dist %in% c('A', 'B', 'C') & is.na(jacob1$Dis) & is.na(jacob1$FO), ]
-jacob <- jacob2[jacob2$Species %ni% c("Sono", "Visu", "", "Henicorhina_sp"),]
-
 ##### Western Andes #####
 wandes1 <- read.csv("Data/Birds/James_WAndes_all_birds.csv")
 wandes <- wandes1[wandes1$Distance %in% c('A', 'B', 'C'), ]
@@ -120,6 +116,8 @@ wandes$Species[wandes$Species == "Leucopternis princeps"] <- "Morphnarchus princ
 wandes$Species[wandes$Species == "Buteo albicaudatus"] <- "Geranoaetus albicaudatus"
 wandes$Species[wandes$Species == "Buteo magnirostris"] <- "Rupornis magnirostris"
 wandes$Species[wandes$Species == "Buteo polysoma"] <- "Geranoaetus polyosoma"
+wandes$Species[wandes$Species == "Schistes geoffroyi"] <- "Schistes albogularis"
+
 
 wandes <- wandes[-which(wandes$Species %in% c("Stelgidopteryx ruficollis", "Atticora tibialis", "Hirundo rustica",
                                               "Pygochelidon cyanoleuca", "Orochelidon murina")), ]
@@ -234,22 +232,33 @@ L3sp <- unique(llanos$Species)
 L1sp[L1sp %ni% L2sp]
 L2sp[L2sp %ni% L3sp]
 
+##### Jacob #####
+jacob1 <- read.csv("Data/Birds/Jacob_data_v1.1.csv")
+jacob2 <- jacob1[jacob1$Dist %in% c('A', 'B', 'C') & is.na(jacob1$Dis) & is.na(jacob1$FO), ]
+jacob <- jacob2[jacob2$Species %ni% c("Sono", "Visu", "", "Henicorhina_sp"),]
+
 ##### Tools to monitor progress on dataset as it's entered--not part of final analysis #####
+# 231 Llanos spp
+# 319 WAndes spp
+# 746 Jacob spp
+# 243 EAndes spp (Simon+David only)
+# 952 total spp
+
 dim(jacob)
 dim(jacob2)[1] - dim(jacob)[1]
 
 jacobSpp <- as.character(unique(jacob$Species)[order(unique(jacob$Species))])
 jacobSpp[gsub("_", " ", jacobSpp) %ni% t2$CLEM_SCI_2019]
 jacobSpp
-#735
 
-simon <- read.csv("Data/Birds/Simon_list.csv")
-simon_species <- as.character(simon$English.Ebird)
+simon <- read.csv("Data/Birds/Simon_list_28-02-2019.csv", stringsAsFactors = F)
+simon_species <- simon$English.Ebird
 for(i in 1:length(simon_species)){
   if(length(grep(simon_species[i], t2$CLEM_ENG_2019, ignore.case = T)) == 0){
     print(c(i, simon_species[i]))
   }
 }
+simon_species[229] <- simon$English.Ebird[229] <- "White-banded tyrannulet"
 simon$scientific <- NA
 
 for(i in 1:nrow(simon)){
@@ -262,12 +271,16 @@ LlanosSpp <- gsub(" ", "_", unique(llanos$Species))
 WAndesSpp <- gsub(" ", "_", unique(wandes$Species))
 
 allSpp <- unique(c(jacobSpp, simonSpp, LlanosSpp, WAndesSpp))
-allSpp <- allSpp[-which(allSpp %in% c('Henicorhina_bangsi', 'Grallaria_rufula_sm'))]
+allSpp <- allSpp[-which(allSpp %in% c('Henicorhina_bangsi', 'Grallaria_rufula_spatiator'))]
 allSpp
-#942
+#952
 
-allSpp[grep("Momotus", allSpp)]
+allSpp[grep("Atlapetes_", allSpp)]
 
+
+jacobSpp[grep("wagleri", jacobSpp)]
+simonSpp[grep("Schistes_", simonSpp)]
+WAndesSpp[grep("Schistes_", WAndesSpp)]
 
 
 ##### Additional tools to monitor my portion of the dataset
@@ -278,7 +291,7 @@ for(i in 1:length(jacobSpp)){
   }
 }
 
-jacobSpp[grep("Icterus_", jacobSpp)]
+jacobSpp[grep("Schistes_", jacobSpp)]
 
 sum(jacob$Species == "Pachysylvia_semibrunnea")
 
