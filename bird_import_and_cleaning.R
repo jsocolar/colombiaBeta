@@ -275,7 +275,7 @@ allSpp <- allSpp[-which(allSpp %in% c('Henicorhina_bangsi', 'Grallaria_rufula_sp
 allSpp
 #952
 
-allSpp[grep("Atlapetes_", allSpp)]
+allSpp[grep("Ammod", allSpp)]
 
 
 jacobSpp[grep("wagleri", jacobSpp)]
