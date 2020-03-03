@@ -34,6 +34,9 @@ fc_list = ogrListLayers(botw)
 range_maps <- sf::st_read(dsn=botw,layer="All_Species")
 
 
+#dim(range_maps)
+#str(range_maps)
+
 ##### Hydrosheds #####
 #This code is nothing at the moment--just a place to save some bits that will potentially be useful to have in the future
 
