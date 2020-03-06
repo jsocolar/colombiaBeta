@@ -275,12 +275,13 @@ allSpp <- allSpp[-which(allSpp %in% c('Henicorhina_bangsi', 'Grallaria_rufula_sp
 allSpp
 #952
 
-allSpp[grep("Ammod", allSpp)]
+allSpp[grep("Corapipo", allSpp)]
 
 
-jacobSpp[grep("wagleri", jacobSpp)]
-simonSpp[grep("Schistes_", simonSpp)]
-WAndesSpp[grep("Schistes_", WAndesSpp)]
+jacobSpp[grep("Saltator", jacobSpp)]
+simonSpp[grep("Myiobius", simonSpp)]
+WAndesSpp[grep("Chlorostil", WAndesSpp)]
+LlanosSpp[grep("Myiobius", LlanosSpp)]
 
 
 ##### Additional tools to monitor my portion of the dataset
@@ -291,7 +292,7 @@ for(i in 1:length(jacobSpp)){
   }
 }
 
-jacobSpp[grep("Schistes_", jacobSpp)]
+jacobSpp[grep("Myiobius", jacobSpp)]
 
 sum(jacob$Species == "Pachysylvia_semibrunnea")
 
