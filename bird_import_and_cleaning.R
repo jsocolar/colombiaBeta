@@ -280,7 +280,7 @@ allSpp[grep("Corapipo", allSpp)]
 
 jacobSpp[grep("Saltator", jacobSpp)]
 simonSpp[grep("Myiobius", simonSpp)]
-WAndesSpp[grep("Chlorostil", WAndesSpp)]
+WAndesSpp[grep("Pteroglo", WAndesSpp)]
 LlanosSpp[grep("Myiobius", LlanosSpp)]
 
 

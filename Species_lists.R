@@ -203,8 +203,6 @@ initial_species_list$Donegan2[initial_species_list$HBW == "Butorides striatus"] 
 initial_species_list$Donegan2[initial_species_list$HBW == "Chaetura chapmani"] <- "Chaetura viridipennis"
 initial_species_list$Donegan2[initial_species_list$HBW == "Chlorostilbon mellisugus"] <- "Chlorostilbon melanorhynchus"
 initial_species_list$Donegan2[initial_species_list$HBW == "Turdus albicollis"] <- "Turdus assimilis"
-
-
 initial_species_list$eBird[initial_species_list$HBW == "Megascops vermiculatus"] <- "Megascops centralis"
 initial_species_list$eBird2[initial_species_list$HBW == "Megascops vermiculatus"] <- "Megascops roraimae"
 initial_species_list$eBird[initial_species_list$HBW == "Trogon violaceus"] <- "Trogon ramonianus"
@@ -215,8 +213,6 @@ initial_species_list$eBird2[initial_species_list$HBW == "Butorides striatus"] <-
 initial_species_list$eBird2[initial_species_list$HBW == "Chaetura chapmani"] <- "Chaetura viridipennis"
 initial_species_list$eBird2[initial_species_list$HBW == "Chlorostilbon mellisugus"] <- "Chlorostilbon melanorhynchus"
 initial_species_list$eBird2[initial_species_list$HBW == "Turdus albicollis"] <- "Turdus assimilis"
-
-
 initial_species_list$eBird[initial_species_list$HBW == "Paraclaravis mondetoura"] <- "Paraclaravis mondetoura"
 initial_species_list$eBird[initial_species_list$HBW == "Juliamyia julie"] <- "Juliamyia julie"
 initial_species_list$eBird[initial_species_list$HBW == "Hapalocrex flaviventer"] <- "Hapalocrex flaviventer"
@@ -230,7 +226,6 @@ initial_species_list$eBird[initial_species_list$HBW == "Spodiornis rusticus"] <-
 initial_species_list$eBird[initial_species_list$HBW == "Epinecrophylla haematonota"] <- "Epinecrophylla haematonota"
 initial_species_list$eBird[initial_species_list$HBW == "Sclerurus mexicanus"] <- "Sclerurus mexicanus"
 initial_species_list$eBird[initial_species_list$HBW == "Manacus vitellinus"] <- "Manacus vitellinus"
-
 initial_species_list$eBird[initial_species_list$HBW == "Pyrrhura chapmani"] <- "Pyrrhura melanura"
 initial_species_list$eBird[initial_species_list$HBW == "Pyrrhura pacifica"] <- "Pyrrhura melanura"
 initial_species_list$eBird[initial_species_list$HBW == "Coeligena conradii"] <- "Coeligena torquata"
@@ -256,25 +251,286 @@ initial_species_list$eBird[initial_species_list$HBW == "Islerothraupis cristata"
 initial_species_list$eBird[initial_species_list$HBW == "Islerothraupis luctuosa"] <- "Tachyphonus luctuosus"
 initial_species_list$eBird[initial_species_list$HBW == "Sporathraupis cyanocephala"] <- "Thraupis cyanocephala"
 initial_species_list$eBird[initial_species_list$HBW == "Grallaria fenwickorum"] <- "Grallaria urraoensis"
-
-
 initial_species_list$HBW[is.na(initial_species_list$Donegan)]
-
 initial_species_list$HBW[is.na(initial_species_list$eBird)]
 
 
-# Columba livia
 
+# Now match to Pulido tree names
+pulido <- ape::read.tree(file = "/Users/jacobsocolar/Desktop/useful_datasets/Pulido_phylogeny/JETZ TREES/All_birds_MaxCladeCredTree.txt")
+pulido.spp <- gsub("_", " ", pulido$tip.label)
 
-write.csv(initial_species_list, file = "Data/Birds/initial_bird_list_output.csv")
+initial_species_list$HBW[(initial_species_list$HBW %ni% pulido.spp) &
+                           (initial_species_list$Donegan %ni% pulido.spp) &
+                           (initial_species_list$eBird %ni% pulido.spp)]
 
-# The below code block gives the species common to both HBW and Donegan that don't appear in eBird/Clements
-for(i in 1:length(HBW)){
-  if((HBW[i] %ni% t2$CLEM_SCI_2019) & 
-     (HBW[i] %ni% changes$hbw.name) & 
-     (HBW[i] %ni% t2$HBW_LATIN[t2$HBW.Clem == 'sp-sp'])
-     ){print(HBW[i])}
+initial_species_list$HBW[(initial_species_list$HBW %ni% pulido.spp) &
+                           (initial_species_list$Donegan %ni% pulido.spp) &
+                           (initial_species_list$eBird %ni% pulido.spp)]
+
+initial_species_list$Pulido <- NA
+for(i in 1:nrow(initial_species_list)){
+  if(initial_species_list$HBW[i] %in% pulido.spp){
+    initial_species_list$Pulido[i] <- initial_species_list$HBW[i]
+  }else if((initial_species_list$Donegan[i] %in% pulido.spp) & (initial_species_list$Donegan2[i] %ni% pulido.spp)){
+    initial_species_list$Pulido[i] <- initial_species_list$Donegan[i]
+  }else if((initial_species_list$eBird[i] %in% pulido.spp) & (initial_species_list$eBird2[i] %ni% pulido.spp)){
+    initial_species_list$Pulido[i] <- initial_species_list$eBird[i]
+  }
 }
+
+initial_species_list$Pulido[initial_species_list$HBW == "Aramides cajaneus"] <- "Aramides cajanea"
+initial_species_list$Pulido[initial_species_list$HBW == "Ardea alba"] <- "Casmerodius albus"
+initial_species_list$Pulido[initial_species_list$HBW == "Spatula clypeata"] <- "Anas clypeata"
+initial_species_list$Pulido[initial_species_list$HBW == "Machaeropterus striolatus"] <- "Machaeropterus regulus"
+initial_species_list$Pulido[initial_species_list$HBW == "Porphyriops melanops"] <- "Gallinula melanops"
+initial_species_list$Pulido[initial_species_list$HBW == "Chordeiles nacunda"] <- "Podager nacunda"
+initial_species_list$Pulido[initial_species_list$HBW == "Ciccaba albitarsis"] <- "Strix albitarsis"
+initial_species_list$Pulido[initial_species_list$HBW == "Ciccaba huhula"] <- "Strix huhula"
+initial_species_list$Pulido[initial_species_list$HBW == "Ciccaba nigrolineata"] <- "Strix nigrolineata"
+initial_species_list$Pulido[initial_species_list$HBW == "Ciccaba virgata"] <- "Strix virgata"
+initial_species_list$Pulido[initial_species_list$HBW == "Circus hudsonius"] <- "Circus cyaneus"
+initial_species_list$Pulido[initial_species_list$HBW == "Cryptoleucopteryx plumbea"] <- "Leucopternis plumbeus"
+initial_species_list$Pulido[initial_species_list$HBW == "Eriocnemis aline"] <- "Eriocnemis alinae"
+initial_species_list$Pulido[initial_species_list$HBW == "Oxypogon stuebelii"] <- "Oxypogon guerinii"
+initial_species_list$Pulido[initial_species_list$HBW == "Gallinago delicata"] <- "Gallinago gallinago"
+initial_species_list$Pulido[initial_species_list$HBW == "Gallinula galeata"] <- "Gallinula chloropus"
+initial_species_list$Pulido[initial_species_list$HBW == "Geranoaetus polyosoma"] <- "Buteo polyosoma"
+initial_species_list$Pulido[initial_species_list$HBW == "Geotrygon purpurata"] <- "Geotrygon saphirina"
+initial_species_list$Pulido[initial_species_list$HBW == "Geranoaetus albicaudatus"] <- "Buteo albicaudatus"
+initial_species_list$Pulido[initial_species_list$HBW == "Spinus magellanicus"] <- "Carduelis magellanica"
+initial_species_list$Pulido[initial_species_list$HBW == "Hydropsalis cayennensis"] <- "Caprimulgus cayennensis"
+initial_species_list$Pulido[initial_species_list$HBW == "Hydropsalis maculicaudus"] <- "Caprimulgus maculicaudus"
+initial_species_list$Pulido[initial_species_list$HBW == "Uromyias agilis"] <- "Anairetes agilis"
+initial_species_list$Pulido[initial_species_list$HBW == "Myiothlypis basilica"] <- "Basileuterus basilicus"
+initial_species_list$Pulido[initial_species_list$HBW == "Myiothlypis cinereicollis"] <- "Basileuterus cinereicollis"
+initial_species_list$Pulido[initial_species_list$HBW == "Myiothlypis conspicillata"] <- "Basileuterus conspicillatus"
+initial_species_list$Pulido[initial_species_list$HBW == "Myiothlypis coronata"] <- "Basileuterus coronatus"
+initial_species_list$Pulido[initial_species_list$HBW == "Myiothlypis nigrocristata"] <- "Basileuterus nigrocristatus"
+initial_species_list$Pulido[initial_species_list$HBW == "Mareca americana"] <- "Anas americana"
+initial_species_list$Pulido[initial_species_list$HBW == "Oxypogon cyanolaemus"] <- "Oxypogon guerinii"
+initial_species_list$Pulido[initial_species_list$HBW == "Conirostrum binghami"] <- "Oreomanes fraseri"
+initial_species_list$Pulido[initial_species_list$HBW == "Cercomacroides tyrannina"] <- "Cercomacra tyrannina"
+initial_species_list$Pulido[initial_species_list$HBW == "Cyanoloxia brissonii"] <- "Cyanocompsa brissonii"
+initial_species_list$Pulido[initial_species_list$HBW == "Setophaga fusca"] <- "Dendroica fusca"
+initial_species_list$Pulido[initial_species_list$HBW == "Setophaga striata"] <- "Dendroica striata"
+initial_species_list$Pulido[initial_species_list$HBW == "Setophaga pensylvanica"] <- "Dendroica pensylvanica"
+initial_species_list$Pulido[initial_species_list$HBW == "Cyanoloxia cyanoides"] <- "Cyanocompsa cyanoides"
+initial_species_list$Pulido[initial_species_list$HBW == "Cyanoloxia rothschildii"] <- "Cyanocompsa cyanoides"
+initial_species_list$Pulido[initial_species_list$HBW == "Sphenopsis frontalis"] <- "Hemispingus frontalis"
+initial_species_list$Pulido[initial_species_list$HBW == "Thlypopsis superciliaris"] <- "Hemispingus superciliaris"
+initial_species_list$Pulido[initial_species_list$HBW == "Pachysylvia hypoxantha"] <- "Hylophilus hypoxanthus"
+initial_species_list$Pulido[initial_species_list$HBW == "Leptotila cassinii"] <- "Leptotila cassini"
+initial_species_list$Pulido[initial_species_list$HBW == "Arremon assimilis"] <- "Arremon torquatus"
+initial_species_list$Pulido[initial_species_list$HBW == "Leptotrygon veraguensis"] <- "Geotrygon veraguensis"
+initial_species_list$Pulido[initial_species_list$HBW == "Orochelidon flavipes"] <- "Notiochelidon flavipes"
+initial_species_list$Pulido[initial_species_list$HBW == "Myrmophylax atrothorax"] <- "Myrmeciza atrothorax"
+initial_species_list$Pulido[initial_species_list$HBW == "Sipia berlepschi"] <- "Myrmeciza berlepschi"
+initial_species_list$Pulido[initial_species_list$HBW == "Akletos melanoceps"] <- "Myrmeciza melanoceps"
+initial_species_list$Pulido[initial_species_list$HBW == "Hafferia fortis"] <- "Myrmeciza fortis"
+initial_species_list$Pulido[initial_species_list$HBW == "Sipia palliata"] <- "Myrmeciza laemosticta"
+initial_species_list$Pulido[initial_species_list$HBW == "Myrmelastes hyperythrus"] <- "Myrmeciza hyperythra"
+initial_species_list$Pulido[initial_species_list$HBW == "Isleria hauxwelli"] <- "Myrmotherula hauxwelli"
+initial_species_list$Pulido[initial_species_list$HBW == "Cacicus latirostris"] <- "Ocyalus latirostris"
+initial_species_list$Pulido[initial_species_list$HBW == "Orochelidon murina"] <- "Notiochelidon murina"
+initial_species_list$Pulido[initial_species_list$HBW == "Geothlypis formosa"] <- "Oporornis formosus"
+initial_species_list$Pulido[initial_species_list$HBW == "Sporophila crassirostris"] <- "Oryzoborus crassirostris"
+initial_species_list$Pulido[initial_species_list$HBW == "Myiothlypis fulvicauda"] <- "Phaeothlypis fulvicauda"
+initial_species_list$Pulido[initial_species_list$HBW == "Phelpsia inornata"] <- "Phelpsia inornatus"
+initial_species_list$Pulido[initial_species_list$HBW == "Ceratopipra erythrocephala"] <- "Pipra erythrocephala"
+initial_species_list$Pulido[initial_species_list$HBW == "Ceratopipra mentalis"] <- "Pipra mentalis"
+initial_species_list$Pulido[initial_species_list$HBW == "Pseudopipra pipra"] <- "Pipra pipra"
+initial_species_list$Pulido[initial_species_list$HBW == "Myrmelastes schistaceus"] <- "Schistocichla schistacea"
+initial_species_list$Pulido[initial_species_list$HBW == "Scytalopus opacus"] <- "Scytalopus canus"
+initial_species_list$Pulido[initial_species_list$HBW == "Mazaria propinqua"] <- "Synallaxis propinqua"
+initial_species_list$Pulido[initial_species_list$HBW == "Euchrepomis spodioptila"] <- "Terenura spodioptila"
+initial_species_list$Pulido[initial_species_list$HBW == "Cantorchilus leucopogon"] <- "Thryothorus leucopogon"
+initial_species_list$Pulido[initial_species_list$HBW == "Asthenes perijana"] <- "Schizoeaca perijana"
+initial_species_list$Pulido[initial_species_list$HBW == "Cantorchilus nigricapillus"] <- "Thryothorus nigricapillus"
+initial_species_list$Pulido[initial_species_list$HBW == "Pheugopedius rutilus"] <- "Thryothorus rutilus"
+initial_species_list$Pulido[initial_species_list$HBW == "Leiothlypis peregrina"] <- "Vermivora peregrina"
+initial_species_list$Pulido[initial_species_list$HBW == "Chloropipo flavicapilla"] <- "Xenopipo flavicapilla"
+initial_species_list$Pulido[initial_species_list$HBW == "Megascops vermiculatus"] <- "Megascops guatemalae"
+initial_species_list$Pulido[initial_species_list$HBW == "Systellura longirostris"] <- "Caprimulgus longirostris"
+initial_species_list$Pulido[initial_species_list$HBW == "Momotus subrufescens"] <- "Momotus momota"
+initial_species_list$Pulido[initial_species_list$HBW == "Asemospiza obscura"] <- "Tiaris obscurus"
+initial_species_list$Pulido[initial_species_list$HBW == "Morphnarchus princeps"] <- "Leucopternis princeps"
+initial_species_list$Pulido[initial_species_list$HBW == "Nyctipolus nigrescens"] <- "Caprimulgus nigrescens"
+initial_species_list$Pulido[initial_species_list$HBW == "Ortalis columbiana"] <- "Ortalis guttata"
+initial_species_list$Pulido[initial_species_list$HBW == "Arremon perijanus"] <- "Arremon torquatus"
+initial_species_list$Pulido[initial_species_list$HBW == "Pseudastur albicollis"] <- "Leucopternis albicollis"
+initial_species_list$Pulido[initial_species_list$HBW == "Psittacara leucophthalmus"] <- "Aratinga leucophthalma"
+initial_species_list$Pulido[initial_species_list$HBW == "Psittacara wagleri"] <- "Aratinga wagleri"
+initial_species_list$Pulido[initial_species_list$HBW == "Schistes albogularis"] <- "Schistes geoffroyi"
+initial_species_list$Pulido[initial_species_list$HBW == "Setopagis heterura"] <- "Caprimulgus heterurus"
+initial_species_list$Pulido[initial_species_list$HBW == "Spatula cyanoptera"] <- "Anas cyanoptera"
+initial_species_list$Pulido[initial_species_list$HBW == "Spatula discors"] <- "Anas discors"
+initial_species_list$Pulido[initial_species_list$HBW == "Sternula superciliaris"] <- "Sterna superciliaris"
+initial_species_list$Pulido[initial_species_list$HBW == "Urochroa leucura"] <- "Urochroa bougueri"
+initial_species_list$Pulido[initial_species_list$HBW == "Zentrygon frenata"] <- "Geotrygon frenata"
+initial_species_list$Pulido[initial_species_list$HBW == "Zentrygon goldmani"] <- "Geotrygon goldmani"
+initial_species_list$Pulido[initial_species_list$HBW == "Zentrygon linearis"] <- "Geotrygon linearis"
+initial_species_list$Pulido[initial_species_list$HBW == "Arremon basilicus"] <- "Arremon torquatus"
+initial_species_list$Pulido[initial_species_list$HBW == "Cercomacroides fuscicauda"] <- "Cercomacra nigrescens"
+initial_species_list$Pulido[initial_species_list$HBW == "Drymophila striaticeps"] <- "Drymophila caudata"
+initial_species_list$Pulido[initial_species_list$HBW == "Elaenia brachyptera"] <- "Elaenia chiriquensis"
+initial_species_list$Pulido[initial_species_list$HBW == "Gymnopithys bicolor"] <- "Gymnopithys leucaspis"
+initial_species_list$Pulido[initial_species_list$HBW == "Henicorhina anachoreta"] <- "Henicorhina leucophrys"
+initial_species_list$Pulido[initial_species_list$HBW == "Drymophila hellmayri"] <- "Drymophila caudata"
+initial_species_list$Pulido[initial_species_list$HBW == "Automolus virgatus"] <- "Hyloctistes subulatus"
+initial_species_list$Pulido[initial_species_list$HBW == "Automolus subulatus"] <- "Hyloctistes subulatus"
+initial_species_list$Pulido[initial_species_list$HBW == "Tunchiornis ochraceiceps"] <- "Hylophilus ochraceiceps"
+initial_species_list$Pulido[initial_species_list$HBW == "Lepidocolaptes duidae"] <- "Lepidocolaptes albolineatus"
+initial_species_list$Pulido[initial_species_list$HBW == "Aprositornis disjuncta"] <- "Myrmeciza disjuncta"
+initial_species_list$Pulido[initial_species_list$HBW == "Hafferia zeledoni"] <- "Myrmeciza immaculata"
+initial_species_list$Pulido[initial_species_list$HBW == "Sciaphylax castanea"] <- "Myrmeciza castanea"
+initial_species_list$Pulido[initial_species_list$HBW == "Hafferia immaculata"] <- "Myrmeciza immaculata"
+initial_species_list$Pulido[initial_species_list$HBW == "Ammonastes pelzelni"] <- "Myrmeciza pelzelni"
+initial_species_list$Pulido[initial_species_list$HBW == "Nephelomyias pulcher"] <- "Myiophobus pulcher"
+initial_species_list$Pulido[initial_species_list$HBW == "Premnornis guttuliger"] <- "Premnornis guttuligera"
+initial_species_list$Pulido[initial_species_list$HBW == "Pseudocolaptes johnsoni"] <- "Pseudocolaptes lawrencii johnsoni"
+initial_species_list$Pulido[initial_species_list$HBW == "Pheugopedius columbianus"] <- "Thryothorus sclateri"
+initial_species_list$Pulido[initial_species_list$HBW == "Thamnophilus melanonotus"] <- "Sakesphorus melanonotus"
+initial_species_list$Pulido[initial_species_list$HBW == "Schiffornis aenea"] <- "Schiffornis turdina"
+initial_species_list$Pulido[initial_species_list$HBW == "Schiffornis stenorhyncha"] <- "Schiffornis turdina"
+initial_species_list$Pulido[initial_species_list$HBW == "Schiffornis veraepacis"] <- "Schiffornis turdina"
+initial_species_list$Pulido[initial_species_list$HBW == "Sirystes albocinereus"] <- "Sirystes sibilator"
+initial_species_list$Pulido[initial_species_list$HBW == "Sporophila funerea"] <- "Oryzoborus funereus"
+initial_species_list$Pulido[initial_species_list$HBW == "Pheugopedius euophrys"] <- "Thryothorus euophrys"
+initial_species_list$Pulido[initial_species_list$HBW == "Thryophilus nicefori"] <- "Thryothorus nicefori"
+initial_species_list$Pulido[initial_species_list$HBW == "Thryophilus sernai"] <- "Thryothorus rufalbus"
+initial_species_list$Pulido[initial_species_list$HBW == "Turdus sanchezorum"] <- "Turdus haplochrous"
+initial_species_list$Pulido[initial_species_list$HBW == "Cryptopipo holochlora"] <- "Xenopipo holochlora"
+initial_species_list$Pulido[initial_species_list$HBW == "Cryptopipo litae"] <- "Xenopipo holochlora"
+initial_species_list$Pulido[initial_species_list$HBW == "Xenops genibarbis"] <- "Xenops minutus remoratus"
+initial_species_list$Pulido[initial_species_list$HBW == "Myiothlypis chlorophrys"] <- "Basileuterus chlorophrys"
+initial_species_list$Pulido[initial_species_list$HBW == "Myiothlypis luteoviridis"] <- "Basileuterus luteoviridis"
+initial_species_list$Pulido[initial_species_list$HBW == "Kleinothraupis atropileus"] <- "Hemispingus atropileus"
+initial_species_list$Pulido[initial_species_list$HBW == "Tangara argentea"] <- "Tangara cyanoptera"
+initial_species_list$Pulido[initial_species_list$HBW == "Sphenopsis melanotis"] <- "Hemispingus melanotis"
+initial_species_list$Pulido[initial_species_list$HBW == "Setophaga tigrina"] <- "Dendroica tigrina"
+initial_species_list$Pulido[initial_species_list$HBW == "Pachysylvia aurantiifrons"] <- "Hylophilus aurantiifrons"
+initial_species_list$Pulido[initial_species_list$HBW == "Pachysylvia decurtata"] <- "Hylophilus decurtatus"
+initial_species_list$Pulido[initial_species_list$HBW == "Sipia nigricauda"] <- "Myrmeciza nigricauda"
+initial_species_list$Pulido[initial_species_list$HBW == "Geothlypis philadelphia"] <- "Oporornis philadelphia"
+initial_species_list$Pulido[initial_species_list$HBW == "Cardellina canadensis"] <- "Wilsonia canadensis"
+initial_species_list$Pulido[initial_species_list$HBW == "Orthopsittaca manilatus"] <- "Orthopsittaca manilata"
+initial_species_list$Pulido[initial_species_list$HBW == "Parabuteo leucorrhous"] <- "Buteo leucorrhous"
+initial_species_list$Pulido[initial_species_list$HBW == "Rupornis magnirostris"] <- "Buteo magnirostris"
+initial_species_list$Pulido[initial_species_list$HBW == "Poliocrania maculifer"] <- "Myrmeciza exsul"
+initial_species_list$Pulido[initial_species_list$HBW == "Anabacerthia ruficaudata"] <- "Philydor ruficaudatum"
+initial_species_list$Pulido[initial_species_list$HBW == "Euchrepomis callinota"] <- "Terenura callinota"
+initial_species_list$Pulido[initial_species_list$HBW == "Setophaga petechia"] <- "Dendroica petechia"
+initial_species_list$Pulido[initial_species_list$HBW == "Setophaga coronata"] <- "Dendroica coronata"
+initial_species_list$Pulido[initial_species_list$HBW == "Dendrocolaptes certhia"] <- "Dendrocolaptes certhia certhia"
+initial_species_list$Pulido[initial_species_list$HBW == "Frederickena unduliger"] <- "Frederickena unduligera"
+initial_species_list$Pulido[initial_species_list$HBW == "Parkesia motacilla"] <- "Seiurus motacilla"
+initial_species_list$Pulido[initial_species_list$HBW == "Parkesia noveboracensis"] <- "Seiurus noveboracensis"
+initial_species_list$Pulido[initial_species_list$HBW == "Calidris subruficollis"] <- "Tryngites subruficollis"
+initial_species_list$Pulido[initial_species_list$HBW == "Drymophila klagesi"] <- "Drymophila caudata"
+initial_species_list$Pulido[initial_species_list$HBW == "Aglaiocercus kingii"] <- "Aglaiocercus kingi"
+initial_species_list$Pulido[initial_species_list$HBW == "Amazilia saucerottei"] <- "Amazilia saucerrottei"
+initial_species_list$Pulido[initial_species_list$HBW == "Amazona mercenarius"] <- "Amazona mercenaria"
+initial_species_list$Pulido[initial_species_list$HBW == "Antrostomus carolinensis"] <- "Caprimulgus carolinensis"
+initial_species_list$Pulido[initial_species_list$HBW == "Asio clamator"] <- "Pseudoscops clamator"
+initial_species_list$Pulido[initial_species_list$HBW == "Buteogallus schistaceus"] <- "Leucopternis schistaceus"
+initial_species_list$Pulido[initial_species_list$HBW == "Buteogallus solitarius"] <- "Harpyhaliaetus solitarius"
+initial_species_list$Pulido[initial_species_list$HBW == "Asthenes fuliginosa"] <- "Schizoeaca fuliginosa"
+initial_species_list$Pulido[initial_species_list$HBW == "Clibanornis rubiginosus"] <- "Automolus rubiginosus nigricauda"
+initial_species_list$Pulido[initial_species_list$HBW == "Cercomacroides nigrescens"] <- "Cercomacra nigrescens"
+initial_species_list$Pulido[initial_species_list$HBW == "Cercomacroides parkeri"] <- "Cercomacra parkeri"
+initial_species_list$Pulido[initial_species_list$HBW == "Cercomacroides serva"] <- "Cercomacra serva"
+initial_species_list$Pulido[initial_species_list$HBW == "Drymotoxeres pucheranii"] <- "Drymotoxeres pucherani"
+initial_species_list$Pulido[initial_species_list$HBW == "Pachysylvia semibrunnea"] <- "Hylophilus semibrunneus"
+initial_species_list$Pulido[initial_species_list$HBW == "Scytalopus perijanus"] <- "Scytalopus meridanus"
+initial_species_list$Pulido[initial_species_list$HBW == "Pygochelidon melanoleuca"] <- "Atticora melanoleuca"
+initial_species_list$Pulido[initial_species_list$HBW == "Atticora tibialis"] <- "Neochelidon tibialis"
+initial_species_list$Pulido[initial_species_list$HBW == "Myrmelastes leucostigma"] <- "Schistocichla leucostigma"
+initial_species_list$Pulido[initial_species_list$HBW == "Antrostomus rufus"] <- "Caprimulgus rufus"
+initial_species_list$Pulido[initial_species_list$HBW == "Myiothlypis flaveola"] <- "Basileuterus flaveolus"
+initial_species_list$Pulido[initial_species_list$HBW == "Cnemathraupis eximia"] <- "Buthraupis eximia"
+initial_species_list$Pulido[initial_species_list$HBW == "Spinus spinescens"] <- "Carduelis spinescens"
+initial_species_list$Pulido[initial_species_list$HBW == "Spinus xanthogastrus"] <- "Carduelis xanthogastra"
+initial_species_list$Pulido[initial_species_list$HBW == "Setophaga virens"] <- "Dendroica virens"
+initial_species_list$Pulido[initial_species_list$HBW == "Chlorospingus flavopectus"] <- "Chlorospingus ophthalmicus"
+initial_species_list$Pulido[initial_species_list$HBW == "Cacicus oseryi"] <- "Clypicterus oseryi"
+initial_species_list$Pulido[initial_species_list$HBW == "Setophaga castanea"] <- "Dendroica castanea"
+initial_species_list$Pulido[initial_species_list$HBW == "Sporophila fringilloides"] <- "Dolospingus fringilloides"
+initial_species_list$Pulido[initial_species_list$HBW == "Pseudospingus verticalis"] <- "Hemispingus verticalis"
+initial_species_list$Pulido[initial_species_list$HBW == "Pheugopedius spadix"] <- "Thryothorus spadix"
+initial_species_list$Pulido[initial_species_list$HBW == "Melanospiza bicolor"] <- "Tiaris bicolor"
+initial_species_list$Pulido[initial_species_list$HBW == "Pheugopedius fasciatoventris"] <- "Thryothorus fasciatoventris"
+initial_species_list$Pulido[initial_species_list$HBW == "Cantorchilus leucotis"] <- "Thryothorus leucotis"
+initial_species_list$Pulido[initial_species_list$HBW == "Pheugopedius mystacalis"] <- "Thryothorus mystacalis"
+initial_species_list$Pulido[initial_species_list$HBW == "Thryophilus rufalbus"] <- "Thryothorus rufalbus"
+initial_species_list$Pulido[initial_species_list$HBW == "Asemospiza fuliginosa"] <- "Tiaris fuliginosus"
+initial_species_list$Pulido[initial_species_list$HBW == "Setophaga pitiayumi"] <- "Parula pitiayumi"
+initial_species_list$Pulido[initial_species_list$HBW == "Spinus psaltria"] <- "Carduelis psaltria"
+initial_species_list$Pulido[initial_species_list$HBW == "Dives warczewiczi"] <- "Dives warszewiczi"
+initial_species_list$Pulido[initial_species_list$HBW == "Pheugopedius coraya"] <- "Thryothorus coraya"
+initial_species_list$Pulido[initial_species_list$HBW == "Paroaria nigrogenis"] <- "Paroaria gularis"
+initial_species_list$Pulido[initial_species_list$HBW == "Clibanornis rufipectus"] <- "Automolus rufipectus"
+initial_species_list$Pulido[initial_species_list$HBW == "Eupsittula pertinax"] <- "Aratinga pertinax"
+initial_species_list$Pulido[initial_species_list$HBW == "Arremon atricapillus"] <- "Arremon torquatus"
+initial_species_list$Pulido[initial_species_list$HBW == "Psittacara acuticaudatus"] <- "Aratinga acuticaudata"
+initial_species_list$Pulido[initial_species_list$HBW == "Setophaga cerulea"] <- "Dendroica cerulea"
+initial_species_list$Pulido[initial_species_list$HBW == "Spinus cucullatus"] <- "Carduelis cucullata"
+initial_species_list$Pulido[initial_species_list$HBW == "Sporophila angolensis"] <- "Oryzoborus angolensis"
+initial_species_list$Pulido[initial_species_list$HBW == "Atlapetes blancae"] <- "Atlapetes schistaceus"
+initial_species_list$Pulido[initial_species_list$HBW == "Anthocephala berlepschi"] <- "Anthocephala floriceps"
+initial_species_list$Pulido[initial_species_list$HBW == "Vireo chivi"] <- "Vireo olivaceus"
+initial_species_list$Pulido[initial_species_list$HBW == "Grallaria fenwickorum"] <- "Grallaria milleri"
+
+# The following species are here lumped with an extralimital near-relative, so that they will not appear as duplicates
+# in the Pulido column.
+initial_species_list$Pulido[initial_species_list$HBW == "Podiceps andinus"] <- "Podiceps nigricollis"
+initial_species_list$Pulido[initial_species_list$HBW == "Megascops gilesi"] <- "Megascops roboratus"
+initial_species_list$Pulido[initial_species_list$HBW == "Scytalopus alvarezlopezi"] <- "Scytalopus robbinsi"
+initial_species_list$Pulido[initial_species_list$HBW == "Synallaxis beverlyae"] <- "Synallaxis hypospodia"
+initial_species_list$Pulido[initial_species_list$HBW == "Synallaxis fuscorufa"] <- "Synallaxis castanea"
+
+initial_species_list$Pulido[initial_species_list$Pulido %ni% pulido.spp]
+
+initial_species_list[duplicated(initial_species_list$Pulido), ]
+
+
+
+##### Import Eltontraits data
+download.file("https://ndownloader.figshare.com/files/5631081",
+              destfile = 'Data/Birds/traits/elton.txt')
+traits <- read.delim('Data/Birds/traits/elton.txt', header=T, stringsAsFactors = F)
+
+initial_species_list$Pulido[initial_species_list$Pulido %ni% traits$Scientific]
+
+
+initial_species_list$eltontraits <- NA
+for(i in 1:nrow(initial_species_list)){
+  if(initial_species_list$Pulido[i] %in% traits$Scientific){
+    initial_species_list$eltontraits[i] <- initial_species_list$Pulido[i]
+  }
+}
+
+initial_species_list$eltontraits[initial_species_list$Pulido == "Pseudocolaptes lawrencii johnsoni"] <- "Pseudocolaptes johnsoni"
+initial_species_list$eltontraits[initial_species_list$Pulido == "Xiphorhynchus chunchotambo"] <- "Xiphorhynchus ocellatus"
+initial_species_list$eltontraits[initial_species_list$Pulido == "Xenops minutus remoratus"] <- "Xenops minutus"
+initial_species_list$eltontraits[initial_species_list$Pulido == "Dendrocolaptes certhia certhia"] <- "Dendrocolaptes certhia"
+initial_species_list$eltontraits[initial_species_list$Pulido == "Microxenops milleri"] <- "Xenops milleri"
+initial_species_list$eltontraits[initial_species_list$Pulido == "Automolus rubiginosus nigricauda"] <- "Automolus rubiginosus"
+initial_species_list$eltontraits[initial_species_list$Pulido == "Certhiasomus stictolaemus"] <- "Deconychura stictolaema"
+initial_species_list$eltontraits[initial_species_list$Pulido == "Drymotoxeres pucherani"] <- "Campylorhamphus pucherani"
+initial_species_list$eltontraits[initial_species_list$Pulido == "Automolus rufipectus"] <- "Automolus rubiginosus"
+
+
+
+###### Parker
+parker <- read.csv('Data/Birds/traits/Parker_Stotz_Fitzpatrick_1996/databases/adata.csv')
+parker.nb <- read.csv('Data/Birds/traits/Parker_Stotz_Fitzpatrick_1996/databases/cdata.csv')
+
+parker <- gtools::smartbind(parker, parker.nb)
+parker.spp <- paste(parker$GENUS, parker$SPECIES)
+
+initial_species_list$HBW[initial_species_list$HBW %ni% parker.spp]
+
 
 
 
