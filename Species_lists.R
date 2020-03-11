@@ -51,11 +51,15 @@ b_mainland_latlon <- st_transform(b_mainland, st_crs(recast_range_maps))
 colombia_overlaps <- st_intersects(recast_range_maps, b_mainland_latlon)
 # "although coordinates are longitude/latitude, st_intersects assumes that they are planar"
 # I think the above is equivalent to checking for intersections on a Mercator projection.  It won't be a problem here.
-
 save(colombia_overlaps, file = "Data/Birds/species_list_creation/HBW_colombia_overlaps.Rdata")
 load("Data/Birds/species_list_creation/HBW_colombia_overlaps.Rdata")
 # Get the list of species
 colombia_species <- unique(recast_range_maps$SCINAME[unlist(lapply(colombia_overlaps, FUN = function(i){return(length(i) != 0)}))])
+save(colombia_species, file = "Data/Birds/species_list_creation/colombia_species.Rdata")
+
+
+
+load("Data/Birds/species_list_creation/colombia_species.Rdata")
 
 # Read in the HBW/eBird taxonomic interconversion that Marshall Iliff prepared
 taxonomy <- read.csv("Data/Birds/species_list_creation/HBW_eBird_taxonomy.csv", stringsAsFactors = F)
@@ -257,7 +261,7 @@ initial_species_list$HBW[is.na(initial_species_list$eBird)]
 
 
 # Now match to Pulido tree names
-pulido <- ape::read.tree(file = "/Users/jacobsocolar/Desktop/useful_datasets/Pulido_phylogeny/JETZ TREES/All_birds_MaxCladeCredTree.txt")
+pulido <- ape::read.tree(file = "Data/Birds/phylogeny/Pulido_phylogeny/JETZ TREES/All_birds_MaxCladeCredTree.txt")
 pulido.spp <- gsub("_", " ", pulido$tip.label)
 
 initial_species_list$HBW[(initial_species_list$HBW %ni% pulido.spp) &
@@ -496,8 +500,8 @@ initial_species_list[duplicated(initial_species_list$Pulido), ]
 
 
 ##### Import Eltontraits data
-download.file("https://ndownloader.figshare.com/files/5631081",
-              destfile = 'Data/Birds/traits/elton.txt')
+#download.file("https://ndownloader.figshare.com/files/5631081",
+#              destfile = 'Data/Birds/traits/elton.txt')
 traits <- read.delim('Data/Birds/traits/elton.txt', header=T, stringsAsFactors = F)
 
 initial_species_list$Pulido[initial_species_list$Pulido %ni% traits$Scientific]
@@ -520,6 +524,8 @@ initial_species_list$eltontraits[initial_species_list$Pulido == "Certhiasomus st
 initial_species_list$eltontraits[initial_species_list$Pulido == "Drymotoxeres pucherani"] <- "Campylorhamphus pucherani"
 initial_species_list$eltontraits[initial_species_list$Pulido == "Automolus rufipectus"] <- "Automolus rubiginosus"
 
+
+write.csv(initial_species_list, file = "Data/Birds/species_list_creation/initial_species_list.csv")
 
 
 ###### Parker

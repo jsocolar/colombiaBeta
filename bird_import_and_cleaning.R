@@ -2,13 +2,13 @@
 setwd("/Users/JacobSocolar/Dropbox/Work/Colombia")
 
 # read in united eBird/HBW taxonomy
-taxonomy <- read.csv("Data/Birds/HBW_eBird_taxonomy.csv")
+taxonomy <- read.csv("Data/Birds/species_list_creation/HBW_eBird_taxonomy.csv")
 t2 <- taxonomy[taxonomy$HBW_CAT == "sp" | taxonomy$CLEM_CAT_2019 == "sp", ] # remove taxa that are not treated as species by either eBird or HBW
 
 ##### Western Andes #####
 wandes1 <- read.csv("Data/Birds/James_WAndes_all_birds.csv")
 wandes <- wandes1[wandes1$Distance %in% c('A', 'B', 'C'), ]
-wandes_pts <- read.csv("Data/Points/James_andes_points.csv")
+wandes_pts <- read.csv("Data/GIS/Points/James_andes_points.csv")
 unique(wandes_pts$Habcode)
 goodpts <- wandes_pts$Point[wandes_pts$Habcode != "Sy"]
 
@@ -21,13 +21,12 @@ p2 <- unique(wandes$Species[wandes$Species %ni% t2$CLEM_SCI_2019])
 p1[p1 %ni% p2]
 p2[p2 %ni% p1]
 
-# Most differences correspond to different names for the same taxon.  However, Chlorostilbon melanorhynchus is lumped 
-# with C. mellisugus in HBW/BirdLife. Here we will align with eBird:
-
+# Align to HBW taxonomy.
+# Most differences correspond to different names for the same taxon, but a minority of changes involve splits/lumps
+# Only one HBW split potentially has both daughters represented (Ramphcelus flammigerus/icteronotus)
 wandes$Species[wandes$Species == "Myadestes ralliodes"] <- "Myadestes ralloides"
 wandes$Species[wandes$Species == "Basileuterus coronatus"] <- "Myiothlypis coronata"
 wandes$Species[wandes$Species == "Carduelis xanthogastra"] <- "Spinus xanthogastrus"
-wandes$Species[wandes$Species == "Tangara heinei"] <- "Stilpnia heinei"
 wandes$Species[wandes$Species == "Phyllomyias nigricapilla"] <- "Phyllomyias nigrocapillus"
 wandes$Species[wandes$Species == "Tyrranus melancholicus"] <- "Tyrannus melancholicus"
 wandes$Species[wandes$Species == "Lepidicolaptes lacrymiger"] <- "Lepidocolaptes lacrymiger"
@@ -36,11 +35,10 @@ wandes$Species[wandes$Species == "Tangara labradoides"] <- "Tangara labradorides
 wandes$Species[wandes$Species == "Phyllomyias nigricapilla"] <- "Phyllomyias nigrocapillus"
 wandes$Species[wandes$Species == "Pseudocollaptes boissonneautii"] <- "Pseudocolaptes boissonneautii"
 wandes$Species[wandes$Species == "Calliphlox mulsant"] <- "Chaetocercus mulsant"
-wandes$Species[wandes$Species == "Tangara vitriolina"] <- "Stilpnia vitriolina"
 wandes$Species[wandes$Species == "Ocreatus underwoodi"] <- "Ocreatus underwoodii"
 wandes$Species[wandes$Species == "Pipreola riefferi"] <- "Pipreola riefferii"
-wandes$Species[wandes$Species == "Calliphlox mitchelli"] <- "Philodice mitchellii"
-wandes$Species[wandes$Species == "Picoides fumigatus"] <- "Dryobates fumigatus"
+wandes$Species[wandes$Species == "Calliphlox mitchelli"] <- "Calliphlox mitchellii"
+wandes$Species[wandes$Species == "Picoides fumigatus"] <- "Leuconotopicus fumigatus"
 wandes$Species[wandes$Species == "Carduelis spinescens"] <- "Spinus spinescens"
 wandes$Species[wandes$Species == "Icterus chrysaster"] <- "Icterus chrysater"
 wandes$Species[wandes$Species == "Aglaiocercus kingi"] <- "Aglaiocercus kingii"
@@ -54,16 +52,15 @@ wandes$Species[wandes$Species == "Cyclaris nigrirostris"] <- "Cyclarhis nigriros
 wandes$Species[wandes$Species == "Margorornis stellatus"] <- "Margarornis stellatus"
 wandes$Species[wandes$Species == "Chlorornis riefferi"] <- "Chlorornis riefferii"
 wandes$Species[wandes$Species == "Amazona mercenaria"] <- "Amazona mercenarius"
-wandes$Species[wandes$Species == "Veniliornis dignus"] <- "Dryobates dignus"
 wandes$Species[wandes$Species == "Rupicola peruviana"] <- "Rupicola peruvianus"
 wandes$Species[wandes$Species == "Ciphorhinus thoracicus"] <- "Cyphorhinus thoracicus"
 wandes$Species[wandes$Species == "Basileuterus luteoviridis"] <- "Myiothlypis luteoviridis"
-wandes$Species[wandes$Species == "Phylloscartes opthalmicus"] <- "Phylloscartes ophthalmicus"
+wandes$Species[wandes$Species == "Phylloscartes opthalmicus"] <- "Pogonotriccus ophthalmicus"
 wandes$Species[wandes$Species == "Calliphlox mulsant"] <- "Chaetocercus mulsant"
 wandes$Species[wandes$Species == "Tangara ruficervix"] <- "Chalcothraupis ruficervix"
 wandes$Species[wandes$Species == "Tangara artus"] <- "Tangara arthus"
 wandes$Species[wandes$Species == "Chlorospingus opthalmicus"] <- "Chlorospingus flavopectus"
-wandes$Species[wandes$Species == "Phyllosacrtes poecilotis"] <- "Phylloscartes poecilotis"
+wandes$Species[wandes$Species == "Phyllosacrtes poecilotis"] <- "Pogonotriccus poecilotis"
 wandes$Species[wandes$Species == "Hemispingus frontalis"] <- "Sphenopsis frontalis"
 wandes$Species[wandes$Species == "Carduelis psaltria"] <- "Spinus psaltria"
 wandes$Species[wandes$Species == "Premnornis guttuligera"] <- "Premnornis guttuliger"
@@ -72,8 +69,6 @@ wandes$Species[wandes$Species == "Myiozetetes simillis"] <- "Myiozetetes similis
 wandes$Species[wandes$Species == "Oryzoborus funereus"] <- "Sporophila funerea"
 wandes$Species[wandes$Species == "Parula pitiayumi"] <- "Setophaga pitiayumi"
 wandes$Species[wandes$Species == "Leiothlypis peregrinea"] <- "Leiothlypis peregrina"
-wandes$Species[wandes$Species == "Tangara cyanicollis"] <- "Stilpnia cyanicollis"
-wandes$Species[wandes$Species == "Tangara larvata"] <- "Stilpnia larvata"
 wandes$Species[wandes$Species == "Sturnella militaris"] <- "Leistes militaris"
 wandes$Species[wandes$Species == "Atilla spadiceus"] <- "Attila spadiceus"
 wandes$Species[wandes$Species == "Cercomacra parkeri"] <- "Cercomacroides parkeri"
@@ -85,7 +80,6 @@ wandes$Species[wandes$Species == "Leptopogon supercilliaris"] <- "Leptopogon sup
 wandes$Species[wandes$Species == "Basileuterus chrysogaster"] <- "Myiothlypis chrysogaster"
 wandes$Species[wandes$Species == "Dendrocincla tyrannia"] <- "Dendrocincla tyrannina"
 wandes$Species[wandes$Species == "Hylophilus semibrunneus"] <- "Pachysylvia semibrunnea"
-wandes$Species[wandes$Species == "Tangara rufigula"] <- "Ixothraupis rufigula"
 wandes$Species[wandes$Species == "Hemispingus supercilliaris"] <- "Thlypopsis superciliaris"
 wandes$Species[wandes$Species == "Terenura callinota"] <- "Euchrepomis callinota"
 wandes$Species[wandes$Species == "Pharomarchus antisianus"] <- "Pharomachrus antisianus"
@@ -106,7 +100,6 @@ wandes$Species[wandes$Species == "Hemispingus melanotis"] <- "Sphenopsis melanot
 wandes$Species[wandes$Species == "Atticora tobialis"] <- "Atticora tibialis"
 wandes$Species[wandes$Species == "Nephilomyias fasciatus"] <- "Myiophobus fasciatus"
 wandes$Species[wandes$Species == "Colibri delphinnae"] <- "Colibri delphinae"
-wandes$Species[wandes$Species == "Colibri thalassinus"] <- "Colibri cyanotus"
 wandes$Species[wandes$Species == "Dendroica fusca"] <- "Setophaga fusca"
 wandes$Species[wandes$Species == "Cathatres aura"] <- "Cathartes aura"
 wandes$Species[wandes$Species == "Dendroica striata"] <- "Setophaga striata"
@@ -117,7 +110,32 @@ wandes$Species[wandes$Species == "Buteo albicaudatus"] <- "Geranoaetus albicauda
 wandes$Species[wandes$Species == "Buteo magnirostris"] <- "Rupornis magnirostris"
 wandes$Species[wandes$Species == "Buteo polysoma"] <- "Geranoaetus polyosoma"
 wandes$Species[wandes$Species == "Schistes geoffroyi"] <- "Schistes albogularis"
-
+wandes$Species[wandes$Species == "Tangara parzudakii"] <- "Tangara lunigera"
+wandes$Species[wandes$Species == "Patagioenas fasciata"] <- "Patagioenas albilinea"
+wandes$Species[wandes$Species == "Aulacorhynchus prasinus"] <- "Aulacorhynchus albivitta"
+wandes$Species[wandes$Species == "Pseudocolaptes lawrencii"] <- "Pseudocolaptes johnsoni"
+wandes$Species[wandes$Species == "Platyrinchus mystaceus"] <- "Platyrinchus albogularis"
+wandes$Species[wandes$Species == "Mionectes olivaceus"] <- "Mionectes galbinus"
+wandes$Species[wandes$Species == "Contopus cinereus"] <- "Contopus bogotensis"
+wandes$Species[wandes$Species == "Myiodynastes chrysocephalus"] <- "Myiodynastes hemichrysus"
+wandes$Species[wandes$Species == "Cyanolyca armillata"] <- "Cyanolyca quindiuna"
+wandes$Species[wandes$Species == "Cyphorhinus thoracicus"] <- "Cyphorhinus dichrous"
+wandes$Species[wandes$Species == "Cacicus chrysonotus"] <- "Cacicus leucoramphus"
+wandes$Species[wandes$Species == "Myiothlypis chrysogaster"] <- "Myiothlypis chlorophrys"
+wandes$Species[wandes$Species == "Myioborus ornatus"] <- "Myioborus chrysops"
+wandes$Species[wandes$Species == "Piranga flava"] <- "Piranga hepatica"
+wandes$Species[wandes$Species == "Chalcothraupis ruficervix"] <- "Tangara ruficervix"
+wandes$Species[wandes$Species == "Tangara arthus"] <- "Tangara aurulenta"
+wandes$Species[wandes$Species == "Sporophila corvina"] <- "Sporophila ophthalmica"
+wandes$Species[wandes$Species == "Chlorostilbon melanorhynchus"] <- "Chlorostilbon mellisugus"
+wandes$Species[wandes$Species == "Ochthoeca diadema"] <- "Silvicultrix diadema"
+wandes$Species[wandes$Species == "Pseudocolaptes boissonneautii"] <- "Pseudocolaptes boissonneauii"
+wandes$Species[wandes$Species == "Thraupis cyanocephala"] <- "Sporathraupis cyanocephala"
+wandes$Species[wandes$Species == "Thraupis episcopus"] <- "Tangara episcopus"
+wandes$Species[wandes$Species == "Thraupis palmarum"] <- "Tangara palmarum"
+wandes$Species[wandes$Species == "Xenops rutilans"] <- "Xenops rutilus"
+wandes$Species[wandes$Species == "Atlapetes tricolor"] <- "Atlapetes crassus"
+wandes$Species[wandes$Species == "Chlorothraupis stolzmanni"] <- "Habia stolzmanni"
 
 wandes <- wandes[-which(wandes$Species %in% c("Stelgidopteryx ruficollis", "Atticora tibialis", "Hirundo rustica",
                                               "Pygochelidon cyanoleuca", "Orochelidon murina")), ]
@@ -162,6 +180,13 @@ WAndesSpp <- gsub(" ", "_", unique(wandes$Species))
 llanos <- read.csv("Data/Birds/James_llanos_all_birds.csv")
 llanos$Species <- as.character(llanos$Species)
 
+# Align to HBW taxonomy.
+# Most differences correspond to different names for the same taxon, but a minority of changes involve splits/lumps
+# It appears that no HBW splits have both daughters represented, but borderline cases include Myiodynastes maculatus/solitarius, 
+# Turdus ignobilis/debilis, and Tolmomyias flaviventris/viridiceps.  The Myiodynastes are assumed to all be maculatus
+# based on date.  The Turdus are assumed to all be ignobilis based on photos from the region in eBird.  The Tolmomyias
+# are assumed to all be flaviventris based on recordings from the region on Xeno-Canto.
+
 llanos$Species[llanos$Species == "Buteo magnirostris"] <- "Rupornis magnirostris"
 llanos$Species[llanos$Species == "Penelope jacuae"] <- "Penelope jacquacu"
 llanos$Species[llanos$Species == "Trogolodytes aedon"] <- "Troglodytes aedon"
@@ -180,7 +205,6 @@ llanos$Species[llanos$Species == "Eurypygia helias"] <- "Eurypyga helias"
 llanos$Species[llanos$Species == "Parkesia noveboravenis"] <- "Parkesia noveboracensis"
 llanos$Species[llanos$Species == "Megarhynchus pitangua"] <- "Megarynchus pitangua"
 llanos$Species[llanos$Species == "Mesembrinibis cayannensis"] <- "Mesembrinibis cayennensis"
-llanos$Species[llanos$Species == "Tangara cayana"] <- "Stilpnia cayana"
 llanos$Species[llanos$Species == "Syrigma silbilatrix"] <- "Syrigma sibilatrix"
 llanos$Species[llanos$Species == "Leptoptilla rufaxilla"] <- "Leptotila rufaxilla"
 llanos$Species[llanos$Species == "Procne tapera"] <- "Progne tapera"
@@ -191,7 +215,6 @@ llanos$Species[llanos$Species == "Volatina jacinaria"] <- "Volatinia jacarina"
 llanos$Species[llanos$Species == "Myrmeciza atrothorax"] <- "Myrmophylax atrothorax"
 llanos$Species[llanos$Species == "Caprimulgus maculicaudus"] <- "Hydropsalis maculicaudus"
 llanos$Species[llanos$Species == "Phacellodromus rufifrons"] <- "Phacellodomus rufifrons"
-llanos$Species[llanos$Species == "Veniliornis passerinus"] <- "Dryobates passerinus"
 llanos$Species[llanos$Species == "Myiarchus tubericulifer"] <- "Myiarchus tuberculifer"
 llanos$Species[llanos$Species == "Dendroica aestiva"] <- "Setophaga petechia"
 llanos$Species[llanos$Species == "Aramides cayanea"] <- "Aramides cajaneus"
@@ -219,7 +242,21 @@ llanos$Species[llanos$Species == "Philherodias pileatus"] <- "Pilherodius pileat
 llanos$Species[llanos$Species == "Tringites subruficollis"] <- "Calidris subruficollis"
 llanos$Species[llanos$Species == "Tityra squamiger"] <- "Tityra cayana"
 llanos$Species[llanos$Species == "Momotus subrufescens"] <- "Momotus momota"
+llanos$Species[llanos$Species == "Pteroglossus inscriptus"] <- "Pteroglossus humboldti"
+llanos$Species[llanos$Species == "Ramphastos tucanus"] <- "Ramphastos cuvieri"
+llanos$Species[llanos$Species == "Dryocopus lineatus"] <- "Hylatomus lineatus"
+llanos$Species[llanos$Species == "Phacellodomus rufifrons"] <- "Phacellodomus inornatus"
+llanos$Species[llanos$Species == "Arremon taciturnus"] <- "Arremon axillaris"
+llanos$Species[llanos$Species == "Icterus cayanensis"] <- "Icterus chrysocephalus"
+llanos$Species[llanos$Species == "Pitangus lictor"] <- "Philohydor lictor"
+llanos$Species[llanos$Species == "Tachyphonus luctuosus"] <- "Islerothraupis luctuosa"
+llanos$Species[llanos$Species == "Thraupis episcopus"] <- "Tangara episcopus"
+llanos$Species[llanos$Species == "Thraupis palmarum"] <- "Tangara palmarum"
+llanos$Species[llanos$Species == "Hypnelus ruficollis"] <- "Hypnelus bicinctus"
+
+# We assume that all of the llanos Myiodynastes maculatus are nominate maculatus, given the Jan-March timeframe.
 llanos <- llanos[llanos$Species != "Vireo olivaceus", ] # Records are in February and March, when there's no way to separate true olivaceus from resident chivi after the fact
+
 
 llanos1 <- llanos
 llanos2 <- llanos[llanos$HAB != "PALM",]
@@ -240,9 +277,9 @@ jacob <- jacob2[jacob2$Species %ni% c("Sono", "Visu", "", "Henicorhina_sp"),]
 ##### Tools to monitor progress on dataset as it's entered--not part of final analysis #####
 # 231 Llanos spp
 # 319 WAndes spp
-# 746 Jacob spp
-# 243 EAndes spp (Simon+David only)
-# 952 total spp
+# 750 Jacob spp
+# 247 EAndes spp (Simon+David only)
+# 956 total spp
 
 dim(jacob)
 dim(jacob2)[1] - dim(jacob)[1]
@@ -267,21 +304,52 @@ for(i in 1:nrow(simon)){
 
 simonSpp <- gsub(" ", "_", simon$scientific)
 simonSpp[simonSpp == "Grallaria_quitensis"] <- "Grallaria_alticola"
+simonSpp[simonSpp == "Patagioenas_fasciata"] <- "Patagioenas_albilinea"
+simonSpp[simonSpp == "Dryobates_fumigatus"] <- "Leuconotopicus_fumigatus"
+simonSpp[simonSpp == "Dryocopus_lineatus"] <- "Hylatomus_lineatus"
+simonSpp[simonSpp == "Mionectes_olivaceus"] <- "Mionectes_galbinus"
+simonSpp[simonSpp == "Myiodynastes_chrysocephalus"] <- "Myiodynastes_hemichrysus"
+simonSpp[simonSpp == "Catharus_ustulatus"] <- "Catharus_swainsoni"
+simonSpp[simonSpp == "Cacicus_chrysonotus"] <- "Cacicus_leucoramphus"
+simonSpp[simonSpp == "Anisognathus_igniventris"] <- "Anisognathus_lunulatus"
+simonSpp[simonSpp == "Tangara_arthus"] <- "Tangara_aurulenta"
+simonSpp[simonSpp == "Colibri_cyanotus"] <- "Colibri_thalassinus"
+simonSpp[simonSpp == "Ochthoeca_diadema"] <- "Silvicultrix_diadema"
+simonSpp[simonSpp == "Ochthoeca_frontalis"] <- "Silvicultrix_frontalis"
+simonSpp[simonSpp == "Phylloscartes_poecilotis"] <- "Pogonotriccus_poecilotis"
+simonSpp[simonSpp == "Pseudocolaptes_boissonneautii"] <- "Pseudocolaptes_boissonneauii"
+simonSpp[simonSpp == "Stilpnia_heinei"] <- "Tangara_heinei"
+simonSpp[simonSpp == "Stilpnia_cyanicollis"] <- "Tangara_cyanicollis"
+simonSpp[simonSpp == "Stilpnia_vitriolina"] <- "Tangara_vitriolina"
+simonSpp[simonSpp == "Thraupis_cyanocephala"] <- "Sporathraupis_cyanocephala"
+simonSpp[simonSpp == "Thraupis_episcopus"] <- "Tangara_episcopus"
+simonSpp[simonSpp == "Thraupis_palmarum"] <- "Tangara_palmarum"
+simonSpp[simonSpp == "Xenops_rutilans"] <- "Xenops_rutilus"
+
+
 LlanosSpp <- gsub(" ", "_", unique(llanos$Species))
 WAndesSpp <- gsub(" ", "_", unique(wandes$Species))
 
 allSpp <- unique(c(jacobSpp, simonSpp, LlanosSpp, WAndesSpp))
 allSpp <- allSpp[-which(allSpp %in% c('Henicorhina_bangsi', 'Grallaria_rufula_spatiator'))]
 allSpp
-#952
+#956
 
-allSpp[grep("Corapipo", allSpp)]
+load("/Users/JacobSocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/colombia_species.Rdata")
+
+allSpp[gsub("_", " ", allSpp) %ni% colombia_species]
 
 
-jacobSpp[grep("Saltator", jacobSpp)]
-simonSpp[grep("Myiobius", simonSpp)]
-WAndesSpp[grep("Pteroglo", WAndesSpp)]
-LlanosSpp[grep("Myiobius", LlanosSpp)]
+
+t2[t2$CLEM_SCI_2019 == "Chlorothraupis stolzmanni", ]
+
+allSpp[grep("Sclerurus", allSpp)]
+
+
+jacobSpp[grep("Chlorothraupis", jacobSpp)]
+simonSpp[grep("Chlorothraupis", simonSpp)]
+WAndesSpp[grep("Chlorothraupis", WAndesSpp)]
+LlanosSpp[grep("Chlorothraupis", LlanosSpp)]
 
 
 ##### Additional tools to monitor my portion of the dataset
@@ -313,5 +381,15 @@ sum(v==5)
 
 sum(v<5)
 jacobSpp[which(v>=5)]
+
+
+
+
+##### For Felicity ######
+allSpp # all species currently in the dataset (HBW/BirdLife taxonomy)
+
+AmazonSpp <- unique(jacob$Species[min(which(jacob$Point == 'SGP12')):nrow(jacob)])
+AmazonSpp # all species recorded from Amazonian points
+
 
 
