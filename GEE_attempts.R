@@ -1,5 +1,5 @@
 # Experimenting with getting data analyzed via GEE from the R console and bringing the result directly back into R.
-
+#test
 # IMPORTANT: In order for this to work at all, it is necessary to first create a GEE account, download Anaconda, and 
 # run GEE_setup.sh from a bash shell. I make no guarantees about whether GEE_setup.sh works properly on Windows.
 # I experimented with running the entire bash script from R via system2(), but ultimately we'll have to manually input 
