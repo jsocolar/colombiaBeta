@@ -6,6 +6,8 @@
 # our GEE authentication keys either way, so it's quite cumbersome to do entirely via R, and we don't get the benefit of
 # complete automation anyway, since we'll need to manually input the GEE key no matter what.
 
+# Code adapted from https://philippgaertner.github.io/2019/12/earth-engine-rstudio-reticulate/
+
 library(reticulate)
 
 ##### Set up GEE session #####
