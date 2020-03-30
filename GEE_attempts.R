@@ -23,7 +23,7 @@ ee$Initialize()             # Trigger the authentication
 point_of_interest <- ee$Geometry$Point(-72.37150102, -0.631402982)
 ALOS <- ee$Image('JAXA/ALOS/AW3D30/V2_2')
 ALOS_elev <- ALOS$select('AVE_DSM')
-poi_elev <- ALOS$reduceRegions(point_of_interest, ee$Reducer$mean(), 30)$getInfo()
+poi_elev <- ALOS$reduceRegions(point_of_interest, ee$Reducer$mean(), .02)$getInfo()
 poi_elev$features[[1]]$properties$AVE_DSM
 
 ##### Extract ALOS elevations from many points #####
