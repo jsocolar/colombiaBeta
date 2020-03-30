@@ -269,25 +269,8 @@ L3sp <- unique(llanos$Species)
 L1sp[L1sp %ni% L2sp]
 L2sp[L2sp %ni% L3sp]
 
-##### Jacob #####
-jacob1 <- read.csv("Data/Birds/Jacob_data_v1.1.csv")
-jacob2 <- jacob1[jacob1$Dist %in% c('A', 'B', 'C') & is.na(jacob1$Dis) & is.na(jacob1$FO), ]
-jacob <- jacob2[jacob2$Species %ni% c("Sono", "Visu", "", "Henicorhina_sp"),]
 
-##### Tools to monitor progress on dataset as it's entered--not part of final analysis #####
-# 231 Llanos spp
-# 319 WAndes spp
-# 750 Jacob spp
-# 247 EAndes spp (Simon+David only)
-# 956 total spp
-
-dim(jacob)
-dim(jacob2)[1] - dim(jacob)[1]
-
-jacobSpp <- as.character(unique(jacob$Species)[order(unique(jacob$Species))])
-jacobSpp[gsub("_", " ", jacobSpp) %ni% t2$CLEM_SCI_2019]
-jacobSpp
-
+##### East Andes #####
 simon <- read.csv("Data/Birds/Simon_list_28-02-2019.csv", stringsAsFactors = F)
 simon_species <- simon$English.Ebird
 for(i in 1:length(simon_species)){
@@ -326,30 +309,105 @@ simonSpp[simonSpp == "Thraupis_episcopus"] <- "Tangara_episcopus"
 simonSpp[simonSpp == "Thraupis_palmarum"] <- "Tangara_palmarum"
 simonSpp[simonSpp == "Xenops_rutilans"] <- "Xenops_rutilus"
 
+##### Jacob #####
+jacob1 <- read.csv("Data/Birds/Jacob_data_v1.1.csv")
 
+# some of the below consists of data checks that won't be necessary for final analysis but are retained for now
+# (until the data file is finalized) to guard against typos and entry errors.
+all.equal(jacob1$Point == "", is.na(jacob1$Take)) #  make sure that NAs in jacob1$Take universally match ""'s in jacob1$Point
+unique(jacob1$Dis)
+length(unique(jacob1$Dis))
+unique(jacob1$Dist)
+length(unique(jacob1$Dist))
+unique(jacob1$FO)
+length(unique(jacob1$FO))
+
+# Fill in point and visit identifiers
+for(i in 2:nrow(jacob1)){
+  if(is.na(jacob1$Take[i])){
+    jacob1$Take[i] <- jacob1$Take[i - 1]
+    jacob1$Point[i] <- jacob1$Point[i - 1]
+  }
+}
+
+load("/Users/JacobSocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/colombia_species.Rdata")
+unique(jacob1$Species[gsub("_", " ", jacob1$Species) %ni% colombia_species])
+length(unique(jacob1$Species[gsub("_", " ", jacob1$Species) %ni% colombia_species]))
+
+# Extract the analyzeable records, but do so in several steps to implement typo checks and to keep track of 
+# how many species/entries are unanalyzeable.
+jacob2 <- droplevels(jacob1[jacob1$Species != "FLOCK" & is.na(jacob1$no_birds) & is.na(jacob1$Dis), ])
+unique(jacob2$Species[gsub("_", " ", jacob2$Species) %ni% colombia_species])
+length(unique(jacob2$Species[gsub("_", " ", jacob2$Species) %ni% colombia_species]))
+unique(jacob1$Species[which(jacob1$Species %ni% jacob2$Species)])
+length(unique(jacob1$Species[which(jacob1$Species %ni% jacob2$Species)]))
+unique(jacob2$Dist)
+length(unique(jacob2$Dist))
+
+jacob3 <- droplevels(jacob2[is.na(jacob2$FO) & (jacob2$Dist %in% c("A", "B", "C")), ])
+unique(jacob2$Species[which(jacob2$Species %ni% jacob3$Species)])
+length(unique(jacob2$Species[which(jacob2$Species %ni% jacob3$Species)]))
+
+jacob <- droplevels(jacob3[jacob3$Species %ni% c("Sono", "Visu"), ])
+
+
+# Get data file of visit-specific information
+jacob_visit_data <- jacob1[!is.na(jacob1$Time), names(jacob1) %in% c("Point", "Take", "Date", "Wind", "Vis", "Sky", "Sun", "Drip", "Time")]
+jacob_visit_data$Obs <- "JBS"
+jacob_visit_data$Obs[jacob_visit_data$Point == IGF]
+
+table(jacob_visit_data$Point)[table(jacob_visit_data$Point) < 4]
+
+##### jacob dataset: change from entry-convenient format to analysis-convenient format #####
+jacobACF1 <- jacob[, names(jacob) %in% c("Point", "Take", "Species", "Count")]
+
+jacobACF <- doBy::summaryBy(Count ~ Point + Take + Species, data = jacobACF1, FUN = sum)
+
+jacobACF[1:20,]
+
+jacobPOINTSUMMARY <- doBy::summaryBy(Count ~ Point + Species, data = jacobACF1, FUN = sum)
+
+
+
+##### Tools to monitor progress on dataset as it's entered--not part of final analysis #####
+# 237 Llanos spp
+# 319 WAndes spp
+# 247 EAndes spp (Simon+David only)
+# 755 Jacob spp
+## 281 Amazon
+## 557 Jacob outside Amazon
+# 607 other spp (all data except Jacob)
+# 959 total spp
+## 802 total spp outside of Amazon
+
+dim(jacob)
+dim(jacob3)[1] - dim(jacob)[1]
+
+jacobSpp <- as.character(unique(jacob$Species)[order(unique(jacob$Species))])
+jacobSpp[gsub("_", " ", jacobSpp) %ni% colombia_species]
+jacobSpp
+
+##### Combining Species Lists #####
 LlanosSpp <- gsub(" ", "_", unique(llanos$Species))
 WAndesSpp <- gsub(" ", "_", unique(wandes$Species))
 
 allSpp <- unique(c(jacobSpp, simonSpp, LlanosSpp, WAndesSpp))
-allSpp <- allSpp[-which(allSpp %in% c('Henicorhina_bangsi', 'Grallaria_rufula_spatiator'))]
 allSpp
-#956
+#959
 
-load("/Users/JacobSocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/colombia_species.Rdata")
+otherSpp <- unique(c(simonSpp, LlanosSpp, WAndesSpp))
+otherSpp
+#607
 
 allSpp[gsub("_", " ", allSpp) %ni% colombia_species]
 
+grepphrase <- "Myiothe"
 
-
-t2[t2$CLEM_SCI_2019 == "Chlorothraupis stolzmanni", ]
-
-allSpp[grep("Sclerurus", allSpp)]
-
-
-jacobSpp[grep("Chlorothraupis", jacobSpp)]
-simonSpp[grep("Chlorothraupis", simonSpp)]
-WAndesSpp[grep("Chlorothraupis", WAndesSpp)]
-LlanosSpp[grep("Chlorothraupis", LlanosSpp)]
+allSpp[grep(grepphrase, allSpp)]
+jacobSpp[grep(grepphrase, jacobSpp)]
+simonSpp[grep(grepphrase, simonSpp)]
+WAndesSpp[grep(grepphrase, WAndesSpp)]
+LlanosSpp[grep(grepphrase, LlanosSpp)]
 
 
 ##### Additional tools to monitor my portion of the dataset
@@ -360,13 +418,14 @@ for(i in 1:length(jacobSpp)){
   }
 }
 
-jacobSpp[grep("Myiobius", jacobSpp)]
+jacobSpp[grep("Psittac", jacobSpp)]
 
 sum(jacob$Species == "Pachysylvia_semibrunnea")
 
+# counting number of point-visits per species
 v <- vector()
 for(i in 1:length(jacobSpp)){
-  v[i] <- sum(jacob$Species == jacobSpp[i])
+  v[i] <- sum(jacobACF$Species == jacobSpp[i])
 }
 
 hist(v)
@@ -379,9 +438,43 @@ sum(v==3)
 sum(v==4)
 sum(v==5)
 
-sum(v<5)
+jacobSpp[which(v<5)]
+# 385
 jacobSpp[which(v>=5)]
 
+
+# counting number of points per species
+v <- vector()
+for(i in 1:length(jacobSpp)){
+  v[i] <- sum(jacobPOINTSUMMARY$Species == jacobSpp[i])
+}
+
+hist(v)
+jacobSpp[which(v > 50)]
+hist(v[v <= 50])
+hist(v[v <= 10])
+sum(v==1)
+sum(v==2)
+sum(v==3)
+sum(v==4)
+sum(v==5)
+
+jacobSpp[which(v<5)]
+# 430
+jacobSpp[which(v>=5)]
+
+sum(jacob$Species %in% jacobSpp[which(v<5)])
+sum(jacob$Species %in% jacobSpp[which(v>=5)])
+
+
+
+
+
+NonAmazonSpp <- as.character(unique(jacob$Species[1:(min(which(jacob$Point == 'SGP12'))-1)]))
+NonAmazonSpp
+
+AllNonAmazon <- unique(c(NonAmazonSpp, simonSpp, LlanosSpp, WAndesSpp))
+AllNonAmazon
 
 
 
