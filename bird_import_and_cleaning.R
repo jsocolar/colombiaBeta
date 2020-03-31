@@ -1,5 +1,22 @@
 `%ni%` <- Negate(`%in%`)
-setwd("/Users/JacobSocolar/Dropbox/Work/Colombia")
+
+##### For collaborative projects--figure out what machine we're on so that we can automatically set the working directory ####
+jacobsocolar <- length(grep('jacobsocolar', Sys.info())) > 0
+jacob <- length(grep('jacob', Sys.info())) > 0
+
+if(jacobsocolar){
+  basepath <- "/Users/JacobSocolar/Dropbox/Work/Colombia"
+}else if(jacob){
+  basepath <- "/Users/jacob/Dropbox/Work/Colombia"
+}# else if(){basepath <- }
+# Edit the above for whatever computer(s) you use.  Just make absolutely sure that the if condition is something that definitely
+# wouldn't possible evaluate as true on anybody else's system, and that none of the preceding conditions could possibly evaluate
+# to TRUE on your system!  (This isn't just about making sure that we get the right working directories; in some cases we might
+# conceivably invoke system commands for file management that depend on the basepath.)
+
+setwd(basepath)
+
+#########################
 
 # read in united eBird/HBW taxonomy
 taxonomy <- read.csv("Data/Birds/species_list_creation/HBW_eBird_taxonomy.csv")
