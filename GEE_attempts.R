@@ -34,7 +34,7 @@ ee$Initialize()             # Trigger the authentication
 point_of_interest <- ee$Geometry$Point(-72.37150102, -0.631402982)
 ALOS <- ee$Image('JAXA/ALOS/AW3D30/V2_2')
 ALOS_elev <- ALOS$select('AVE_DSM')
-poi_elev <- ALOS$reduceRegions(point_of_interest, ee$Reducer$mean(), .02)$getInfo()
+poi_elev <- ALOS$reduceRegions(point_of_interest, ee$Reducer$mean())$getInfo()
 poi_elev$features[[1]]$properties$AVE_DSM
 
 ##### Extract ALOS elevations from many points #####
@@ -59,7 +59,7 @@ ALOSelev <- sapply(c(1:length(pts_elev$features)),function(x)pts_elev$features[[
 ALOSelev <- cbind.data.frame(point_id=as.character(pts$point_id),ALOSelev)
 
 ##### Extract mean elevation from 100-m buffer around point (or many points) #####
-buffer.width <- 10000      # radius, in meters
+buffer.width <- 100      # radius, in meters
 max.error <- .01             # maximum error (controls number of vertices), in meters
 geomcircs <- sapply(1:nrow(pts),function(x)ee$Geometry$Point(c(pts$long[x],pts$lat[x]))$buffer(buffer.width,max.error))
 geomcircs <- ee$FeatureCollection(c(unlist(geomcircs)))
