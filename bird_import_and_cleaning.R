@@ -415,7 +415,7 @@ otherSpp
 
 allSpp[gsub("_", " ", allSpp) %ni% colombia_species]
 
-grepphrase <- "Myiothe"
+grepphrase <- "Pogono"
 
 allSpp[grep(grepphrase, allSpp)]
 jacobSpp[grep(grepphrase, jacobSpp)]
