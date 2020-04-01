@@ -56,10 +56,16 @@ geompts <- ee$FeatureCollection(c(unlist(geompts)))
 # Extract ALOS elevations for all points - combine into dataframe
 pts_elev <- ALOS$reduceRegions(geompts, ee$Reducer$mean())$getInfo()
 ALOSelev <- sapply(c(1:length(pts_elev$features)),function(x)pts_elev$features[[x]]$properties$AVE_DSM)
-ALOSelev2 <- cbind.data.frame(point_id=as.character(pts$point_id),ALOSelev)
+ALOSelev <- cbind.data.frame(point_id=as.character(pts$point_id),ALOSelev)
 
 ##### Extract mean elevation from 100-m buffer around point (or many points) #####
-
+buffer.width <- 10000      # radius, in meters
+max.error <- .01             # maximum error (controls number of vertices), in meters
+geomcircs <- sapply(1:nrow(pts),function(x)ee$Geometry$Point(c(pts$long[x],pts$lat[x]))$buffer(buffer.width,max.error))
+geomcircs <- ee$FeatureCollection(c(unlist(geomcircs)))
+circs_elev <- ALOS$reduceRegions(geomcircs, ee$Reducer$mean())$getInfo()
+ALOSelev_circ <- sapply(c(1:length(circs_elev$features)),function(x)circs_elev$features[[x]]$properties$AVE_DSM)
+ALOSelev_circ <- cbind.data.frame(point_id=as.character(pts$point_id),ALOSelev_circ)
 
 ##### Do some fancier calculation on raster at a point (or many points) in GEE; import result to R #####
 # For example, get slope and aspect data from ALOS
@@ -79,6 +85,7 @@ ALOSaspect <- cbind.data.frame(point_id=as.character(pts$point_id),ALOSaspect)
 
 ##### Extract actual elevation raster over some defined polygon (e.g. a 10 km buffer around a point), import to R as raster object #####
 # (This might be more relevant if we want to automatically pull in GFC rasters at some future date to derive complicated fragstat-style measures that we can't figure out how to code directly in GEE)
+
 
 
 
