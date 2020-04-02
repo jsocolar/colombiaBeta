@@ -27,8 +27,8 @@ library(reticulate)
 use_condaenv('gee_interface', conda = "auto", required = TRUE) # point reticulate to the conda environment created in GEE_setup.sh
 ee <- import("ee")          # Import the Earth Engine library
 ee$Initialize()             # Trigger the authentication
-#np <- import("numpy")       # Import Numpy        not sure this is necessary; it's a holdover from an example I borrowed from
-#pd <- import("pandas")      # Import Pandas       ditto the above
+np <- import("numpy")       # Import Numpy        not sure this is necessary; it's a holdover from an example I borrowed from
+pd <- import("pandas")      # Import Pandas       ditto the above
 
 ##### Extract ALOS elevation from a given point (can be looped over our points if necessary) #####
 point_of_interest <- ee$Geometry$Point(-72.37150102, -0.631402982)
@@ -60,7 +60,7 @@ ALOSelev <- cbind.data.frame(point_id=as.character(pts$point_id),ALOSelev)
 
 ##### Extract mean elevation from 100-m buffer around point (or many points) #####
 buffer.width <- 100      # radius, in meters
-max.error <- .01             # maximum error (controls number of vertices), in meters
+max.error <- 1             # maximum error (controls number of vertices), in meters
 geomcircs <- sapply(1:nrow(pts),function(x)ee$Geometry$Point(c(pts$long[x],pts$lat[x]))$buffer(buffer.width,max.error))
 geomcircs <- ee$FeatureCollection(c(unlist(geomcircs)))
 circs_elev <- ALOS$reduceRegions(geomcircs, ee$Reducer$mean())$getInfo()
@@ -85,8 +85,27 @@ ALOSaspect <- cbind.data.frame(point_id=as.character(pts$point_id),ALOSaspect)
 
 ##### Extract actual elevation raster over some defined polygon (e.g. a 10 km buffer around a point), import to R as raster object #####
 # (This might be more relevant if we want to automatically pull in GFC rasters at some future date to derive complicated fragstat-style measures that we can't figure out how to code directly in GEE)
+buffer.width <- 500
+max.error <- 1
+poi <- ee$Geometry$Point(-72.37150102, -0.631402982)
+#ALOS_clip <- ALOS_elev$clip(poi$buffer(buffer.width,max.error))
+#latlng <- ee$Image$pixelLonLat()$clip(poi$buffer(buffer.width,max.error))$addBands(ALOS_clip)
+latlng <- ee$Image$pixelLonLat()$addBands(ALOS_elev)
 
+latlng = latlng$reduceRegion(reducer = ee$Reducer$toList(),
+                             geometry = poi$buffer(buffer.width,max.error),
+                             maxPixels = 1e10,
+                             scale=30.922080775909325)
 
+# Converto to numpy arrays
+lats <- np$array((ee$Array(latlng$get("latitude"))$getInfo()))
+lngs <- np$array((ee$Array(latlng$get("longitude"))$getInfo()))
+ras_vals = np$array((ee$Array(latlng$get("AVE_DSM"))$getInfo()))
 
+# Convert to raster
+df <- data.frame(x = lngs, y = lats, ras = ras_vals)
+XYZ <- raster::rasterFromXYZ(df)
+raster::plot(XYZ)
 
-
+# Write raster to disk
+raster::writeRaster(XYZ,"test.tiff",overwrite=T)
