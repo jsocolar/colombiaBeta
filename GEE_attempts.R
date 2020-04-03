@@ -10,6 +10,20 @@
 
 library(reticulate)
 
+# Use machine identifier to automatically set directory with points file
+jorgen.desktop <- file.exists('C:\\Users\\Jorgen\\OneDrive - Norwegian University of Life Sciences\\PhD\\machine_identifier_lu847jp1o.txt')
+socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
+socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
+
+if(jorgen.desktop){
+  dir.path <- "C:\\Users\\Jorgen\\OneDrive - Norwegian University of Life Sciences\\PhD\\Data_raw\\elevations"
+}else if(socolar.desktop){
+  dir.path <- '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Points'
+}else if(socolar.laptop){
+  dir.path <- '/Users/jacob/Dropbox/Work/Colombia/Data/GIS/Points'
+}
+
+
 ##### Set up GEE session #####
 #Sys.setenv(PATH = paste(c("/Applications/anaconda3/bin", Sys.getenv("PATH")), collapse = .Platform$path.sep))
 use_condaenv('gee_interface', conda = "auto", required = TRUE) # point reticulate to the conda environment created in GEE_setup.sh
@@ -18,15 +32,12 @@ ee$Initialize()             # Trigger the authentication
 np <- import("numpy")       # Import Numpy        needed for converting gee raster to R raster object
 pd <- import("pandas")      # Import Pandas       ditto the above
 
-# Use machine identifier to automatically set directory with points file
-jorgen.desktop <- file.exists('C:\\Users\\Jorgen\\OneDrive - Norwegian University of Life Sciences\\PhD\\machine_identifier_lu847jp1o.txt')
-
-if(jorgen.desktop){
-  dir.path <- "C:\\Users\\Jorgen\\OneDrive - Norwegian University of Life Sciences\\PhD\\Data_raw\\elevations"
-}
-
 # Read coordinate file
-pts <- read.csv(paste(dir.path,"\\CO_sampling_points_metafile.csv",sep=""),stringsAsFactors = F)
+if(jorgen.desktop){
+  pts <- read.csv(paste(dir.path,"\\CO_sampling_points_metafile.csv",sep=""),stringsAsFactors = F)
+}else if(socolar.desktop | socolar.laptop){
+  pts <- read.csv(paste0(dir.path,"/CO_sampling_points_metafile.csv"),stringsAsFactors = F)
+}
 pts <- pts[-which(pts$long > 0),]   # Needed due to a cluster with error in the current metafile
 
 # Load raster files
@@ -113,7 +124,7 @@ latlng = latlng$reduceRegion(reducer = ee$Reducer$toList(),
                              maxPixels = 1e10,
                              scale=30.922080775909325)
 
-# Converto to numpy arrays
+# Convert to numpy arrays
 lats <- np$array((ee$Array(latlng$get("latitude"))$getInfo()))
 lngs <- np$array((ee$Array(latlng$get("longitude"))$getInfo()))
 ras_vals = np$array((ee$Array(latlng$get("AVE_DSM"))$getInfo()))

@@ -13,3 +13,6 @@ conda activate gee_interface           # Activate the environment
 conda install -c conda-forge earthengine-api # Install the Earth Engine Python API
 
 earthengine authenticate          # Authenticate your access with the command line tool
+
+conda install numpy
+conda install pandas
