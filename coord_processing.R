@@ -125,10 +125,10 @@ row.names(points) <- seq(nrow(points))
 View(points)
 
 # Check all elevations against google maps API
-gelevs1 <- googleway::google_elevation(df_locations = points[1,], location_type = "individual", key = "AIzaSyA_DnNXG1ZPljSQX27A16ypm2fNDsyKpHw")
+gelevs1 <- googleway::google_elevation(df_locations = points[1,], location_type = "individual", key = googleAPIkey)
 gelevs <- gelevs1$results[ , c(1,3)]
 for(i in 2:nrow(points)){
-  gelevs1 <- googleway::google_elevation(df_locations = points[i,], location_type = "individual", key = "AIzaSyA_DnNXG1ZPljSQX27A16ypm2fNDsyKpHw")
+  gelevs1 <- googleway::google_elevation(df_locations = points[i,], location_type = "individual", key = googleAPIkey)
   if(gelevs1$status != "OK"){c(print("NOT OK"), i)}
   gelevs <- rbind(gelevs, gelevs1$results[ , c(1,3)])
 }
@@ -221,9 +221,12 @@ bads <- bads[which(bads[,1] >= bads[,2]),]
 cbind(as.character(points$name[bads[,1]]), as.character(points$name[bads[,2]]))
 
 
+plot(points$ele ~ points$g_elev_init)
+plot(points$ele ~ points$ALOS_init)
+plot(points$g_elev_init ~ points$ALOS_init)
+hist(points$g_elev_init - points$ALOS_init)
+points[points$g_elev_init - points$ALOS_init < -20,]
+points[points$g_elev_init - points$ALOS_init > 20,]
 
-
-
-
-write.csv(points, file = "points_v1.csv")
+write.csv(points, file = "GIS/Points/socolar_points_v1.csv")
 
