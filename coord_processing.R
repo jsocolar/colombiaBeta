@@ -199,6 +199,14 @@ for(i in 2:nrow(points)){
 
 points <- points[-p2rm, ]
 
+points$cluster <- paste('cluster', gsub('[[:digit:]]', '', points$name), ceiling(as.numeric(gsub('[[:alpha:]]', '', points$name))/3), sep = "_")
+points$cluster[235:241] <- c(rep('cluster_PSP_1', 2), rep('cluster_PSP_2', 2), rep('cluster_PSP_3', 3))
+
+# within-cluster distances
+for(i in 1:length(unique(cluster)))
+
+
+
 dists <- raster::pointDistance(p1 = points[,c(2,1)], p2 = points[,c(2,1)], lonlat = T, allpairs = T)
 diag(dists) <- NA
 
@@ -209,6 +217,10 @@ bads <- cbind((inds %/% nrow(points)) + 1, inds %% nrow(points))
 bads <- bads[which(bads[,1] >= bads[,2]),]
 
 cbind(as.character(points$name[bads[,1]]), as.character(points$name[bads[,2]]))
+
+
+
+
 
 
 write.csv(points, file = "points_v1.csv")
