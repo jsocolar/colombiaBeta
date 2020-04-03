@@ -102,7 +102,7 @@ ALOSaspect <- cbind.data.frame(point_id=as.character(pts$point_id),ALOSaspect)
 
 ##### Extract actual elevation raster over some defined polygon (e.g. a 10 km buffer around a point), import to R as raster object #####
 # (This might be more relevant if we want to automatically pull in GFC rasters at some future date to derive complicated fragstat-style measures that we can't figure out how to code directly in GEE)
-buffer.width <- 10000000000
+buffer.width <- 10000
 max.error <- 1
 point_name <- "MOP1"
 poi <- ee$Geometry$Point(pts[which(pts$point_id==point_name),]$long, pts[which(pts$point_id==point_name),]$lat)
@@ -126,8 +126,6 @@ raster::crs(RasterR) <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0 
 
 # Write raster to disk
 raster::writeRaster(RasterR,"RasterR.tiff",overwrite=T)
-
-
 
 
 ##### Visualise elevation raster with rayshader #####
