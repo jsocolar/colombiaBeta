@@ -6,7 +6,7 @@
 # our GEE authentication keys either way, so it's quite cumbersome to do entirely via R, and we don't get the benefit of
 # complete automation anyway, since we'll need to manually input the GEE key no matter what.
 
-# Code adapted from https://philippgaertner.github.io/2019/12/earth-engine-rstudio-reticulate/
+# Some parts of code adapted from https://philippgaertner.github.io/2019/12/earth-engine-rstudio-reticulate/
 
 library(reticulate)
 
@@ -103,12 +103,6 @@ ALOS_aspect <- ee$Terrain$aspect(ALOS)
 pts_aspect <- ALOS_aspect$reduceRegions(geompts, ee$Reducer$mean())$getInfo()
 ALOSaspect <- sapply(c(1:length(pts_aspect$features)),function(x)pts_aspect$features[[x]]$properties$mean)
 ALOSaspect <- cbind.data.frame(point_id=as.character(pts$point_id),ALOSaspect)
-
-
-
-
-
-
 
 
 ##### Extract actual elevation raster over some defined polygon (e.g. a 10 km buffer around a point), import to R as raster object #####
