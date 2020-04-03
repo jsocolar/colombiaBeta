@@ -5,8 +5,10 @@ socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/machine_id
 socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/machine_identifier_n5L8paM.txt')
 if(socolar.desktop){
   dir.path <- "/Users/JacobSocolar/Dropbox/Work/Colombia/Data"
+  googleAPIkey <- readLines('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/GoogleAPIkey.txt')
 }else if(socolar.laptop){
   dir.path <- "/Users/jacob/Dropbox/Work/Colombia/Data"
+  googleAPIkey <- readLines('/Users/jacob/Dropbox/Work/Code/code_keychain/GoogleAPIkey.txt')
 }# else if(){dir.path <- }
 # Edit the above for whatever computer(s) you use.  Just make absolutely sure that the if condition is something that definitely
 # wouldn't possibly evaluate as true on anybody else's system, and that none of the preceding conditions could possibly evaluate
