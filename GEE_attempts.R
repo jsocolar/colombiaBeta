@@ -59,6 +59,15 @@ point_of_interest <- ee$Geometry$Point(pts[which(pts$point_id==point_name),]$lon
 poi_ecoreg <- RESOLVE$filterBounds(point_of_interest)$getInfo()$features[[1]]$properties$ECO_NAME
 poi_biome <- RESOLVE$filterBounds(point_of_interest)$getInfo()$features[[1]]$properties$BIOME_NAME
 
+##### Extract RESOLVE ecoregion/biomes for multiple points (without raster conversion)#####
+pts_ecoreg <- pts_biome <- rep(NA, nrow(pts))
+for(i in 1:nrow(pts)){
+  point_of_interest <- ee$Geometry$Point(pts$long[i], pts$lat[i])
+  poi_info <- RESOLVE$filterBounds(point_of_interest)$getInfo()$features[[1]]$properties
+  pts_ecoreg[i] <- poi_info$ECO_NAME
+  pts_biome[i] <- poi_info$BIOME_NAME
+}
+
 ##### Extract raster values from all points #####
 # Featurecollection of point geometries
 geompts <- sapply(1:nrow(pts),function(x)ee$Geometry$Point(c(pts$long[x],pts$lat[x])))
