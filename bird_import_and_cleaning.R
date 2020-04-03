@@ -1,5 +1,19 @@
 `%ni%` <- Negate(`%in%`)
-setwd("/Users/JacobSocolar/Dropbox/Work/Colombia")
+
+##### For collaborative projects--figure out what machine we're on and automatically set the working directory ####
+socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/machine_identifier_n5L8paM.txt')
+socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/machine_identifier_n5L8paM.txt')
+if(socolar.desktop){
+  dir.path <- "/Users/JacobSocolar/Dropbox/Work/Colombia"
+}else if(socolar.laptop){
+  dir.path <- "/Users/jacob/Dropbox/Work/Colombia"
+}# else if(){dir.path <- }
+# Edit the above for whatever computer(s) you use.  Just make absolutely sure that the if condition is something that definitely
+# wouldn't possibly evaluate as true on anybody else's system, and that none of the preceding conditions could possibly evaluate
+# to TRUE on your system!  (This isn't just about making sure that we get the right working directories; in some cases we might
+# conceivably invoke system commands for file management that depend on dir.path.)
+setwd(dir.path)
+############################
 
 # read in united eBird/HBW taxonomy
 taxonomy <- read.csv("Data/Birds/species_list_creation/HBW_eBird_taxonomy.csv")
@@ -401,7 +415,7 @@ otherSpp
 
 allSpp[gsub("_", " ", allSpp) %ni% colombia_species]
 
-grepphrase <- "Myiothe"
+grepphrase <- "Pogono"
 
 allSpp[grep(grepphrase, allSpp)]
 jacobSpp[grep(grepphrase, jacobSpp)]
