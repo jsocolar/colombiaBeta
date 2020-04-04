@@ -62,10 +62,20 @@ poi_biome <- RESOLVE$filterBounds(point_of_interest)$getInfo()$features[[1]]$pro
 ##### Extract RESOLVE ecoregion/biomes for multiple points (without raster conversion)#####
 pts_ecoreg <- pts_biome <- rep(NA, nrow(pts))
 for(i in 1:nrow(pts)){
-  poi_info <- RESOLVE$filterBounds(ee$Geometry$Point(pts$long[i], pts$lat[i]))$getInfo()$features[[1]]$properties
+  point_of_interest <- ee$Geometry$Point(pts$long[i], pts$lat[i])
+  poi_info <- RESOLVE$filterBounds(point_of_interest)$getInfo()$features[[1]]$properties
   pts_ecoreg[i] <- poi_info$ECO_NAME
   pts_biome[i] <- poi_info$BIOME_NAME
 }
+
+# Does not work for Jørgen: "AttributeError: 'FeatureCollection' object has no attribute 'filterBounds'".
+# Also receice this error every second time I try to run the properties extraction line on a specified point
+#pts_ecoreg <- pts_biome <- rep(NA, nrow(pts))
+#for(i in 1:nrow(pts)){
+#  poi_info <- RESOLVE$filterBounds(ee$Geometry$Point(pts$long[i], pts$lat[i]))$getInfo()$features[[1]]$properties
+#  pts_ecoreg[i] <- poi_info$ECO_NAME
+#  pts_biome[i] <- poi_info$BIOME_NAME
+#}
 
 ##### Extract raster values from all points #####
 # Featurecollection of point geometries
@@ -86,7 +96,7 @@ pts_BIOM <- biom_ras$reduceRegions(geompts, ee$Reducer$mean())$getInfo()
 biome <- sapply(c(1:length(pts_BIOM$features)),function(x)pts_BIOM$features[[x]]$properties$mean)
 
 # Combined dataframe
-cbind.data.frame(point_id=pts$point_id,ALOSelev,SRTMelev,ecoreg,biome)
+spatialdata <- cbind.data.frame(point_id=pts$point_id,ALOSelev,SRTMelev,ecoreg,biome)
 
 ##### Extract mean elevation from 100-m buffer around point (or many points) #####
 buffer.width <- 100      # radius, in meters
@@ -152,5 +162,8 @@ rasval_m %>%
   add_shadow(ambient_shade(rasval_m), 0.5) %>%
   plot_3d(rasval_m, zscale = pixscale, fov = 30, theta = 45, phi = 35, windowsize = c(1000,800), zoom = 0.6)
 
-render_depth(focus = 0.6, focallength = 200, clear = TRUE)
+render_label(heightmap = rasval_m, text = c("SAF1"), x = 163.5, 
+             y = 162, z = 1000, zscale = pixscale, freetype=F)
+
+render_depth(focus = 0.8, focallength = 200, clear = TRUE)
 render_snapshot(clear = TRUE)
