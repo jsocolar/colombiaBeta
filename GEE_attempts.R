@@ -62,10 +62,20 @@ poi_biome <- RESOLVE$filterBounds(point_of_interest)$getInfo()$features[[1]]$pro
 ##### Extract RESOLVE ecoregion/biomes for multiple points (without raster conversion)#####
 pts_ecoreg <- pts_biome <- rep(NA, nrow(pts))
 for(i in 1:nrow(pts)){
-  poi_info <- RESOLVE$filterBounds(ee$Geometry$Point(pts$long[i], pts$lat[i]))$getInfo()$features[[1]]$properties
+  point_of_interest <- ee$Geometry$Point(pts$long[i], pts$lat[i])
+  poi_info <- RESOLVE$filterBounds(point_of_interest)$getInfo()$features[[1]]$properties
   pts_ecoreg[i] <- poi_info$ECO_NAME
   pts_biome[i] <- poi_info$BIOME_NAME
 }
+
+# Does not work for Jørgen: "AttributeError: 'FeatureCollection' object has no attribute 'filterBounds'".
+# Also receice this error every second time I try to run the properties extraction line on a specified point
+#pts_ecoreg <- pts_biome <- rep(NA, nrow(pts))
+#for(i in 1:nrow(pts)){
+#  poi_info <- RESOLVE$filterBounds(ee$Geometry$Point(pts$long[i], pts$lat[i]))$getInfo()$features[[1]]$properties
+#  pts_ecoreg[i] <- poi_info$ECO_NAME
+#  pts_biome[i] <- poi_info$BIOME_NAME
+#}
 
 ##### Extract raster values from all points #####
 # Featurecollection of point geometries
