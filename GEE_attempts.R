@@ -66,8 +66,16 @@ ecoreg <- sapply(c(1:length(pts_REG$features)),function(x)pts_REG$features[[x]]$
 pts_BIOM <- biom_ras$reduceRegions(geompts, ee$Reducer$mean())$getInfo()
 biome <- sapply(c(1:length(pts_BIOM$features)),function(x)pts_BIOM$features[[x]]$properties$mean)
 
+poi_ecoreg <- rep(NA, nrow(pts))
+for(i in 1:nrow(pts)){
+  point_of_interest <- ee$Geometry$Point(pts$long[i], pts$lat[i])
+  poi_ecoreg[i] <- RESOLVE$filterBounds(point_of_interest)$getInfo()$features[[1]]$properties$ECO_NAME
+}
+
+RESOLVE$filterBounds(ee$Geometry$Point(pts$long[1], pts$lat[1]))$getInfo()$features[[1]]$properties$ECO_NAME
+
 # Combined dataframe
-cbind.data.frame(point_id=pts$point_id,ALOSelev,SRTMelev,ecoreg,biome)
+spatialdata <- cbind.data.frame(point_id=pts$point_id,ALOSelev,SRTMelev,ecoreg,biome)
 
 ##### Extract mean elevation from 100-m buffer around point (or many points) #####
 buffer.width <- 100      # radius, in meters
@@ -139,7 +147,7 @@ rasval_m %>%
   add_shadow(ambient_shade(rasval_m), 0.5) %>%
   plot_3d(rasval_m, zscale = pixscale, fov = 30, theta = 45, phi = 35, windowsize = c(1000,800), zoom = 0.6)
 
-render_depth(focus = 0.6, focallength = 200, clear = TRUE)
+render_depth(focus = 0.8, focallength = 200, clear = TRUE)
 render_snapshot(clear = TRUE)
 
 
