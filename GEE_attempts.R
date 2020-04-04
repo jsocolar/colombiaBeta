@@ -116,9 +116,9 @@ ALOSaspect <- cbind.data.frame(point_id=as.character(pts$point_id),ALOSaspect)
 
 ##### Extract actual elevation raster over some defined polygon (e.g. a 10 km buffer around a point), import to R as raster object #####
 # (This might be more relevant if we want to automatically pull in GFC rasters at some future date to derive complicated fragstat-style measures that we can't figure out how to code directly in GEE)
-buffer.width <- 10000
+buffer.width <- 5000
 max.error <- 1
-point_name <- "MOP1"
+point_name <- "SAF1"
 poi <- ee$Geometry$Point(pts[which(pts$point_id==point_name),]$long, pts[which(pts$point_id==point_name),]$lat)
 latlng <- ee$Image$pixelLonLat()$addBands(ALOS)
 
@@ -139,7 +139,7 @@ raster::plot(RasterR)
 raster::crs(RasterR) <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0 "
 
 # Write raster to disk
-raster::writeRaster(RasterR,"RasterR.tiff",overwrite=T)
+#raster::writeRaster(RasterR,"RasterR.tiff",overwrite=T)
 
 
 ##### Visualise elevation raster with rayshader #####
@@ -155,13 +155,3 @@ rasval_m %>%
 
 render_depth(focus = 0.6, focallength = 200, clear = TRUE)
 render_snapshot(clear = TRUE)
-
-
-#### Unused
-# (e.g. from shapefile or dataframe); prefer solution that doesn't require staging shapefile through Google Cloud Storage
-# Write shapefile for point PSP6 as test
-#library(sf)
-#PSP6 <- st_sf(st_sfc(st_point(c(-72.37150102, -0.631402982), "PSP6")), crs = 4326)
-#st_write(PSP6, dsn = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Points/PSP6/PSP6.shp", 
-#         layer = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Points/PSP6/PSP6.shp", 
-#         driver = "ESRI Shapefile")

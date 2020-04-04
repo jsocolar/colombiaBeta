@@ -1,8 +1,8 @@
 `%ni%` <- Negate(`%in%`)
 
 ##### For collaborative projects--figure out what machine we're on and automatically set the working directory ####
-socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/machine_identifier_n5L8paM.txt')
-socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/machine_identifier_n5L8paM.txt')
+socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
+socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
 if(socolar.desktop){
   dir.path <- "/Users/JacobSocolar/Dropbox/Work/Colombia/Data"
   googleAPIkey <- readLines('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/GoogleAPIkey.txt')
