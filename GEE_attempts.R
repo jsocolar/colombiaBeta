@@ -6,9 +6,23 @@
 # our GEE authentication keys either way, so it's quite cumbersome to do entirely via R, and we don't get the benefit of
 # complete automation anyway, since we'll need to manually input the GEE key no matter what.
 
-# Code adapted from https://philippgaertner.github.io/2019/12/earth-engine-rstudio-reticulate/
+# Some parts of code adapted from https://philippgaertner.github.io/2019/12/earth-engine-rstudio-reticulate/
 
 library(reticulate)
+
+# Use machine identifier to automatically set directory with points file
+jorgen.desktop <- file.exists('C:\\Users\\Jorgen\\OneDrive - Norwegian University of Life Sciences\\PhD\\machine_identifier_lu847jp1o.txt')
+socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
+socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
+
+if(jorgen.desktop){
+  dir.path <- "C:\\Users\\Jorgen\\OneDrive - Norwegian University of Life Sciences\\PhD\\Data_raw\\elevations"
+}else if(socolar.desktop){
+  dir.path <- '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Points'
+}else if(socolar.laptop){
+  dir.path <- '/Users/jacob/Dropbox/Work/Colombia/Data/GIS/Points'
+}
+
 
 ##### Set up GEE session #####
 #Sys.setenv(PATH = paste(c("/Applications/anaconda3/bin", Sys.getenv("PATH")), collapse = .Platform$path.sep))
@@ -18,15 +32,12 @@ ee$Initialize()             # Trigger the authentication
 np <- import("numpy")       # Import Numpy        needed for converting gee raster to R raster object
 pd <- import("pandas")      # Import Pandas       ditto the above
 
-# Use machine identifier to automatically set directory with points file
-jorgen.desktop <- file.exists('C:\\Users\\Jorgen\\OneDrive - Norwegian University of Life Sciences\\PhD\\machine_identifier_lu847jp1o.txt')
-
-if(jorgen.desktop){
-  dir.path <- "C:\\Users\\Jorgen\\OneDrive - Norwegian University of Life Sciences\\PhD\\Data_raw\\elevations"
-}
-
 # Read coordinate file
-pts <- read.csv(paste(dir.path,"\\CO_sampling_points_metafile.csv",sep=""),stringsAsFactors = F)
+if(jorgen.desktop){
+  pts <- read.csv(paste(dir.path,"\\CO_sampling_points_metafile.csv",sep=""),stringsAsFactors = F)
+}else if(socolar.desktop | socolar.laptop){
+  pts <- read.csv(paste0(dir.path,"/CO_sampling_points_metafile.csv"),stringsAsFactors = F)
+}
 pts <- pts[-which(pts$long > 0),]   # Needed due to a cluster with error in the current metafile
 
 # Load raster files
@@ -47,6 +58,15 @@ point_name <- "MOP1"
 point_of_interest <- ee$Geometry$Point(pts[which(pts$point_id==point_name),]$long, pts[which(pts$point_id==point_name),]$lat)
 poi_ecoreg <- RESOLVE$filterBounds(point_of_interest)$getInfo()$features[[1]]$properties$ECO_NAME
 poi_biome <- RESOLVE$filterBounds(point_of_interest)$getInfo()$features[[1]]$properties$BIOME_NAME
+
+##### Extract RESOLVE ecoregion/biomes for multiple points (without raster conversion)#####
+pts_ecoreg <- pts_biome <- rep(NA, nrow(pts))
+for(i in 1:nrow(pts)){
+  point_of_interest <- ee$Geometry$Point(pts$long[i], pts$lat[i])
+  poi_info <- RESOLVE$filterBounds(point_of_interest)$getInfo()$features[[1]]$properties
+  pts_ecoreg[i] <- poi_info$ECO_NAME
+  pts_biome[i] <- poi_info$BIOME_NAME
+}
 
 ##### Extract raster values from all points #####
 # Featurecollection of point geometries
@@ -94,17 +114,11 @@ ALOSaspect <- sapply(c(1:length(pts_aspect$features)),function(x)pts_aspect$feat
 ALOSaspect <- cbind.data.frame(point_id=as.character(pts$point_id),ALOSaspect)
 
 
-
-
-
-
-
-
 ##### Extract actual elevation raster over some defined polygon (e.g. a 10 km buffer around a point), import to R as raster object #####
 # (This might be more relevant if we want to automatically pull in GFC rasters at some future date to derive complicated fragstat-style measures that we can't figure out how to code directly in GEE)
-buffer.width <- 10000
+buffer.width <- 5000
 max.error <- 1
-point_name <- "MOP1"
+point_name <- "SAF1"
 poi <- ee$Geometry$Point(pts[which(pts$point_id==point_name),]$long, pts[which(pts$point_id==point_name),]$lat)
 latlng <- ee$Image$pixelLonLat()$addBands(ALOS)
 
@@ -113,7 +127,7 @@ latlng = latlng$reduceRegion(reducer = ee$Reducer$toList(),
                              maxPixels = 1e10,
                              scale=30.922080775909325)
 
-# Converto to numpy arrays
+# Convert to numpy arrays
 lats <- np$array((ee$Array(latlng$get("latitude"))$getInfo()))
 lngs <- np$array((ee$Array(latlng$get("longitude"))$getInfo()))
 ras_vals = np$array((ee$Array(latlng$get("AVE_DSM"))$getInfo()))
@@ -125,7 +139,7 @@ raster::plot(RasterR)
 raster::crs(RasterR) <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0 "
 
 # Write raster to disk
-raster::writeRaster(RasterR,"RasterR.tiff",overwrite=T)
+#raster::writeRaster(RasterR,"RasterR.tiff",overwrite=T)
 
 
 ##### Visualise elevation raster with rayshader #####
@@ -141,13 +155,3 @@ rasval_m %>%
 
 render_depth(focus = 0.6, focallength = 200, clear = TRUE)
 render_snapshot(clear = TRUE)
-
-
-#### Unused
-# (e.g. from shapefile or dataframe); prefer solution that doesn't require staging shapefile through Google Cloud Storage
-# Write shapefile for point PSP6 as test
-#library(sf)
-#PSP6 <- st_sf(st_sfc(st_point(c(-72.37150102, -0.631402982), "PSP6")), crs = 4326)
-#st_write(PSP6, dsn = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Points/PSP6/PSP6.shp", 
-#         layer = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Points/PSP6/PSP6.shp", 
-#         driver = "ESRI Shapefile")
