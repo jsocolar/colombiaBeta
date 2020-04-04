@@ -86,14 +86,6 @@ ecoreg <- sapply(c(1:length(pts_REG$features)),function(x)pts_REG$features[[x]]$
 pts_BIOM <- biom_ras$reduceRegions(geompts, ee$Reducer$mean())$getInfo()
 biome <- sapply(c(1:length(pts_BIOM$features)),function(x)pts_BIOM$features[[x]]$properties$mean)
 
-poi_ecoreg <- rep(NA, nrow(pts))
-for(i in 1:nrow(pts)){
-  point_of_interest <- ee$Geometry$Point(pts$long[i], pts$lat[i])
-  poi_ecoreg[i] <- RESOLVE$filterBounds(point_of_interest)$getInfo()$features[[1]]$properties$ECO_NAME
-}
-
-RESOLVE$filterBounds(ee$Geometry$Point(pts$long[1], pts$lat[1]))$getInfo()$features[[1]]$properties$ECO_NAME
-
 # Combined dataframe
 spatialdata <- cbind.data.frame(point_id=pts$point_id,ALOSelev,SRTMelev,ecoreg,biome)
 
