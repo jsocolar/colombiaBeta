@@ -153,5 +153,8 @@ rasval_m %>%
   add_shadow(ambient_shade(rasval_m), 0.5) %>%
   plot_3d(rasval_m, zscale = pixscale, fov = 30, theta = 45, phi = 35, windowsize = c(1000,800), zoom = 0.6)
 
+render_label(heightmap = rasval_m, text = c("SAF1"), x = 163.5, 
+             y = 162, z = 1000, zscale = pixscale, freetype=F)
+
 render_depth(focus = 0.8, focallength = 200, clear = TRUE)
 render_snapshot(clear = TRUE)
