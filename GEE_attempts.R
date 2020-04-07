@@ -127,14 +127,19 @@ ALOSaspect <- cbind.data.frame(point_id=as.character(pts$point_id),ALOSaspect)
 # (This might be more relevant if we want to automatically pull in GFC rasters at some future date to derive complicated fragstat-style measures that we can't figure out how to code directly in GEE)
 buffer.width <- 5000
 max.error <- 1
-point_name <- "SAF1"
-poi <- ee$Geometry$Point(pts[which(pts$point_id==point_name),]$long, pts[which(pts$point_id==point_name),]$lat)
-latlng <- ee$Image$pixelLonLat()$addBands(ALOS)
+pixscale <- 30.922080775909325
 
+# Choose point
+point_name <- "PulpitRock" ; long <- 6.224986 ; lat <- 58.986239
+point_name <- "SAF1" ; long <- pts[which(pts$point_id==point_name),]$long ; lat <- pts[which(pts$point_id==point_name),]$lat
+poi <- ee$Geometry$Point(long,lat)
+
+# GEE reduced raster
+latlng <- ee$Image$pixelLonLat()$addBands(ALOS)
 latlng = latlng$reduceRegion(reducer = ee$Reducer$toList(),
                              geometry = poi$buffer(buffer.width,max.error),
                              maxPixels = 1e10,
-                             scale=30.922080775909325)
+                             scale=pixscale)
 
 # Convert to numpy arrays
 lats <- np$array((ee$Array(latlng$get("latitude"))$getInfo()))
@@ -143,9 +148,8 @@ ras_vals = np$array((ee$Array(latlng$get("AVE_DSM"))$getInfo()))
 
 # Convert to raster
 ras <- data.frame(x = lngs, y = lats, ras = ras_vals)
-RasterR <- raster::rasterFromXYZ(ras)
+RasterR <- raster::rasterFromXYZ(ras,crs="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
 raster::plot(RasterR)
-raster::crs(RasterR) <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0 "
 
 # Write raster to disk
 #raster::writeRaster(RasterR,"RasterR.tiff",overwrite=T)
@@ -153,8 +157,12 @@ raster::crs(RasterR) <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0 
 
 ##### Visualise elevation raster with rayshader #####
 library(rayshader)
-rasval_m = raster_to_matrix(RasterR$ras)
-pixscale <- 30.922080775909325
+
+# Reproject to metric coordinate system with uniform cell sizes
+projection <- paste("+proj=aea +lat_1=",lat-5," +lat_2=",lat+5,sep="")
+RasterReproj <- raster::projectRaster(RasterR,crs=projection,res=pixscale)
+
+rasval_m = raster_to_matrix(RasterReproj$ras)
 
 rasval_m %>%
   sphere_shade(texture = "desert") %>%
