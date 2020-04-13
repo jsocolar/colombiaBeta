@@ -4,9 +4,10 @@
 socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
 socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
 if(socolar.desktop){
-  dir.path <- "/Users/JacobSocolar/Dropbox/Work/Colombia"
+  dir.path <- "/Users/JacobSocolar/Dropbox/Work/Colombia/Data"
+  simon.file.path <- "/Users/jacobsocolar/Google_drive/Simon_data/data/bird data_Jan&Jun2019/data_Jan&Jun2019_currentVersion.xlsx"
 }else if(socolar.laptop){
-  dir.path <- "/Users/jacob/Dropbox/Work/Colombia"
+  dir.path <- "/Users/jacob/Dropbox/Work/Colombia/Data"
 }# else if(){dir.path <- }
 # Edit the above for whatever computer(s) you use.  Just make absolutely sure that the if condition is something that definitely
 # wouldn't possibly evaluate as true on anybody else's system, and that none of the preceding conditions could possibly evaluate
@@ -16,13 +17,13 @@ setwd(dir.path)
 ############################
 
 # read in united eBird/HBW taxonomy
-taxonomy <- read.csv("Data/Birds/species_list_creation/HBW_eBird_taxonomy.csv")
+taxonomy <- read.csv("Birds/species_list_creation/HBW_eBird_taxonomy.csv")
 t2 <- taxonomy[taxonomy$HBW_CAT == "sp" | taxonomy$CLEM_CAT_2019 == "sp", ] # remove taxa that are not treated as species by either eBird or HBW
 
 ##### Western Andes #####
-wandes1 <- read.csv("Data/Birds/James_WAndes_all_birds.csv")
+wandes1 <- read.csv("Birds/James_WAndes_all_birds.csv")
 wandes <- wandes1[wandes1$Distance %in% c('A', 'B', 'C'), ]
-wandes_pts <- read.csv("Data/GIS/Points/James_andes_points.csv")
+wandes_pts <- read.csv("GIS/Points/James_andes_points.csv")
 unique(wandes_pts$Habcode)
 goodpts <- wandes_pts$Point[wandes_pts$Habcode != "Sy"]
 
@@ -191,7 +192,7 @@ WAndesSpp <- gsub(" ", "_", unique(wandes$Species))
 
 
 ##### Llanos #####
-llanos <- read.csv("Data/Birds/James_llanos_all_birds.csv")
+llanos <- read.csv("Birds/James_llanos_all_birds.csv")
 llanos$Species <- as.character(llanos$Species)
 
 # Align to HBW taxonomy.
@@ -285,46 +286,93 @@ L2sp[L2sp %ni% L3sp]
 
 
 ##### East Andes #####
-simon <- read.csv("Data/Birds/Simon_list_28-02-2019.csv", stringsAsFactors = F)
-simon_species <- simon$English.Ebird
-for(i in 1:length(simon_species)){
-  if(length(grep(simon_species[i], t2$CLEM_ENG_2019, ignore.case = T)) == 0){
-    print(c(i, simon_species[i]))
+simon1 <- data.frame(readxl::read_excel(simon.file.path))
+
+# some of the below consists of data checks that won't be necessary for final analysis but are retained for now
+# (until the data file is finalized) to guard against typos and entry errors.
+all.equal(is.na(simon1$Point), is.na(simon1$Visit)) #  make sure that NAs in jacob1$Take universally match ""'s in jacob1$Point
+which(is.na(simon1$Point) & !is.na(simon1$Visit))
+which(!is.na(simon1$Point) & is.na(simon1$Visit))
+#View(simon1[which(!is.na(simon1$Point) & is.na(simon1$Visit)), ])
+
+simon1$Visit[which(!is.na(simon1$Point) & is.na(simon1$Visit))] <- c(4, 4, 4, 3, 3, 3, 3, 3, 4, 4, 4, 4)
+all.equal(is.na(simon1$Point), is.na(simon1$Visit))
+
+unique(simon1$Dist)
+length(unique(simon1$Dist)) # make sure that unique doesn't include "" as a 12th item
+
+unique(simon1$FO)
+length(unique(simon1$FO)) # make sure that unique doesn't include "" as a 3rd item
+
+unique(simon1$Visit) # Just need to make sure later that 5's are sites genuinely visited 5 times and not typos for 4.
+
+# Fill in point and visit identifiers
+for(i in 2:nrow(simon1)){
+  if(is.na(simon1$Visit[i])){
+    simon1$Take[i] <- simon1$Take[i - 1]
+    simon1$Point[i] <- simon1$Point[i - 1]
   }
 }
-simon_species[229] <- simon$English.Ebird[229] <- "White-banded tyrannulet"
-simon$scientific <- NA
 
+# Read in my lookup table for Simon's dataset
+simon_list <- read.csv("Birds/Simon_list_28-02-2019.csv", stringsAsFactors = F)
+simon_list$English.Ebird[229] <- "White-banded tyrannulet"
+simon_list$English.Simon[simon_list$English.Simon == "Black-collared Jay"] <- "Black-collared jay"
+
+simon_species <- unique(simon1$Species)
+simon_species[simon_species %ni% simon_list$English.Simon]
+
+#View(simon1[simon1$Species %ni% c(simon_list$English.Simon, 'Sono', 'Vis', 'Note', '-', '"') & !grepl(" sp$", simon1$Species) & !(is.na(simon1$Species)), ])
+# Most of these hits are species that aren't really in the dataset (unknown IDs, flyovers, D-band)
+# However, we need to deal with one:
+simon1$Species[simon1$Species == 'Smoky bush tyrant'] <- 'Smoky bush-tyrant'
+
+# Extract the analyzeable records, but do so in several steps to implement typo checks and to keep track of 
+# how many species/entries are unanalyzeable.
+simon2 <- simon1[simon1$Species %in% simon_list$English.Simon, ]
+simon2$Dist[is.na(simon2$Dist)] <- 'C'
+simon <- droplevels(simon2[is.na(simon2$FO) & simon2$Dist %in% c('A', 'B', 'C', 'C/B', 'B/C', 'A/B'), ])
+
+# The below is ugly ugly ugly and slow slow slow, but it does the job
+simon$Latin <- NA
 for(i in 1:nrow(simon)){
-  simon$scientific[i] <- as.character(t2$CLEM_SCI_2019[grep(paste0("^",simon_species[i],"$"), t2$CLEM_ENG_2019, ignore.case = T)])
+  simon$Latin[i] <- as.character(t2$CLEM_SCI_2019[grep(paste0("^",simon_list$English.Ebird[which(simon_list$English.Simon == simon$Species[i])],"$"), t2$CLEM_ENG_2019, ignore.case = T)])
 }
 
-simonSpp <- gsub(" ", "_", simon$scientific)
-simonSpp[simonSpp == "Grallaria_quitensis"] <- "Grallaria_alticola"
-simonSpp[simonSpp == "Patagioenas_fasciata"] <- "Patagioenas_albilinea"
-simonSpp[simonSpp == "Dryobates_fumigatus"] <- "Leuconotopicus_fumigatus"
-simonSpp[simonSpp == "Dryocopus_lineatus"] <- "Hylatomus_lineatus"
-simonSpp[simonSpp == "Mionectes_olivaceus"] <- "Mionectes_galbinus"
-simonSpp[simonSpp == "Myiodynastes_chrysocephalus"] <- "Myiodynastes_hemichrysus"
-simonSpp[simonSpp == "Catharus_ustulatus"] <- "Catharus_swainsoni"
-simonSpp[simonSpp == "Cacicus_chrysonotus"] <- "Cacicus_leucoramphus"
-simonSpp[simonSpp == "Anisognathus_igniventris"] <- "Anisognathus_lunulatus"
-simonSpp[simonSpp == "Tangara_arthus"] <- "Tangara_aurulenta"
-simonSpp[simonSpp == "Colibri_cyanotus"] <- "Colibri_thalassinus"
-simonSpp[simonSpp == "Ochthoeca_diadema"] <- "Silvicultrix_diadema"
-simonSpp[simonSpp == "Ochthoeca_frontalis"] <- "Silvicultrix_frontalis"
-simonSpp[simonSpp == "Phylloscartes_poecilotis"] <- "Pogonotriccus_poecilotis"
-simonSpp[simonSpp == "Pseudocolaptes_boissonneautii"] <- "Pseudocolaptes_boissonneauii"
-simonSpp[simonSpp == "Stilpnia_heinei"] <- "Tangara_heinei"
-simonSpp[simonSpp == "Stilpnia_cyanicollis"] <- "Tangara_cyanicollis"
-simonSpp[simonSpp == "Stilpnia_vitriolina"] <- "Tangara_vitriolina"
-simonSpp[simonSpp == "Thraupis_cyanocephala"] <- "Sporathraupis_cyanocephala"
-simonSpp[simonSpp == "Thraupis_episcopus"] <- "Tangara_episcopus"
-simonSpp[simonSpp == "Thraupis_palmarum"] <- "Tangara_palmarum"
-simonSpp[simonSpp == "Xenops_rutilans"] <- "Xenops_rutilus"
+simon$Latin <- gsub(" ", "_", simon$Latin)
+
+simon$Latin[simon$Latin == "Grallaria_quitensis"] <- "Grallaria_alticola"
+simon$Latin[simon$Latin == "Patagioenas_fasciata"] <- "Patagioenas_albilinea"
+simon$Latin[simon$Latin == "Dryobates_fumigatus"] <- "Leuconotopicus_fumigatus"
+simon$Latin[simon$Latin == "Dryocopus_lineatus"] <- "Hylatomus_lineatus"
+simon$Latin[simon$Latin == "Mionectes_olivaceus"] <- "Mionectes_galbinus"
+simon$Latin[simon$Latin == "Myiodynastes_chrysocephalus"] <- "Myiodynastes_hemichrysus"
+simon$Latin[simon$Latin == "Catharus_ustulatus"] <- "Catharus_swainsoni"
+simon$Latin[simon$Latin == "Cacicus_chrysonotus"] <- "Cacicus_leucoramphus"
+simon$Latin[simon$Latin == "Anisognathus_igniventris"] <- "Anisognathus_lunulatus"
+simon$Latin[simon$Latin == "Tangara_arthus"] <- "Tangara_aurulenta"
+simon$Latin[simon$Latin == "Colibri_cyanotus"] <- "Colibri_thalassinus"
+simon$Latin[simon$Latin == "Ochthoeca_diadema"] <- "Silvicultrix_diadema"
+simon$Latin[simon$Latin == "Ochthoeca_frontalis"] <- "Silvicultrix_frontalis"
+simon$Latin[simon$Latin == "Phylloscartes_poecilotis"] <- "Pogonotriccus_poecilotis"
+simon$Latin[simon$Latin == "Pseudocolaptes_boissonneautii"] <- "Pseudocolaptes_boissonneauii"
+simon$Latin[simon$Latin == "Stilpnia_heinei"] <- "Tangara_heinei"
+simon$Latin[simon$Latin == "Stilpnia_cyanicollis"] <- "Tangara_cyanicollis"
+simon$Latin[simon$Latin == "Stilpnia_vitriolina"] <- "Tangara_vitriolina"
+simon$Latin[simon$Latin == "Thraupis_cyanocephala"] <- "Sporathraupis_cyanocephala"
+simon$Latin[simon$Latin == "Thraupis_episcopus"] <- "Tangara_episcopus"
+simon$Latin[simon$Latin == "Thraupis_palmarum"] <- "Tangara_palmarum"
+simon$Latin[simon$Latin == "Xenops_rutilans"] <- "Xenops_rutilus"
+
+
+simonSpp <- unique(simon$Latin)
+
+load("Birds/species_list_creation/colombia_species.Rdata")
+unique(simonSpp[gsub("_", " ", simonSpp) %ni% colombia_species])
+
 
 ##### Jacob #####
-jacob1 <- read.csv("Data/Birds/Jacob_data_v1.1.csv")
+jacob1 <- read.csv("Birds/Jacob_data_v1.1.csv")
 
 # some of the below consists of data checks that won't be necessary for final analysis but are retained for now
 # (until the data file is finalized) to guard against typos and entry errors.
@@ -344,7 +392,7 @@ for(i in 2:nrow(jacob1)){
   }
 }
 
-load("/Users/JacobSocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/colombia_species.Rdata")
+load("Birds/species_list_creation/colombia_species.Rdata")
 unique(jacob1$Species[gsub("_", " ", jacob1$Species) %ni% colombia_species])
 length(unique(jacob1$Species[gsub("_", " ", jacob1$Species) %ni% colombia_species]))
 
@@ -387,7 +435,7 @@ jacobPOINTSUMMARY <- doBy::summaryBy(Count ~ Point + Species, data = jacobACF1, 
 # 237 Llanos spp
 # 319 WAndes spp
 # 247 EAndes spp (Simon+David only)
-# 755 Jacob spp
+# 757 Jacob spp
 ## 281 Amazon
 ## 557 Jacob outside Amazon
 # 607 other spp (all data except Jacob)
@@ -407,7 +455,7 @@ WAndesSpp <- gsub(" ", "_", unique(wandes$Species))
 
 allSpp <- unique(c(jacobSpp, simonSpp, LlanosSpp, WAndesSpp))
 allSpp
-#959
+#961
 
 otherSpp <- unique(c(simonSpp, LlanosSpp, WAndesSpp))
 otherSpp
