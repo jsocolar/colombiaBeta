@@ -309,10 +309,14 @@ unique(simon1$Visit) # Just need to make sure later that 5's are sites genuinely
 # Fill in point and visit identifiers
 for(i in 2:nrow(simon1)){
   if(is.na(simon1$Visit[i])){
-    simon1$Take[i] <- simon1$Take[i - 1]
+    simon1$Visit[i] <- simon1$Visit[i - 1]
     simon1$Point[i] <- simon1$Point[i - 1]
   }
 }
+
+# Check if the points with visit 5 really have 5 visits:
+unique(simon1$Point[simon1$Visit == 5])
+
 
 # Read in my lookup table for Simon's dataset
 simon_list <- read.csv("Birds/Simon_list_28-02-2019.csv", stringsAsFactors = F)
@@ -538,6 +542,8 @@ NonAmazonSpp
 AllNonAmazon <- unique(c(NonAmazonSpp, simonSpp, LlanosSpp, WAndesSpp))
 AllNonAmazon
 
+##### Array assembly for occupancy model #####
+# Organize by site [i], visit[j], species[k]
 
 
 ##### For Felicity ######
