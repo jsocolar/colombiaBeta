@@ -436,11 +436,11 @@ jacobPOINTSUMMARY <- doBy::summaryBy(Count ~ Point + Species, data = jacobACF1, 
 # 319 WAndes spp
 # 247 EAndes spp (Simon+David only)
 # 757 Jacob spp
-## 281 Amazon
+## 282 Amazon
 ## 557 Jacob outside Amazon
 # 607 other spp (all data except Jacob)
-# 959 total spp
-## 802 total spp outside of Amazon
+# 961 total spp
+## 803 total spp outside of Amazon
 
 dim(jacob)
 dim(jacob3)[1] - dim(jacob)[1]
