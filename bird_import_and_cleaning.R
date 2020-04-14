@@ -268,6 +268,7 @@ llanos$Species[llanos$Species == "Tachyphonus luctuosus"] <- "Islerothraupis luc
 llanos$Species[llanos$Species == "Thraupis episcopus"] <- "Tangara episcopus"
 llanos$Species[llanos$Species == "Thraupis palmarum"] <- "Tangara palmarum"
 llanos$Species[llanos$Species == "Hypnelus ruficollis"] <- "Hypnelus bicinctus"
+llanos$Species[llanos$Species == "Todirostrum nigriceps"] <- "Todirostrum chrysocrotaphum" # Changing ID based on emails with James
 
 # We assume that all of the llanos Myiodynastes maculatus are nominate maculatus, given the Jan-March timeframe.
 llanos <- llanos[llanos$Species != "Vireo olivaceus", ] # Records are in February and March, when there's no way to separate true olivaceus from resident chivi after the fact
@@ -314,9 +315,11 @@ for(i in 2:nrow(simon1)){
   }
 }
 
-# Check if the points with visit 5 really have 5 visits:
+# Check if the points with a Visit == 5 really have 5 visits (or if 5 was a typo):
 unique(simon1$Point[simon1$Visit == 5])
-
+unique(simon1$Visit[simon1$Point == 'SEF1'])
+unique(simon1$Visit[simon1$Point == 'SEF2'])
+unique(simon1$Visit[simon1$Point == 'SEF3'])
 
 # Read in my lookup table for Simon's dataset
 simon_list <- read.csv("Birds/Simon_list_28-02-2019.csv", stringsAsFactors = F)
@@ -374,6 +377,12 @@ simonSpp <- unique(simon$Latin)
 load("Birds/species_list_creation/colombia_species.Rdata")
 unique(simonSpp[gsub("_", " ", simonSpp) %ni% colombia_species])
 
+simon_visit_data <- simon1[!is.na(simon1$Time), names(simon1) %in% c("Point", "Visit", "Date", "Wind", "Vis", "Rain", "Sun", "Time", "Observer")]
+
+table(simon_visit_data$Point)[table(simon_visit_data$Point) != 4]
+
+
+
 
 ##### Jacob #####
 jacob1 <- read.csv("Birds/Jacob_data_v1.1.csv")
@@ -422,18 +431,7 @@ jacob_visit_data <- jacob1[!is.na(jacob1$Time), names(jacob1) %in% c("Point", "T
 jacob_visit_data$Obs <- "JBS"
 jacob_visit_data$Obs[jacob_visit_data$Point == IGF]
 
-table(jacob_visit_data$Point)[table(jacob_visit_data$Point) < 4]
-
-##### jacob dataset: change from entry-convenient format to analysis-convenient format #####
-jacobACF1 <- jacob[, names(jacob) %in% c("Point", "Take", "Species", "Count")]
-
-jacobACF <- doBy::summaryBy(Count ~ Point + Take + Species, data = jacobACF1, FUN = sum)
-
-jacobACF[1:20,]
-
-jacobPOINTSUMMARY <- doBy::summaryBy(Count ~ Point + Species, data = jacobACF1, FUN = sum)
-
-
+table(jacob_visit_data$Point)[table(jacob_visit_data$Point) != 4]
 
 ##### Tools to monitor progress on dataset as it's entered--not part of final analysis #####
 # 237 Llanos spp
@@ -443,8 +441,8 @@ jacobPOINTSUMMARY <- doBy::summaryBy(Count ~ Point + Species, data = jacobACF1, 
 ## 282 Amazon
 ## 557 Jacob outside Amazon
 # 607 other spp (all data except Jacob)
-# 961 total spp
-## 803 total spp outside of Amazon
+# 962 total spp
+## 805 total spp outside of Amazon
 
 dim(jacob)
 dim(jacob3)[1] - dim(jacob)[1]
@@ -459,7 +457,7 @@ WAndesSpp <- gsub(" ", "_", unique(wandes$Species))
 
 allSpp <- unique(c(jacobSpp, simonSpp, LlanosSpp, WAndesSpp))
 allSpp
-#961
+#962
 
 otherSpp <- unique(c(simonSpp, LlanosSpp, WAndesSpp))
 otherSpp
@@ -489,6 +487,10 @@ jacobSpp[grep("Mecocerculus_s", jacobSpp)]
 sum(jacob$Species == "Mecocerculus_stictopterus")
 
 # counting number of point-visits per species
+jacobACF1 <- jacob[, names(jacob) %in% c("Point", "Take", "Species", "Count")]
+jacobACF <- doBy::summaryBy(Count ~ Point + Take + Species, data = jacobACF1, FUN = sum)
+dim(jacobACF)
+
 v <- vector()
 for(i in 1:length(jacobSpp)){
   v[i] <- sum(jacobACF$Species == jacobSpp[i])
@@ -507,33 +509,7 @@ sum(v==5)
 jacobSpp[which(v<5)]
 # 385
 jacobSpp[which(v>=5)]
-
-
-# counting number of points per species
-v <- vector()
-for(i in 1:length(jacobSpp)){
-  v[i] <- sum(jacobPOINTSUMMARY$Species == jacobSpp[i])
-}
-
-hist(v)
-jacobSpp[which(v > 50)]
-hist(v[v <= 50])
-hist(v[v <= 10])
-sum(v==1)
-sum(v==2)
-sum(v==3)
-sum(v==4)
-sum(v==5)
-
-jacobSpp[which(v<5)]
-# 430
-jacobSpp[which(v>=5)]
-
-sum(jacob$Species %in% jacobSpp[which(v<5)])
-sum(jacob$Species %in% jacobSpp[which(v>=5)])
-
-
-
+# 372
 
 
 NonAmazonSpp <- as.character(unique(jacob$Species[1:(min(which(jacob$Point == 'SGP12'))-1)]))
@@ -542,9 +518,140 @@ NonAmazonSpp
 AllNonAmazon <- unique(c(NonAmazonSpp, simonSpp, LlanosSpp, WAndesSpp))
 AllNonAmazon
 
-##### Array assembly for occupancy model #####
+##### Combine datasets #####
 # Organize by site [i], visit[j], species[k]
+jacob4array <- data.frame(point = jacob$Point, visit = jacob$Take, species = jacob$Species, dummy = 1)
+wandes4array <- data.frame(point = wandes$Point, visit = wandes$Count, species = gsub(" ", "_", wandes$Species), dummy = 1)
+llanos4array <- data.frame(point = llanos$Point, visit = llanos$Count_event, species = gsub(" ", "_", llanos$Species), dummy = 1)
+simon4array <- data.frame(point = simon$Point, visit = simon$Visit, species = simon$Latin, dummy = 1)
 
+# Check how many unique species-site-visit combinations each dataset really has
+dim(doBy::summaryBy(dummy ~ point + visit + species, data = jacob4array))
+dim(doBy::summaryBy(dummy ~ point + visit + species, data = wandes4array))
+dim(doBy::summaryBy(dummy ~ point + visit + species, data = llanos4array))
+dim(doBy::summaryBy(dummy ~ point + visit + species, data = simon4array))
+
+combined_raw <- rbind(jacob4array, wandes4array, llanos4array, simon4array)
+combined_raw$species[combined_raw$species %ni% gsub(" ", "_", colombia_species)]
+length(combined_raw$species[combined_raw$species %ni% gsub(" ", "_", colombia_species)])
+
+combined_new <- doBy::summaryBy(dummy ~ point + visit + species, data = combined_raw, FUN = sum)
+combined <- combined_new[,1:3]
+
+nrow(combined_raw)
+nrow(combined)
+
+# counting number of point-visits per species
+allSpp <- unique(combined$species)
+v <- vector()
+for(i in 1:length(allSpp)){
+  v[i] <- sum(combined$species == allSpp[i])
+}
+
+hist(v)
+allSpp[which(v > 50)]
+hist(v[v <= 50])
+hist(v[v <= 10])
+sum(v==1)
+sum(v==2)
+sum(v==3)
+sum(v==4)
+sum(v==5)
+
+allSpp[which(v<5)]
+# 359
+allSpp[which(v>=5)]
+# 603
+allSpp[which(v > 5)]
+# 560
+
+combinedPOINTSUMMARY <- doBy::summaryBy(dummy.sum ~ point + species, data = combined_new)
+dim(combinedPOINTSUMMARY)
+
+v <- vector()
+for(i in 1:length(allSpp)){
+  v[i] <- sum(combinedPOINTSUMMARY$species == allSpp[i])
+}
+hist(v)
+allSpp[which(v > 50)]
+hist(v[v <= 50])
+hist(v[v <= 10])
+sum(v==1)
+sum(v==2)
+sum(v==3)
+sum(v==4)
+sum(v==5)
+
+allSpp[which(v<5)]
+# 411
+allSpp[which(v>=5)]
+# 551
+allSpp[which(v > 5)]
+# 503
+
+
+##### Organize array for occupancy model #####
+colombia_points <- read.csv('GIS/Points/CO_sampling_points_metafile.csv')
+unique(combined$visit)
+allSpp <- as.character(unique(combined$species))[order(as.character(unique(combined$species)))]
+allPts <- as.character(unique(combined$point))[order(as.character(unique(combined$point)))]
+
+allPts[allPts %ni% colombia_points$point_id]
+extra_metafile1 <- colombia_points$point_id[colombia_points$point_id %ni% allPts]
+extra_metafile2 <- extra_metafile1[extra_metafile1 %ni% llanos1$Point[llanos1$HAB == "PALM"]]
+extra_metafile3 <- extra_metafile2[extra_metafile2 %ni% wandes_pts$Point[wandes_pts$Habcode == "Sy"]]
+# lots of points in extra_metafile3 are llanos and wandes points where only beetle data were collected.
+
+# The strategy below will be to populate a zero-filled array with ones, and then to go back and fill with NAs
+# for any visit that never occurred.
+detection_array <- array(data = 0, dim = c(length(allPts), 5, length(allSpp)))
+
+# Fill with ones
+for(i in 1:length(allPts)){
+  pt <- combined[combined$point == allPts[i], ]
+  for(j in 1:5){
+    if(j %in% pt$visit){
+      pt_vis <- pt[pt$visit == j, ]
+      detection_array[i, j, ] <- allSpp %in% pt_vis$species
+    }
+  }
+}
+
+sum(detection_array) == nrow(combined)
+
+# Back-fill the NA's
+for(i in 1:length(allPts)){
+  pt <- combined[combined$point == allPts[i], ]
+  if(!isTRUE(all.equal(1:4, unique(pt$visit)[order(unique(pt$visit))]))){print(paste(unique(pt$point), unique(pt$visit), sep = "_"))}
+}
+# All potentially problem points are mine or simon's, plus the 5-visit EXTRA4_3
+
+table(jacob_visit_data$Point)[table(jacob_visit_data$Point) != 4]
+table(simon_visit_data$Point)[table(simon_visit_data$Point) != 4]
+
+# 5-visit points
+five_visit <- unique(combined$point[combined$visit == 5])
+three_visit <- c('ABF1', 'ABF2', 'ABF3', 'ABF4', 'ABF5', 'ABF6',
+                 'ABP1', 'ABP2', 'ABP3', 'ABP4', 'ABP5', 'ABP6',
+                 'ATP3',
+                 'PSP1', 'PSP2', 'PSP3', 'PSP4', 'PSP5', 'PSP6', 'PSP7',
+                 'SAP8', 'SAP9', 'SAP10', 'SAP11', 'SAP12',
+                 'CHP1', 
+                 'TUA7', 'TUA8', 'TUA9')
+two_visit <- c('SAP4', 'SAP5', 'SAP6')
+
+
+detection_array[allPts %ni% five_visit, 5, ] <- NA
+detection_array[allPts %in% c(two_visit, three_visit), 4, ] <- NA
+detection_array[allPts %in% two_visit, 3, ] <- NA
+
+sum(detection_array, na.rm = T) == nrow(combined) # issue with lack of visit 3 on CHP1; to be resolved by Simon
+
+bird_surveys <- list(detection_array = detection_array, species_names = allSpp, point_names = allPts)
+saveRDS(bird_surveys, file = paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_', Sys.Date(), '.RDS'))
+saveRDS(bird_surveys, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_current.RDS')
+
+bird_surveys <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_current.RDS')
 
 ##### For Felicity ######
 allSpp # all species currently in the dataset (HBW/BirdLife taxonomy)
