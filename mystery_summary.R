@@ -7,6 +7,7 @@ low <- 0
 med <- 0
 high <- 0
 veryhigh <- 0
+
 for(i in 1:length(sites)){
   files2 <- list.files(sites[i])
   low <- low + sum(grepl('_low', files2))
@@ -15,3 +16,16 @@ for(i in 1:length(sites)){
   veryhigh <- veryhigh + sum(grepl('_veryhigh', files2))
   
 }
+
+filenames <- sitenames <- vector()
+for(i in 1:length(sites)){
+  files2 <- list.files(sites[i])
+  mysfiles <- files2[grep('MYS', files2, ignore.case = T)]
+  filenames <- c(filenames, mysfiles)
+  sitenames <- c(sitenames, rep(sites[i], length(mysfiles)))
+
+  
+}
+
+mystery_entry <- data.frame(Site = sitenames, file.name = filenames)
+#write.csv(mystery_entry, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Mystery_entry/data_entry_sheet.csv')
