@@ -7,7 +7,7 @@ rstan_options(auto_write = T)
 n_cluster <- 300
 ppc <- 3
 n_point <- n_cluster*ppc
-n_species <- 30
+n_species <- 120
 n_visit <- rep(4, n_point)
 
 # Define covariates
@@ -272,6 +272,7 @@ elapsed <- Sys.time() - start.time
 summary.samples <- summary(stan.samples)
 which(summary.samples$summary[,9] == min(summary.samples$summary[,9]))
 max(summary.samples$summary[,10])
+object.size(stan.samples)
 
 ######
 
@@ -282,9 +283,18 @@ max(summary.samples$summary[,10])
 #    elapsed range: 7427 - 7490
 #    object.size: 15178522976 bytes
 
-# 30 species, all params saved:
+# 30 species, few params saved:
 #    min neff (mu_d0) = 809
 #    max R-hat = 1.012
 #    grad. eval. range: .049 - .077
 #    elapsed range: 5649 - 6839
-#    object.size: 15178522976 bytes
+
+
+# 60 species, few params saved, 2000 iterations:
+#    min neff (mu_d0) = 303.35
+#    max R-hat = 1.022
+#    grad. eval. range: .088 - .152
+#    elapsed range: 13573 - 16148
+#    object.size: 104002808 bytes
+
+# 120 species, few params saved, 2000 iterations:
