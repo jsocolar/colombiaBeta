@@ -264,13 +264,27 @@ stan.data <- list(n_point = n_point, n_species = n_species,
 nc <- 4
 
 start.time <- Sys.time()
-stan.samples <- stan(model_code = stan.model, data = stan.data, iter = 2000, chains = nc, cores = nc)
+stan.samples <- stan(model_code = stan.model, data = stan.data, iter = 2000, chains = nc, cores = nc,
+                     pars = c('logit_psi', 'logit_theta', 'log_prob_increment', 'd1_raw', 'd1', 'b1_raw', 'b1'),
+                     include = FALSE)
 elapsed <- Sys.time() - start.time
 
+summary.samples <- summary(stan.samples)
+which(summary.samples$summary[,9] == min(summary.samples$summary[,9]))
+max(summary.samples$summary[,10])
 
 ######
 
+# 30 species, all params saved:
+#    min neff (lp__) = 862
+#    max R-hat = 1.004
+#    grad. eval. range: .046 - .072
+#    elapsed range: 7427 - 7490
+#    object.size: 15178522976 bytes
 
-
-
-
+# 30 species, all params saved:
+#    min neff (mu_d0) = 809
+#    max R-hat = 1.012
+#    grad. eval. range: .049 - .077
+#    elapsed range: 5649 - 6839
+#    object.size: 15178522976 bytes
