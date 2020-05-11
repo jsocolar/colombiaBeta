@@ -1,12 +1,14 @@
 `%ni%` <- Negate(`%in%`)
 
 ##### For collaborative projects--figure out what machine we're on and automatically set the working directory ####
-socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/machine_identifier_n5L8paM.txt')
-socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/machine_identifier_n5L8paM.txt')
+socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
+socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
 if(socolar.desktop){
   dir.path <- "/Users/JacobSocolar/Dropbox/Work/Colombia/Data"
+  googleAPIkey <- readLines('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/GoogleAPIkey.txt')
 }else if(socolar.laptop){
   dir.path <- "/Users/jacob/Dropbox/Work/Colombia/Data"
+  googleAPIkey <- readLines('/Users/jacob/Dropbox/Work/Code/code_keychain/GoogleAPIkey.txt')
 }# else if(){dir.path <- }
 # Edit the above for whatever computer(s) you use.  Just make absolutely sure that the if condition is something that definitely
 # wouldn't possibly evaluate as true on anybody else's system, and that none of the preceding conditions could possibly evaluate
@@ -123,10 +125,10 @@ row.names(points) <- seq(nrow(points))
 View(points)
 
 # Check all elevations against google maps API
-gelevs1 <- googleway::google_elevation(df_locations = points[1,], location_type = "individual", key = "AIzaSyA_DnNXG1ZPljSQX27A16ypm2fNDsyKpHw")
+gelevs1 <- googleway::google_elevation(df_locations = points[1,], location_type = "individual", key = googleAPIkey)
 gelevs <- gelevs1$results[ , c(1,3)]
 for(i in 2:nrow(points)){
-  gelevs1 <- googleway::google_elevation(df_locations = points[i,], location_type = "individual", key = "AIzaSyA_DnNXG1ZPljSQX27A16ypm2fNDsyKpHw")
+  gelevs1 <- googleway::google_elevation(df_locations = points[i,], location_type = "individual", key = googleAPIkey)
   if(gelevs1$status != "OK"){c(print("NOT OK"), i)}
   gelevs <- rbind(gelevs, gelevs1$results[ , c(1,3)])
 }
@@ -199,6 +201,14 @@ for(i in 2:nrow(points)){
 
 points <- points[-p2rm, ]
 
+points$cluster <- paste('cluster', gsub('[[:digit:]]', '', points$name), ceiling(as.numeric(gsub('[[:alpha:]]', '', points$name))/3), sep = "_")
+points$cluster[235:241] <- c(rep('cluster_PSP_1', 2), rep('cluster_PSP_2', 2), rep('cluster_PSP_3', 3))
+
+# within-cluster distances
+for(i in 1:length(unique(cluster)))
+
+
+
 dists <- raster::pointDistance(p1 = points[,c(2,1)], p2 = points[,c(2,1)], lonlat = T, allpairs = T)
 diag(dists) <- NA
 
@@ -211,5 +221,12 @@ bads <- bads[which(bads[,1] >= bads[,2]),]
 cbind(as.character(points$name[bads[,1]]), as.character(points$name[bads[,2]]))
 
 
-write.csv(points, file = "points_v1.csv")
+plot(points$ele ~ points$g_elev_init)
+plot(points$ele ~ points$ALOS_init)
+plot(points$g_elev_init ~ points$ALOS_init)
+hist(points$g_elev_init - points$ALOS_init)
+points[points$g_elev_init - points$ALOS_init < -20,]
+points[points$g_elev_init - points$ALOS_init > 20,]
+
+write.csv(points, file = "GIS/Points/socolar_points_v1.csv")
 
