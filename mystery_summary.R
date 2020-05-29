@@ -28,4 +28,18 @@ for(i in 1:length(sites)){
 }
 
 mystery_entry <- data.frame(Site = sitenames, file.name = filenames)
-#write.csv(mystery_entry, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Mystery_entry/data_entry_sheet.csv')
+
+colombia_points <- read.csv('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Points/CO_sampling_points_metafile.csv')
+
+
+jacobX <- jacob1[is.na(jacob1$Dis),] # from bird_import_and_cleaning
+jacobX$Elevation <- NA
+for(i in 1:nrow(jacobX)){
+  if(jacobX$Rec[i] != ""){
+    jacobX$Elevation[i] <- colombia_points$elev_ALOS30m[as.character(colombia_points$point_id) == as.character(jacobX$Point[i])]
+  }
+}
+species_list <- jacobX[,c('Rec', 'Elevation', 'Date', 'Time', 'Species', 'Dist', 'Note')]
+species_list$Elevation[is.na(species_list$Elevation)] <- ""
+species_list$Time[is.na(species_list$Time)] <- ""
+#write.csv(mystery_entry, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Mystery_entry/data_entry_sheet_final.csv')

@@ -5,7 +5,7 @@ socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/code_keych
 socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
 if(socolar.desktop){
   dir.path <- "/Users/JacobSocolar/Dropbox/Work/Colombia/Data"
-  simon.file.path <- "/Users/jacobsocolar/Google_drive/Simon_data/data/bird data_Jan&Jun2019/data_Jan&Jun2019_currentVersion.xlsx"
+  simon.file.path <- "/Users/jacobsocolar/Google Drive/Simon_data/data/bird data_Jan&Jun2019/data_Jan&Jun2019_currentVersion.xlsx"
 }else if(socolar.laptop){
   dir.path <- "/Users/jacob/Dropbox/Work/Colombia/Data"
 }# else if(){dir.path <- }
@@ -151,6 +151,9 @@ wandes$Species[wandes$Species == "Thraupis palmarum"] <- "Tangara palmarum"
 wandes$Species[wandes$Species == "Xenops rutilans"] <- "Xenops rutilus"
 wandes$Species[wandes$Species == "Atlapetes tricolor"] <- "Atlapetes crassus"
 wandes$Species[wandes$Species == "Chlorothraupis stolzmanni"] <- "Habia stolzmanni"
+wandes$Species[wandes$Species == "Synallaxis moesta"] <- "Synallaxis brachyura"
+wandes$Species[wandes$Species == "Drymophila caudata"] <- "Drymophila striaticeps"
+
 
 wandes <- wandes[-which(wandes$Species %in% c("Stelgidopteryx ruficollis", "Atticora tibialis", "Hirundo rustica",
                                               "Pygochelidon cyanoleuca", "Orochelidon murina")), ]
@@ -269,6 +272,8 @@ llanos$Species[llanos$Species == "Thraupis episcopus"] <- "Tangara episcopus"
 llanos$Species[llanos$Species == "Thraupis palmarum"] <- "Tangara palmarum"
 llanos$Species[llanos$Species == "Hypnelus ruficollis"] <- "Hypnelus bicinctus"
 llanos$Species[llanos$Species == "Todirostrum nigriceps"] <- "Todirostrum chrysocrotaphum" # Changing ID based on emails with James
+llanos$Species[llanos$Species == "Turdus ignobilis"] <- "Turdus debilis"
+
 
 # We assume that all of the llanos Myiodynastes maculatus are nominate maculatus, given the Jan-March timeframe.
 llanos <- llanos[llanos$Species != "Vireo olivaceus", ] # Records are in February and March, when there's no way to separate true olivaceus from resident chivi after the fact
@@ -294,9 +299,9 @@ simon1 <- data.frame(readxl::read_excel(simon.file.path))
 all.equal(is.na(simon1$Point), is.na(simon1$Visit)) #  make sure that NAs in jacob1$Take universally match ""'s in jacob1$Point
 which(is.na(simon1$Point) & !is.na(simon1$Visit))
 which(!is.na(simon1$Point) & is.na(simon1$Visit))
-#View(simon1[which(!is.na(simon1$Point) & is.na(simon1$Visit)), ])
+View(simon1[which(!is.na(simon1$Point) & is.na(simon1$Visit)), ])
 
-simon1$Visit[which(!is.na(simon1$Point) & is.na(simon1$Visit))] <- c(4, 4, 4, 3, 3, 3, 3, 3, 4, 4, 4, 4)
+simon1$Visit[which(!is.na(simon1$Point) & is.na(simon1$Visit))] <- c(4, 4, 4, 1)
 all.equal(is.na(simon1$Point), is.na(simon1$Visit))
 
 unique(simon1$Dist)
@@ -322,7 +327,7 @@ unique(simon1$Visit[simon1$Point == 'SEF2'])
 unique(simon1$Visit[simon1$Point == 'SEF3'])
 
 # Read in my lookup table for Simon's dataset
-simon_list <- read.csv("Birds/Simon_list_28-02-2019.csv", stringsAsFactors = F)
+simon_list <- read.csv("Birds/Simon_list_21-05-2019.csv", stringsAsFactors = F)
 simon_list$English.Ebird[229] <- "White-banded tyrannulet"
 simon_list$English.Simon[simon_list$English.Simon == "Black-collared Jay"] <- "Black-collared jay"
 
@@ -330,9 +335,6 @@ simon_species <- unique(simon1$Species)
 simon_species[simon_species %ni% simon_list$English.Simon]
 
 #View(simon1[simon1$Species %ni% c(simon_list$English.Simon, 'Sono', 'Vis', 'Note', '-', '"') & !grepl(" sp$", simon1$Species) & !(is.na(simon1$Species)), ])
-# Most of these hits are species that aren't really in the dataset (unknown IDs, flyovers, D-band)
-# However, we need to deal with one:
-simon1$Species[simon1$Species == 'Smoky bush tyrant'] <- 'Smoky bush-tyrant'
 
 # Extract the analyzeable records, but do so in several steps to implement typo checks and to keep track of 
 # how many species/entries are unanalyzeable.
@@ -370,6 +372,7 @@ simon$Latin[simon$Latin == "Thraupis_cyanocephala"] <- "Sporathraupis_cyanocepha
 simon$Latin[simon$Latin == "Thraupis_episcopus"] <- "Tangara_episcopus"
 simon$Latin[simon$Latin == "Thraupis_palmarum"] <- "Tangara_palmarum"
 simon$Latin[simon$Latin == "Xenops_rutilans"] <- "Xenops_rutilus"
+simon$Latin[simon$Latin == "Heliangelus_amethysticollis"] <- "Heliangelus_clarisse"
 
 
 simonSpp <- unique(simon$Latin)
@@ -429,20 +432,21 @@ jacob <- droplevels(jacob3[jacob3$Species %ni% c("Sono", "Visu"), ])
 # Get data file of visit-specific information
 jacob_visit_data <- jacob1[!is.na(jacob1$Time), names(jacob1) %in% c("Point", "Take", "Date", "Wind", "Vis", "Sky", "Sun", "Drip", "Time")]
 jacob_visit_data$Obs <- "JBS"
-jacob_visit_data$Obs[jacob_visit_data$Point == IGF]
+
+jacob_visit_data$Obs[jacob_visit_data$Point == IGF] # TO DO: CHANGE OBSERVER TO DPE WHERE NECESSARY
 
 table(jacob_visit_data$Point)[table(jacob_visit_data$Point) != 4]
 
 ##### Tools to monitor progress on dataset as it's entered--not part of final analysis #####
 # 237 Llanos spp
 # 319 WAndes spp
-# 247 EAndes spp (Simon+David only)
-# 757 Jacob spp
-## 282 Amazon
-## 557 Jacob outside Amazon
+# 248 EAndes spp (Simon+David only)
+# 761 Jacob spp
+## 287 Amazon
+## 559 Jacob outside Amazon
 # 607 other spp (all data except Jacob)
-# 962 total spp
-## 805 total spp outside of Amazon
+# 966 total spp
+## 807 total spp outside of Amazon
 
 dim(jacob)
 dim(jacob3)[1] - dim(jacob)[1]
@@ -457,7 +461,7 @@ WAndesSpp <- gsub(" ", "_", unique(wandes$Species))
 
 allSpp <- unique(c(jacobSpp, simonSpp, LlanosSpp, WAndesSpp))
 allSpp
-#962
+#966
 
 otherSpp <- unique(c(simonSpp, LlanosSpp, WAndesSpp))
 otherSpp
@@ -509,7 +513,7 @@ sum(v==5)
 jacobSpp[which(v<5)]
 # 385
 jacobSpp[which(v>=5)]
-# 372
+# 376
 
 
 NonAmazonSpp <- as.character(unique(jacob$Species[1:(min(which(jacob$Point == 'SGP12'))-1)]))
@@ -561,9 +565,9 @@ sum(v==5)
 allSpp[which(v<5)]
 # 359
 allSpp[which(v>=5)]
-# 603
+# 607
 allSpp[which(v > 5)]
-# 560
+# 563
 
 combinedPOINTSUMMARY <- doBy::summaryBy(dummy.sum ~ point + species, data = combined_new)
 dim(combinedPOINTSUMMARY)
@@ -583,11 +587,11 @@ sum(v==4)
 sum(v==5)
 
 allSpp[which(v<5)]
-# 411
+# 413
 allSpp[which(v>=5)]
-# 551
+# 553
 allSpp[which(v > 5)]
-# 503
+# 506
 
 
 ##### Organize array for occupancy model #####

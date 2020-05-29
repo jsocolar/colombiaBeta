@@ -19,7 +19,6 @@ setwd(dir.path)
 ############################
 
 AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-'%ni%' <- Negate('%in%')
 
 ##### Basic Colombia map #####
 # read in GADM colombia shapefile
