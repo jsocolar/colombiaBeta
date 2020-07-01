@@ -4,8 +4,8 @@ library(magrittr)
 `%ni%` <- Negate(`%in%`)
 
 ##### For collaborative projects--figure out what machine we're on and automatically set the working directory ####
-socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/machine_identifier_n5L8paM.txt')
-socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/machine_identifier_n5L8paM.txt')
+socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
+socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
 if(socolar.desktop){
   dir.path <- "/Users/JacobSocolar/Dropbox/Work/Colombia"
 }else if(socolar.laptop){
@@ -544,7 +544,6 @@ initial_species_list$eltontraits[initial_species_list$Pulido == "Automolus rufip
 
 
 write.csv(initial_species_list, file = "Data/Birds/species_list_creation/initial_species_list.csv")
-
 
 ###### Parker
 parker <- read.csv('Data/Birds/traits/Parker_Stotz_Fitzpatrick_1996/databases/adata.csv')

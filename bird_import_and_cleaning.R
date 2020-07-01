@@ -6,6 +6,7 @@ socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/code_keychain/mach
 if(socolar.desktop){
   dir.path <- "/Users/JacobSocolar/Dropbox/Work/Colombia/Data"
   simon.file.path <- "/Users/jacobsocolar/Google Drive/Simon_data/data/bird data_Jan&Jun2019/data_Jan&Jun2019_currentVersion.xlsx"
+  simon.RDS.path <- "/Users/jacobsocolar/Google Drive/Simon_data/data/bird data_Jan&Jun2019/formattedDataset_JanJun2019.rds"
 }else if(socolar.laptop){
   dir.path <- "/Users/jacob/Dropbox/Work/Colombia/Data"
 }# else if(){dir.path <- }
