@@ -81,7 +81,7 @@ nf_drops <- c(grep('Ardenna ', nf_species), grep('Hydrobates ', nf_species), gre
 nf_species <- nf_species[-nf_drops]
 initial_species_list <- read.csv("Data/Birds/species_list_creation/initial_species_list.csv")
 sum(initial_species_list$HBW %ni% nf_species)
-
+save(nf_species, file = '/Users/jacobsocolar/Dropbox/Work/Useful_data/BirdlifeTraits/nf_species.Rdata')
 
 ###### Parker ######
 parker <- read.csv('Data/Birds/traits/Parker_Stotz_Fitzpatrick_1996/databases/adata.csv')
@@ -227,9 +227,9 @@ parker_lookup$parker[parker_lookup$HBW == "Vireo olivaceus"] <- 'Vireo (olivaceu
 parker_lookup$parker[parker_lookup$HBW == "Machaeropterus striolatus"] <- 'Machaeropterus regulus'
 parker_lookup$parker[parker_lookup$HBW == "Paraclaravis mondetoura"] <- 'Claravis mondetoura'
 parker_lookup$parker[parker_lookup$HBW == "Celeus galeatus"] <- 'Dryocopus galeatus'
-parker_lookup$parker[parker_lookup$HBW == "Guyramemua affinis"] <- 'Suiriri affinis'
-parker_lookup$parker[parker_lookup$HBW == "Chaetura meridionalis"] <- 'Chaetura antrei'
-parker_lookup$parker[parker_lookup$HBW == "Chaetura meridionalis"] <- 'Chaetura antrei'
+parker_lookup$parker[parker_lookup$HBW == "Guyramemua affinis"] <- 'NEW'  # double-check Suiriri suiriri to ensure no habitat contamination from this taxon
+parker_lookup$parker[parker_lookup$HBW == "Chaetura meridionalis"] <- 'Chaetura andrei'
+parker_lookup$parker[parker_lookup$HBW == "Chaetura meridionalis"] <- 'Chaetura andrei'
 parker_lookup$parker[parker_lookup$HBW == "Chlorostilbon notatus"] <- 'Chlorestes notatus'
 parker_lookup$parker[parker_lookup$HBW == "Chlorostilbon lucidus"] <- 'Chlorostilbon aureoventris'
 parker_lookup$parker[parker_lookup$HBW == "Chlorostilbon auriceps"] <- 'Chlorostilbon canivetii'
@@ -299,7 +299,7 @@ parker_lookup$parker[parker_lookup$HBW == "Atlapetes canigenis"] <- 'Atlapetes s
 parker_lookup$parker[parker_lookup$HBW == "Atlapetes melanolaemus"] <- 'Atlapetes schistaceus'
 parker_lookup$parker[parker_lookup$HBW == "Atlapetes melanopsis"] <- 'Atlapetes schistaceus'
 parker_lookup$parker[parker_lookup$HBW == "Atlapetes forbesi"] <- 'Atlapetes rufigenis'
-parker_lookup$parker[parker_lookup$HBW == "Cypseloides niger"] <- 'Nephoectes niger'
+parker_lookup$parker[parker_lookup$HBW == "Cypseloides niger"] <- 'Nephoecetes niger'
 parker_lookup$parker[parker_lookup$HBW == "Cypseloides fumigatus"] <- 'Cypseloides (fumigatus) fumigatus'
 parker_lookup$parker[parker_lookup$HBW == "Cypseloides rothschildi"] <- 'Cypseloides (fumigatus) major'
 parker_lookup$parker[parker_lookup$HBW == "Cypseloides senex"] <- 'Aerornis senex'
@@ -407,7 +407,7 @@ parker_lookup$parker[parker_lookup$HBW == "Agriornis montanus"] <- 'Agriornis mo
 parker_lookup$parker[parker_lookup$HBW == "Agriornis micropterus"] <- 'Agriornis microptera'
 parker_lookup$parker[parker_lookup$HBW == "Agriornis murinus"] <- 'Agriornis murina'
 parker_lookup$parker[parker_lookup$HBW == "Poospizopsis caesar"] <- 'Poospiza caesar'
-parker_lookup$parker[parker_lookup$HBW == "Poospizopsis hypocondria"] <- 'Poospiza hypocondria'
+parker_lookup$parker[parker_lookup$HBW == "Poospizopsis hypocondria"] <- 'Poospiza hypochondria'
 parker_lookup$parker[parker_lookup$HBW == "Microspingus cabanisi"] <- 'Poospiza lateralis'
 parker_lookup$parker[parker_lookup$HBW == "Microspingus trifasciatus"] <- 'Hemispingus trifasciatus'
 parker_lookup$parker[parker_lookup$HBW == "Microspingus melanoleucus"] <- 'Poospiza melanoleuca'
@@ -1514,3 +1514,35 @@ parker_lookup$parker[parker_lookup$HBW == "Synallaxis beverlyae"] <- 'NEW'
 parker_lookup$parker[parker_lookup$HBW == "Hypocnemis rondoni"] <- 'NEW'
 parker_lookup$parker[parker_lookup$HBW == "Rallus crepitans"] <- 'MISSING'
 
+HBW_parker <- cbind(parker_lookup, as.data.frame(matrix(nrow = nrow(parker_lookup), ncol = 41)))
+names(HBW_parker)[4:44] <- names(parker)[27:67]
+
+hp1.1 <- HBW_parker[!duplicated(HBW_parker$parker, fromLast = T) & !duplicated(HBW_parker$parker, fromLast = F), ]
+hp1 <- hp1.1[hp1.1$parker %ni% c('NEW', 'MISSING') & is.na(hp1.1$parker2), ]
+
+for(i in 1:nrow(hp1)){
+  hp1[i, 4:44] <- parker[which(paste(parker$GENUS, parker$SPECIES, sep = ' ') == hp1$parker[i]), 27:67]
+}
+
+hp2 <- HBW_parker[(duplicated(HBW_parker$parker, fromLast = T) | duplicated(HBW_parker$parker, fromLast = F)) & HBW_parker$parker %ni% c('NEW', 'MISSING'), ]
+for(i in 1:nrow(hp2)){
+  hp2[i, 4:44] <- parker[which(paste(parker$GENUS, parker$SPECIES, sep = ' ') == hp2$parker[i]), 27:67]
+}
+
+hp2 <- hp2[order(hp2$parker), ]
+
+write.csv(hp2, '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/hp2.csv')
+
+hp3 <- HBW_parker[!is.na(HBW_parker$parker2), ]
+
+for(i in 1:nrow(hp3)){
+  hp3[i, 4:44] <- parker[which(paste(parker$GENUS, parker$SPECIES, sep = ' ') == hp3$parker[i]), 27:67]
+}
+
+hp4 <- HBW_parker[HBW_parker$parker %in% c('NEW', 'MISSING'), ]
+
+new_parker1 <- rbind(hp1, hp2, hp3, hp4)
+
+new_parker <- new_parker1[!duplicated(new_parker1$HBW), ]
+
+write.csv(new_parker, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/new_parker.csv')
