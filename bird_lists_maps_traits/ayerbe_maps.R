@@ -1,34 +1,51 @@
+# This script reads in the Ayerbe maps and resolves taxonomy with HBW
+
 library(sf)
 `%ni%` <- Negate(`%in%`)
 AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
+##### Get colombia mainland shapefile #####
+colombia <- st_read('/Users/JacobSocolar/Dropbox/Work/Colombia/Data/GIS/colombia_maps/gadm36_COL_shp/gadm36_COL_0.shp')
+# file consists of many disjoint polygons, representing the mainland and numerous islands. Figure out which is the mainland and extract it.
+npoly <- length(colombia$geometry[[1]])
+size <- rep(0,npoly)
+for(i in 1:npoly){
+  size[i] <- dim(colombia$geometry[[1]][[i]][[1]])[1]
+}
+mainland <- colombia$geometry[[1]][[which(size == max(size))]] %>%
+  st_polygon() %>% st_sfc() %>% st_sf()
+st_crs(mainland) <- st_crs(colombia)
+# Transform to AEA conic centered on Colombia
+mainland <- st_transform(mainland, AEAstring)
+buffered_mainland <- st_buffer(mainland, 100000)
+m2 <- st_simplify(mainland, dTolerance = 10000)
 
-# ayerbe_files <- list.files('/Users/jacobsocolar/Google Drive/Simon_data/data/rangemaps_Quinones')
-# ayerbe_shpfiles <- ayerbe_files[grep('.shp$', ayerbe_files)]
-# 
-# initial_map_list <- list()
-# for(i in 1:length(ayerbe_shpfiles)){
-#   initial_map_list[[i]] <- st_make_valid(st_read(paste0('/Users/jacobsocolar/Google Drive/Simon_data/data/rangemaps_Quinones/', ayerbe_shpfiles[i])))
-# }
-# initial_map_sf <- do.call(rbind, initial_map_list)
-# rm(initial_map_list)
-# 
-# names(initial_map_sf)[1] <- 'Species'
-# initial_map_sf$Species <- gsub('[[:space:]]', ' ', initial_map_sf$Species) # At least one entry contains some kind of crazy whitespace character that gets printed as " " in the R console but which does not match " " for the purposes of string matching
-# 
-# saveRDS(initial_map_sf, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/initial_map_sf.RDS')
 
+##### Read Ayerbe shapefiles provided by Humboldt, and bind to sf frame #####
+ayerbe_files <- list.files('/Users/jacobsocolar/Google Drive/Simon_data/data/rangemaps_Quinones')
+ayerbe_shpfiles <- ayerbe_files[grep('.shp$', ayerbe_files)]
+initial_map_list <- list()
+for(i in 1:length(ayerbe_shpfiles)){
+  initial_map_list[[i]] <- st_make_valid(st_read(paste0('/Users/jacobsocolar/Google Drive/Simon_data/data/rangemaps_Quinones/', ayerbe_shpfiles[i])))
+}
+initial_map_sf <- do.call(rbind, initial_map_list)
+rm(initial_map_list)
+names(initial_map_sf)[1] <- 'Species'
+initial_map_sf$Species <- gsub('[[:space:]]', ' ', initial_map_sf$Species) # At least one entry contains some kind of crazy whitespace character that gets printed as " " in the R console but which does not match " " for the purposes of string matching
+saveRDS(initial_map_sf, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/initial_map_sf.RDS')
+
+##### Standardize taxonomy to HBW species list #####
 initial_map_sf <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/initial_map_sf.RDS')
 initial_species_list <- read.csv("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/initial_species_list.csv")
 initial_species_list$HBW_underscore <- gsub(" ", "_", initial_species_list$HBW)
-# Handle clear-cut one-to-one (from a Colombian perspective) synonymy that is resolved by HBW/eBird/EltonTraits lookup
+
+# One-to-one (from a Colombian perspective) synonymy that is resolved by HBW/eBird/EltonTraits lookup
 for(i in 1:nrow(initial_map_sf)){
   if((initial_map_sf$Species[i] %ni% initial_species_list$HBW) &             #  if the Ayerbe name is missing from HBW    
         (sum(initial_species_list$eBird == initial_map_sf$Species[i]) == 1)){  # but is present exactly once in the eBird synonymy
     initial_map_sf$Species[i] <- initial_species_list$HBW[initial_species_list$eBird == initial_map_sf$Species[i]]   # Replace Ayerbe name with corresponding HBW name
   }
 }
-
 for(i in 1:nrow(initial_map_sf)){
   if((initial_map_sf$Species[i] %ni% c(initial_species_list$HBW, initial_species_list$eBird)) &   #  if the Ayerbe name is missing from HBW & eBird
      (sum(initial_species_list$eltontraits == initial_map_sf$Species[i]) == 1)){  # but is present exactly once in the EltonTraits synonymy
@@ -36,7 +53,7 @@ for(i in 1:nrow(initial_map_sf)){
   }
 }
 
-# Handle additional clear-cut one-to-one synonymy
+# Additional one-to-one synonymy
 initial_map_sf$Species[initial_map_sf$Species == "Oxypogon stubelii"] <- "Oxypogon stuebelii"
 initial_map_sf$Species[initial_map_sf$Species == "Geospizopis unicolor"] <- "Geospizopsis unicolor"
 initial_map_sf$Species[initial_map_sf$Species == "Picumnus olivaceus_M"] <- "Picumnus olivaceus"
@@ -52,47 +69,47 @@ initial_map_sf$Species[initial_map_sf$Species == "Hylopezus macularius_"] <- "Hy
 # we can handle the splitting later on.
 initial_map_sf$Species[initial_map_sf$Species == "Zimmerius parvus"] <- "Zimmerius vilissimus"
 
-
+##### What HBW species are now missing a map? #####
 initial_species_list$HBW[initial_species_list$HBW %ni% initial_map_sf$Species]
-
 # Missing species
 # Rallus limicola
 # Fulica ardesiaca
 # Gallinago imperialis
 # Hoploxypterus (=Vanellus) cayanus
-# Myiothlypis conspicillata                 *
+# Myiothlypis conspicillata                 
 # Cacicus sclateri
 # Dacnis berlepschi                         
-# Entomodestes coracinus                    *
-# Grallaria_bangsi                          *
+# Entomodestes coracinus                    
+# Grallaria_bangsi                          
 # Larus serranus
-# Leptotila verreauxi                       *
+# Leptotila verreauxi                       
 # Megascops clarkii
 # Metallura iracunda
 # Metriopela melanoptera
-# Nothocercus julius                        *
+# Nothocercus julius                        
 # Nothoprocta curvirostris
 # Veniliornis callonotus
 # Pyrrhura viridicata
-# Trogon melanurus                          *
-# Drymophila hellmayri                      *
+# Trogon melanurus                          
+# Drymophila hellmayri                      
 # Aprositornis disjuncta
 # Muscisaxicola fulviatilis
 # Pheugopedius columbianus (= sclateri)
 # Snowornis subalaris
-# Thripadectes virgaticeps                  *
+# Thripadectes virgaticeps                  
 # Cyanolyca turcosa
-# Scytalopus sanctaemartae                  *
-# Thripadectes ignobilis                    *
+# Scytalopus sanctaemartae                  
+# Thripadectes ignobilis                    
 # Troglodytes ochraceus
 # Hemitriccus inornatus
 # Heterocercus aurantiivertex
 # Cyphorhinus phaeocephalus
 
-
+# In the below, * indicates splits that are mapped as parapatric by Ayerbe, such that the location of the division
+# was determined from literature rather than self-evident from the map.
 # Splits
 # Pyrrhura chapmani/pacifica/melanura                                 Masks Done *
-# Vireo chivi/olivaceus                                               
+# Vireo chivi/olivaceus                                               Ayerbe doesn't explicitly map olivaceus; we'll just rely on the BirdLife map to pick it up
 # Coeligena conradii/torquata                                         Masks Done *
 # Coeligena consita/bonaparteii                                       Masks Done
 # Forpus spengeli/xanthopterygius                                     Masks Done
@@ -118,7 +135,7 @@ initial_species_list$HBW[initial_species_list$HBW %ni% initial_map_sf$Species]
 # Furnarius longirostris/cinnamomeus/leucopus                         Masks Done
 # Grallaria salutensis/rufula                                         Masks Done
 # Automolus virgatus/subulatus                                        Masks Done
-# Myiobius sulphureipygius/barbatus                                   Masks Done * semiflavus debacle
+# Myiobius sulphureipygius/barbatus                                   Masks Done * semiflavus is an issue; here followed Todd and others in treating it as part of barbatus, and therfore parapatric with sulphureipygus
 # Myiodynastes solitarius/maculatus                                   Masks Done *
 # Myrmornis stictoptera/torquata                                      Masks Done
 # Myiopagis parambae/cinerea (both from caniceps)                     Masks Done
@@ -128,9 +145,9 @@ initial_species_list$HBW[initial_species_list$HBW %ni% initial_map_sf$Species]
 # Tolmomyias viridiceps/flaviventris                                  Masks Done *
 # Thamnistes aequatorialis/anabatinus                                 Masks Done
 # Tolmomyias flavotectus/assimilis                                    Masks Done
-# Turdus debilis/arthuri/ignobilis                                    Masks Done * Stiles & Avedaño for arthuri
+# Turdus debilis/arthuri/ignobilis                                    Masks Done * Stiles & Avedaño is consulted to delimit arthuri range
 # Zimmerius improbus/parvus (both from vilissimus, which gets autocoverted to parvus because improbus is consistent in eBird and Elton)  Masks Done
-# Xiphorhynchus chunchotambo/beauperthuysii (both from ocellatus)     Masks Done * beauperthuysii needs a sliver of buffer
+# Xiphorhynchus chunchotambo/beauperthuysii (both from ocellatus)     Masks Done
 # Cryptopipo litae/holochlora                                         Masks Done
 # Cacicus flavicrissus/cela                                           Masks Done * contra maps in Birdlife and Donegan, but consistent with HBW range descriptions, Jaramillo, and common sense, here treated Catatumbo populations as cela
 # Cacicus uropygialis/pacificus                                       Masks Done
@@ -148,15 +165,21 @@ initial_species_list$HBW[initial_species_list$HBW %ni% initial_map_sf$Species]
 # Saltator olivascens/coerulescens                                    Masks Done * line based on Boseman's HBW alive note plus eBird photos from Casanare, continuous cluster of eBird records from Venezuela down the white-sand savannas of NE Colombia, and XC material from Venezuela
 # Ramphocelus icteronotus/flammigerus                                 Masks Done *
 
+
+##### Splits #####
+# Splits are handled by creating masking polygons that cover up superflous parts of the parent taxon's range.  These polygons were
+# drawn by hand in Google Earth with the relevant Ayerbe maps simultaneously imported.
+
+# Get dataframe giving the HBW species, the file path for the masking polygons, and the Ayerbe species to which the mask must be applied
 mask_update <- data.frame(new_species = list.files('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_updates/ayerbe_mask'),
                           path = list.files('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_updates/ayerbe_mask', full.names = T),
                           old_species = NA)
-
 for(i in 1:nrow(mask_update)){
   nf <- list.files(mask_update$path[i])
   mask_update$old_species[i] <- gsub('.txt', '', nf[grep('.txt', nf)])
 }
 
+# Do the masking
 new_map_list <- list()
 for(i in 1:nrow(mask_update)){
   old_map <- initial_map_sf[initial_map_sf$Species == mask_update$old_species[i],]
@@ -171,193 +194,53 @@ for(i in 1:nrow(mask_update)){
     }
   }
   new_map$Species <- gsub('_', ' ', mask_update$new_species[i])
-#  plot(new_map, main = new_map$Species)
-#  plot(st_buffer(new_map, dist = .03), main = new_map$Species)
   new_map_list[[i]] <- new_map
 }
 
 ayerbe_splits <- do.call(rbind, new_map_list)
-  
-ayerbe_maps_prelim <- initial_map_sf[initial_map_sf$Species %ni% mask_update$old_species, ]
 
-ayerbe_maps <- st_transform(rbind(ayerbe_maps_prelim, ayerbe_splits), AEAstring)
-
-bird_surveys <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_current.RDS')
-colombia_points <- st_as_sf(data.frame(readxl::read_excel('/Users/jacobsocolar/Downloads/RAWdata_samplingpointsCO_MASTER.xlsx')), 
-                            coords = c('long', 'lat'), crs = 4326)
-for(i in 10:12){
-  colombia_points$point_id <- gsub(paste0('CHA', i, 'd'), paste0('CHA', i, 'D'), colombia_points$point_id)
-}
-bird_points <- st_transform(colombia_points[colombia_points$point_id %in% bird_surveys$point_names, ], AEAstring)
-
-missing <- c('Myiothlypis_conspicillata', 'Entomodestes_coracinus', 'Grallaria_bangsi', 'Leptotila_verreauxi',
-             'Nothocercus_julius', 'Trogon_melanurus', 'Drymophila_hellmayri', 'Thripadectes_virgaticeps',
-             'Scytalopus_sanctaemartae', 'Thripadectes_ignobilis', 'Vireo_olivaceus')
-
-
-load('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/birdlife_maps/recast_range_maps.Rdata')
-birdlife_relevant <- st_transform(recast_range_maps[recast_range_maps$SCINAME %in% ayerbe_maps$Species,], AEAstring)
-
-distances <- distances_birdlife <- list()
-dsp <- vector()
-sp_pts <- list()
-for(i in 1:length(bird_surveys$species_names)){
-  if(bird_surveys$species_names[i] %ni% missing){
-    species <- bird_surveys$species_names[i]
-    species_range <- ayerbe_maps[ayerbe_maps$Species == gsub('_', ' ', species), ]
-    species_range_birdlife <- birdlife_relevant[birdlife_relevant$SCINAME == gsub('_', ' ', species), ]
-    surveys <- bird_surveys$detection_array[,,i]
-    point_names <- bird_surveys$point_names[rowSums(surveys, na.rm = T) > 0]
-    points <- bird_points[bird_points$point_id %in% point_names, ]
-    distance_matrix <- st_distance(points, species_range)
-    distance_matrix_birdlife <- st_distance(points, species_range_birdlife)
-    distances[[i]] <- as.vector(distance_matrix)
-    distances_birdlife[[i]] <-  apply(distance_matrix_birdlife, 1, min)
-    dsp[i] <- species
-    sp_pts[[i]] <- points
-  }
-}
-
-mdist <- mdist2 <- vector()
-for(i in 1:length(dsp)){
-  mdist[i] <- max(distances[[i]])
-  mdist2[i] <- max(pmin(distances[[i]], distances_birdlife[[i]]))
-}
-
-d <- 50000
-bad_species <- dsp[mdist > d]
-bad_species2 <- dsp[mdist2 > d]
-
-
-colombia <- st_read('/Users/JacobSocolar/Dropbox/Work/Colombia/Data/GIS/colombia_maps/gadm36_COL_shp/gadm36_COL_0.shp')
-
-# file consists of many disjoint polygons, representing the mainland and numerous islands. Figure out which is the mainland
-# and extract it.
-npoly <- length(colombia$geometry[[1]])
-size <- rep(0,npoly)
-for(i in 1:npoly){
-  size[i] <- dim(colombia$geometry[[1]][[i]][[1]])[1]
-}
-
-mainland <- colombia$geometry[[1]][[which(size == max(size))]] %>%
-  st_polygon() %>% st_sfc() %>% st_sf()
-st_crs(mainland) <- st_crs(colombia)
-
-# Transform to AEA conic centered on Colombia
-mainland <- st_transform(mainland, AEAstring)
-buffered_mainland <- st_buffer(mainland, 100000)
-m2 <- st_simplify(mainland, dTolerance = 10000)
-
-# for(i in 1:length(bad_species2)){
-#   print(ggplot(m2) + geom_sf() + 
-#     geom_sf(data = birdlife_relevant[birdlife_relevant$SCINAME == gsub("_", " ", bad_species2[i]),], inherit.aes = F, fill = 'cornflowerblue') +
-#     geom_sf(data = ayerbe_maps[ayerbe_maps$Species == gsub("_", " ", bad_species2[i]),], inherit.aes = F, fill = 'red', alpha = .2) +
-#     geom_sf(data = sp_pts[[which(dsp == bad_species2[i])]], inherit.aes = F) +
-#     ggtitle(bad_species2[i]))
-# }
-
-
-
-clipping_polygons <- list(amazon_orinoco = st_transform(amazon_orinoco, AEAstring), magdalena_east = st_transform(magdalena_east, AEAstring),
-                          magdalena_west = st_transform(magdalena_west, AEAstring), cauca_east = st_transform(cauca_east, AEAstring),
-                          cauca_west = st_transform(cauca_west, AEAstring), pasto = st_transform(pasto, AEAstring), 
-                          pacific = st_transform(pacific, AEAstring), snsm = st_transform(snsm, AEAstring), 
-                          guajira_perija = st_transform(guajira_perija, AEAstring), catatumbo = st_transform(catatumbo, AEAstring))
-
-rrm <- recast_range_maps[recast_range_maps$SCINAME %in% initial_species_list$HBW,]
-
-birdlife_relevant <- st_intersection(st_make_valid(st_transform(rrm, AEAstring)), buffered_mainland)
-saveRDS(birdlife_relevant, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/combined_maps/birdlife_relevant.RDS')
-
-rangeclips <- list()
-bufferclips <- list()
-for(i in 1:length(clipping_polygons)){
-  cp <- clipping_polygons[[i]]
-  clip_list <- buffer_list <- list()
-  counter <- 0
-  for(k in 1:length(bird_surveys$species_names)){
-    print(c(i, k))
-    species <- bird_surveys$species_names[k]
-    range <- birdlife_range <-  st_union(st_make_valid(birdlife_relevant[birdlife_relevant$SCINAME == gsub('_', ' ', species), ]))
-    if(bird_surveys$species_names[k] %ni% missing){
-      ayerbe_range <- ayerbe_maps[ayerbe_maps$Species == gsub('_', ' ', species), ]
-      range <- st_union(st_union(ayerbe_range), birdlife_range)
-    }
-    clipped_range <- st_intersection(cp, range)
-    if(nrow(clipped_range) > 0){
-      if(nrow(clipped_range) != 1){stop()}
-      counter <- counter + 1
-      clipped_range$species <- species
-      cr <- clipped_range[, 'species']
-      names(cr) <- c('species', 'geometry')
-      st_geometry(cr) <- 'geometry'
-      clip_list[[counter]] <- cr
-      
-      buffered_cr <- st_buffer(cr, 100000)
-      clipped_buffered_cr <- st_intersection(buffered_cr, cp)
-      clipped_buffered_cr$species <- species
-      cbc <- clipped_buffered_cr[, 'species']
-      names(cbc) <- c('species', 'geometry')
-      st_geometry(cbc) <- 'geometry'
-      buffer_list[[counter]] <- cbc
-    }
-  }
-  rangeclips[[i]] <- do.call(rbind, clip_list)
-  bufferclips[[i]] <- do.call(rbind, buffer_list)
-}
-names(rangeclips) <- names(bufferclips) <- names(clipping_polygons)
-
-bird_points$bioregion <- NA
-for(i in 1:nrow(bird_points)){
-  v <- rep(NA, length(clipping_polygons))
-  for(j in 1:length(clipping_polygons)){
-    v[j] <- st_intersects(clipping_polygons[[j]], bird_points[i, ], sparse = F)
-  }
-  if(sum(v) != 1){stop()}
-  bird_points$bioregion[i] <- names(clipping_polygons)[which(v)]
-}
-head(bird_points)
-
-
-point_distances <- as.data.frame(matrix(data = NA, nrow = nrow(initial_species_list), ncol = nrow(bird_points)))
-names(point_distances) <- bird_points$point_id
-row.names(point_distances) <- initial_species_list$HBW
-
-for(i in 1:nrow(bird_points)){
-  print(i)
-  region_range <- rangeclips[[bird_points$bioregion[i]]]
-  for(k in 1:nrow(initial_species_list)){
-    if(initial_species_list$HBW_underscore[k] %in% region_range$species){
-      point_distances[k, i] <- st_distance(bird_points[i, ], region_range[region_range$species == initial_species_list$HBW_underscore[k], ])
-    }
-  }
-}
-
-saveRDS(point_distances, file = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/point_distances/point_distances_biogeographic_clip.RDS")
-
-Q <- apply(bird_surveys$detection_array, MARGIN = c(1,3), FUN = function(x){return(sum(x, na.rm = T) > 0)})
-
-pt_distances <- data.frame(species = rep(NA, sum(Q)), point = rep(NA, sum(Q)), distance = rep(NA, sum(Q)))
+##### Missing species #####
+missing_species <- data.frame(species = list.files('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_updates/ayerbe_missing'),
+                              path = list.files('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_updates/ayerbe_missing', full.names = T))
+missing_map_list <- list()
 counter <- 0
-for(i in 1:length(bird_surveys$point_names)){
-  pt <- bird_surveys$point_names[i]
-  for(k in 1:length(bird_surveys$species_names)){
-    if(Q[i, k] == 1){
-      counter <- counter + 1
-      sp <- gsub("_", " ", bird_surveys$species_names[k])
-      pt_distances$species[counter] <- sp
-      pt_distances$point[counter] <- pt
-      pt_distances$distance[counter] <- point_distances[sp, pt]
+for(i in 1:nrow(missing_species)){
+  files <- list.files(missing_species$path[[i]], full.names = T)
+  if(sum(grepl('empty.txt', files)) == 0){
+    counter <- counter + 1
+    range_files <- files[grep('.kml', files)]
+    rangemap <- st_zm(st_read(range_files[1]))
+    if(length(range_files) > 1){
+      for(j in 2:length(range_files)){
+        rangemap2 <- st_zm(st_read(range_files[j]))
+        rangemap <- st_union(rangemap, rangemap2)
+      }
     }
+    if(sum(grepl('HOLE', files)) != 0){
+      holefiles <- list.files(files[grep('HOLE', files)], full.names = T)
+      hole <- st_zm(st_read(holefiles[1]))
+      rangemap <- st_difference(rangemap, hole)
+      if(length(holefiles) > 1){
+        for(j in 2:length(holefiles)){
+          hole <- st_zm(st_read(holefiles[j]))
+          rangemap <- st_difference(rangemap, hole)
+        }
+      }
+    }
+    rangemap$Species <- gsub('_', ' ', missing_species$species[i])
+    missing_map_list[[counter]] <- rangemap[, c('Species', 'geometry')]
   }
 }
 
-pt_distances[is.na(pt_distances$distance), ]
+ayerbe_missing_prelim <- do.call(rbind, missing_map_list)
+ayerbe_missing <- st_intersection(ayerbe_missing_prelim, st_transform(mainland, st_crs(ayerbe_missing_prelim))) # Crop to mainland, as hand-drawn ranges were not clipped to colomiban border
 
-pd2 <- pt_distances[!is.na(pt_distances$distance), ]
+##### Combine for complete Ayerbe map set #####
+# note that there is no map, and no line in the sf frame, for Vireo olivaceus, Troglodytes ochraceus, Hemitriccus inornatus, or Heterocercus aurantiivertex
+ayerbe_maps_prelim <- initial_map_sf[initial_map_sf$Species %ni% mask_update$old_species, ]
+ayerbe_maps_prelim2 <- rbind(ayerbe_maps_prelim, ayerbe_splits)
+ayerbe_maps <- st_transform(rbind(ayerbe_maps_prelim2, ayerbe_missing), AEAstring)
 
-pd2[pd2$distance > 50000,]
+initial_species_list$HBW[initial_species_list$HBW %ni% ayerbe_maps$Species]
 
-ggplot(birdlife_relevant[birdlife_relevant$SCINAME == "Aburria aburri", ]) + geom_sf() + 
-  geom_sf(data = ayerbe_maps[ayerbe_maps$Species == "Aburria aburri", ], inherit.aes = F) + 
-  geom_sf(data = region_range[region_range$species == initial_species_list$HBW_underscore[k], ], fill = 'red', inherit.aes = F)
+saveRDS(ayerbe_maps, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_maps.RDS')

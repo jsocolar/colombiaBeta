@@ -542,6 +542,8 @@ initial_species_list$eltontraits[initial_species_list$Pulido == "Certhiasomus st
 initial_species_list$eltontraits[initial_species_list$Pulido == "Drymotoxeres pucherani"] <- "Campylorhamphus pucherani"
 initial_species_list$eltontraits[initial_species_list$Pulido == "Automolus rufipectus"] <- "Automolus rubiginosus"
 
+initial_species_list[nrow(initial_species_list) + 1, ] <- c(nrow(initial_species_list) + 1, 'Columba livia', 'Columba livia', NA, 'Columba livia', NA, 'Columba livia', 'Columba livia')
+
 
 write.csv(initial_species_list, file = "Data/Birds/species_list_creation/initial_species_list.csv")
 

@@ -3,42 +3,87 @@
 // To do: write a function that accepts varying number of site visits
 
 functions{
-    real partial_sum(int[,] det_slice, 
-                     int start, int end, 
-                     vector b0, 
-                     vector b1, 
-                     vector b4,
-                     vector d0, 
-                     real d2, 
-                     vector d5,
-                     vector pt_cov1, 
-                     vector sp_cov1,
-                     row_vector[] vis_cov1,
-                     int[] id_sp, 
-                     int[] id_sp_cl, 
-                     int[] Q) {
-        // indexing vars
+    real partial_sum(int ns,               // number of species
+                    int ng,                // number of genera
+                    int np,                // number of points
+                    int nc,                // number of clusters
+                    int nsc,               // number of species-clusters
+                    
+                    int[] id_sp,           // integer IDs for species
+                    int[] id_gen,          // integer IDs for genera
+                    int[] id_sp_cl,        // integer IDs for species-by-cluster
+                    int[] Q,               // Q-vector (0/1 to indicate whether species-point has a detection)
+                    int[] nv,              // number of visits to the given species-point (= number of visits to the point)
+                    
+                    
+                    
+                    
+                    
+                    int[,] det_slice,      // detection slice: a slice of the detection array, 
+                                                // where rows are species-points and columns are 
+                                                // visits
+                     int start,             // the starting row of the detection slice
+                     int end,               // the ending row of the detection slice
+                     
+                     // occupancy terms
+                     vector b0_cs,          // vector of intercepts by cluster-species
+                     vector b0_s,           // vector of intercepts by species
+                     vector b0_g,           // vector of intercepts by genus
+                     vector b1_l_s,         // vector of slopes for elevation (linear) by species
+                     vector b1_q_s,         // vector of slopes for elevation (squared) by species
+                     vector b2_s,           // vector of slopes for pasture by species
+                     vector b2_g,           // vector of slopes for pasture by genus
+                     
+                     // detection terms
+                     vector d0_s,           // vector of intercepts by species
+                     vector d0_g,           // vector of intercepts by genus
+                     vector d1_s,           // vector of slopes for pasture by species
+                     vector d2_s,           // vector of slopes for time-of-day by species
+                     
+                     row_vector[nsp] scaled_elev[npt],   // array of scaled elevations: rows are species, columns are points.
+                     row_vector[]
+                     vector pt_cov1,        // values of point-associated covariate 1
+                     vector sp_cov1,        // values of species-associated covariate 1
+                     row_vector[] vis_cov1 // values of visit-associated covariate 1
+                     ) {            // number of visits in a given row
+                     
+        // indexing variables
         int len = end - start;
         int r0 = start - 1;
         
-        vector[len] lp;
-        vector[len] logit_psi;
-        row_vector[4] logit_theta[len];
+        // variables for computation
+        vector[len] lp;                     // a vector to store the log-probability contribution from 
+                                                // each row of det_slice
+        real logit_psi;                     // a place to hold the value of logit_psi for a given row.
+                                                // not a vector; overwritten at each iteration of the loop.
+        vector[4] logit_theta;              // a place to hold values of logit_theta for a given row.
+                                                // overwritten at each iteration of the loop.
+        real theta_term;                    // a place to compute the sum of log1m_inv_logit(logit_theta) for 
+                                                // a given row. Overwritten at each iteration of the loop.
+                                                
+        // The overall idea here is that we will let theta always be of length 4, with trailing zeros on det_data
+        // and the visit covariates for any row with < 4 visits.  Then, below, we use only the relevant terms of 
+        // theta whenever nv < 4.
         for (r in 1:len) {
             // calculate psi & theta
-            logit_psi[r] = b0[id_sp[r0+r]] + b1[id_sp_cl[r0+r]] + b4[id_sp[r0+r]]*pt_cov1[r0+r];
-            logit_theta[r] = d0[id_sp[r0+r]] + d2*sp_cov1[r0+r] + d5[id_sp[r0+r]]*vis_cov1[r0+r];
+            logit_psi = b0[id_sp[r0+r]] + b1[id_sp_cl[r0+r]] + b4[id_sp[r0+r]]*pt_cov1[r0+r];
+            logit_theta = d0[id_sp[r0+r]] + d2*sp_cov1[r0+r] + d5[id_sp[r0+r]]*vis_cov1[r0+r];  
+            // Where nv < 4, logit_theta will have some trailing dummy terms.
+            
             // likelihood
-            if (Q[r0 + r] == 1) 
-                lp[r] = log_inv_logit(logit_psi[r]) +
-                    bernoulli_logit_lpmf(det_slice[r0 + r] | logit_theta[r]);
-            else lp[r] = log_sum_exp(
-                log_inv_logit(logit_psi[r]) +
-                    log1m_inv_logit(logit_theta[r, 1]) +
-                    log1m_inv_logit(logit_theta[r, 2]) +
-                    log1m_inv_logit(logit_theta[r, 3]) +
-                    log1m_inv_logit(logit_theta[r, 4]),
-                log1m_inv_logit(logit_psi[r]));
+            if (Q[r0 + r] == 1) {
+                lp[r] = log_inv_logit(logit_psi) +
+                    bernoulli_logit_lpmf(det_slice[r0 + r, 1:nv[r0 + r]] | logit_theta[1:nv[r0 + r]]);
+                // First term is probability of occupancy; second term is probabily of observed detection
+                // data given occupancy.
+            } else {
+                theta_term = 0;
+                for(v in 1:nv[r0 + r]) {
+                    theta_term += log1m_inv_logit(logit_theta[v]);
+                }
+                // theta_term is the sum of log1m_inv_logit(logit_theta) for all the relevant terms of theta
+                lp[r] = log_sum_exp(log_inv_logit(logit_psi) + theta_term, log1m_inv_logit(logit_psi[r]));
+            }
         } 
         return sum(lp);
     }
