@@ -1,6 +1,5 @@
 // 
 //
-// To do: write a function that accepts varying number of site visits
 
 functions{
     real partial_sum(int ns,               // number of species
@@ -15,10 +14,6 @@ functions{
                     int[] Q,               // Q-vector (0/1 to indicate whether species-point has a detection)
                     int[] nv,              // number of visits to the given species-point (= number of visits to the point)
                     
-                    
-                    
-                    
-                    
                     int[,] det_slice,      // detection slice: a slice of the detection array, 
                                                 // where rows are species-points and columns are 
                                                 // visits
@@ -31,14 +26,22 @@ functions{
                      vector b0_g,           // vector of intercepts by genus
                      vector b1_l_s,         // vector of slopes for elevation (linear) by species
                      vector b1_q_s,         // vector of slopes for elevation (squared) by species
+                     // add new terms for lowland species?
+                     
                      vector b2_s,           // vector of slopes for pasture by species
                      vector b2_g,           // vector of slopes for pasture by genus
+                     
+                     // add some trait terms that are not random
+                     // elev midpoint?
                      
                      // detection terms
                      vector d0_s,           // vector of intercepts by species
                      vector d0_g,           // vector of intercepts by genus
                      vector d1_s,           // vector of slopes for pasture by species
                      vector d2_s,           // vector of slopes for time-of-day by species
+                     
+                     // trait terms that are not random?
+                     // elev midpoint?
                      
                      row_vector[nsp] scaled_elev[npt],   // array of scaled elevations: rows are species, columns are points.
                      row_vector[]
@@ -58,10 +61,10 @@ functions{
                                                 // not a vector; overwritten at each iteration of the loop.
         vector[4] logit_theta;              // a place to hold values of logit_theta for a given row.
                                                 // overwritten at each iteration of the loop.
-        real theta_term;                    // a place to compute the sum of log1m_inv_logit(logit_theta) for 
+//        real theta_term;                    // a place to compute the sum of log1m_inv_logit(logit_theta) for 
                                                 // a given row. Overwritten at each iteration of the loop.
                                                 
-        // The overall idea here is that we will let theta always be of length 4, with trailing zeros on det_data
+        // The overall idea here is that we will let theta always be of length 4, with trailing -99s on det_data
         // and the visit covariates for any row with < 4 visits.  Then, below, we use only the relevant terms of 
         // theta whenever nv < 4.
         for (r in 1:len) {
@@ -77,12 +80,13 @@ functions{
                 // First term is probability of occupancy; second term is probabily of observed detection
                 // data given occupancy.
             } else {
-                theta_term = 0;
-                for(v in 1:nv[r0 + r]) {
-                    theta_term += log1m_inv_logit(logit_theta[v]);
-                }
-                // theta_term is the sum of log1m_inv_logit(logit_theta) for all the relevant terms of theta
-                lp[r] = log_sum_exp(log_inv_logit(logit_psi) + theta_term, log1m_inv_logit(logit_psi[r]));
+//                theta_term = 0;
+//                for(v in 1:nv[r0 + r]) {
+//                    theta_term += log1m_inv_logit(logit_theta[v]);   // can make this element-wise
+//                }
+//                // theta_term is the sum of log1m_inv_logit(logit_theta) for all the relevant terms of theta
+
+                lp[r] = log_sum_exp(log_inv_logit(logit_psi) + sum(log1m_inv_logit(logit_theta[1:nv[r0 + r]])), log1m_inv_logit(logit_psi[r]));
             }
         } 
         return sum(lp);

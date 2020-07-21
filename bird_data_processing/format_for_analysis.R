@@ -30,11 +30,12 @@ for(i in 1:length(species_list)){
   species <- species_list[i]
   det_array_ind <- which(species_names == species)
   for(j in 1:length(bird_surveys$point_names)){
-    if(point_distances_include[i, j] == 0){
+    point <- bird_surveys$point_names[j]
+    if(point_distances_include[i, which(names(point_distances_include) == point)] == 0){
       counter <- counter + 1
       flattened_data$species[counter] <- species
-      flattened_data$point[counter] <- bird_surveys$point_names[j]
-      if(det_array_ind < dim(det_array)[3] + 1){
+      flattened_data$point[counter] <- point
+      if(det_array_ind <= dim(det_array)[3]){
         flattened_data[counter, 3:6] <- det_array[j, , det_array_ind]
       }
     }

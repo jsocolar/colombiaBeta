@@ -545,18 +545,6 @@ initial_species_list$eltontraits[initial_species_list$Pulido == "Automolus rufip
 initial_species_list[nrow(initial_species_list) + 1, ] <- c(nrow(initial_species_list) + 1, 'Columba livia', 'Columba livia', NA, 'Columba livia', NA, 'Columba livia', 'Columba livia')
 
 
+
 write.csv(initial_species_list, file = "Data/Birds/species_list_creation/initial_species_list.csv")
-
-###### Parker
-parker <- read.csv('Data/Birds/traits/Parker_Stotz_Fitzpatrick_1996/databases/adata.csv')
-parker.nb <- read.csv('Data/Birds/traits/Parker_Stotz_Fitzpatrick_1996/databases/cdata.csv')
-
-parker <- gtools::smartbind(parker, parker.nb)
-parker.spp <- paste(parker$GENUS, parker$SPECIES)
-
-initial_species_list$HBW[initial_species_list$HBW %ni% parker.spp]
-
-
-
-
 

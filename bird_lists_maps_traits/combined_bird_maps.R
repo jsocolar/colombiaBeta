@@ -61,7 +61,7 @@ for(i in 1:nrow(initial_species_list)){
 names(combined_maps) <- initial_species_list$HBW
 
 saveRDS(combined_maps, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/combined_maps/combined_maps.RDS')
-
+combined_maps <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/combined_maps/combined_maps.RDS')
 
 ##### Check distances from occurrences in dataset to combined maps #####
 bird_surveys <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_current.RDS')
@@ -144,7 +144,7 @@ for(i in 1:nrow(initial_species_list)){
 }
 
 saveRDS(buffered_ranges, file = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/combined_maps/buffered_ranges.RDS")
-
+buffered_ranges <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/combined_maps/buffered_ranges.RDS")
 
 distances <- list()
 dsp <- vector()
@@ -207,6 +207,7 @@ for(i in 1:length(update_files)){
 
 combined_maps_updated <- combined_maps
 saveRDS(combined_maps_updated, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/combined_maps/combined_maps_updated.RDS')
+combined_maps_updated <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/combined_maps/combined_maps_updated.RDS')
 
 # Redo the buffering for the updated ranges
 buffered_ranges_updated <- buffered_ranges
@@ -238,6 +239,34 @@ for(i in which(names(buffered_ranges) %in% update_species)){
 }
 
 saveRDS(buffered_ranges_updated, file = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/combined_maps/buffered_ranges_updated.RDS")
+buffered_ranges_updated <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/combined_maps/buffered_ranges_updated.RDS")
+
+
+distances <- list()
+dsp <- vector()
+sp_pts <- list()
+for(i in 1:length(bird_surveys$species_names)){
+  species <- bird_surveys$species_names[i]
+  species_range <- buffered_ranges_updated[[gsub('_', ' ', species)]]
+  surveys <- bird_surveys$detection_array[,,i]
+  point_names <- bird_surveys$point_names[rowSums(surveys, na.rm = T) > 0]
+  points <- bird_points[bird_points$point_id %in% point_names, ]
+  distance_matrix <- st_distance(points, species_range)
+  distances[[i]] <- as.vector(distance_matrix)
+  dsp[i] <- species
+  sp_pts[[i]] <- points
+}
+
+mdist <- vector()
+for(i in 1:length(dsp)){
+  mdist[i] <- max(distances[[i]])
+}
+
+d <- 0
+bad_species <- dsp[mdist > d]
+
+bad_species
+
 
 for(i in 1:length(bad_species)){
   print(ggplot(m2) + geom_sf() +
