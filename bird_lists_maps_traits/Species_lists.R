@@ -542,7 +542,10 @@ initial_species_list$eltontraits[initial_species_list$Pulido == "Certhiasomus st
 initial_species_list$eltontraits[initial_species_list$Pulido == "Drymotoxeres pucherani"] <- "Campylorhamphus pucherani"
 initial_species_list$eltontraits[initial_species_list$Pulido == "Automolus rufipectus"] <- "Automolus rubiginosus"
 
-initial_species_list[nrow(initial_species_list) + 1, ] <- c(nrow(initial_species_list) + 1, 'Columba livia', 'Columba livia', NA, 'Columba livia', NA, 'Columba livia', 'Columba livia')
+initial_species_list[nrow(initial_species_list) + 1, ] <- c('Columba livia', 'Columba livia', NA, 'Columba livia', NA, 'Columba livia', 'Columba livia')
+initial_species_list[nrow(initial_species_list) + 1, ] <- c('Grallaria satuata', 'Grallaria rufula', NA, 'Grallaria rufula', NA, 'Grallaria rufula', 'Grallaria rufula')
+initial_species_list[nrow(initial_species_list) + 1, ] <- c('Grallaria spatiator', 'Grallaria rufula', NA, 'Grallaria rufula', NA, 'Grallaria rufula', 'Grallaria rufula')
+initial_species_list[nrow(initial_species_list) + 1, ] <- c('Grallaria alvarezi', 'Grallaria rufula', NA, 'Grallaria rufula', NA, 'Grallaria rufula', 'Grallaria rufula')
 
 
 
