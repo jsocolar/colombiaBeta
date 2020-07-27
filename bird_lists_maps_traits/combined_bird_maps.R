@@ -28,8 +28,6 @@ initial_species_list <- read.csv("/Users/jacobsocolar/Dropbox/Work/Colombia/Data
 load('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/birdlife_maps/recast_range_maps.Rdata')  # from Species_lists.R
 ayerbe_maps <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_maps.RDS') # from ayerbe_maps.R
 
-am <- ayerbe_maps[ayerbe_maps$Species %in% initial_species_list$HBW, ]
-
 # extract only the relevant species
 rrm <- recast_range_maps[recast_range_maps$SCINAME %in% initial_species_list$HBW,]
 
@@ -59,6 +57,24 @@ for(i in 1:nrow(initial_species_list)){
   combined_maps[[i]] <- st_union(blc[[i]], ayerbe_maps[ayerbe_maps$Species == initial_species_list$HBW[i], ])
 }
 names(combined_maps) <- initial_species_list$HBW
+
+##### Deal with Grallaria rufula #####
+rufula_lato <- combined_maps[["Grallaria rufula"]]
+rufula_ig <- st_transform(st_read("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/rufula_updates/Iguaque.kml"), AEAstring)
+rufula_west <- st_transform(st_read("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/rufula_updates/westAndes.kml"), AEAstring)
+rufula_central <- st_transform(st_read("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/rufula_updates/centralSouthernAndes.kml"), AEAstring)
+rufula_east <- st_transform(st_read("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/rufula_updates/eastAndes.kml"), AEAstring)
+rufula_snsm <- st_transform(st_read("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/rufula_updates/snsm.kml"), AEAstring)
+
+G_alvarezi <- st_difference(rufula_lato, st_union(rufula_central, st_union(rufula_east, rufula_snsm)))
+G_spatiator <- st_difference(rufula_lato, st_union(rufula_west, st_union(rufula_central, rufula_east)))
+G_rufula <- st_difference(rufula_lato, st_union(rufula_ig, st_union(rufula_west, st_union(rufula_central, rufula_snsm))))
+G_saturata <- st_union(rufula_ig, st_difference(rufula_lato, st_union(rufula_west, st_union(rufula_east, rufula_snsm))))
+
+combined_maps[["Grallaria rufula"]] <- G_rufula
+combined_maps[["Grallaria spatiator"]] <- G_spatiator
+combined_maps[["Grallaria alvarezi"]] <- G_alvarezi
+combined_maps[["Grallaria saturata"]] <- G_saturata
 
 saveRDS(combined_maps, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/combined_maps/combined_maps.RDS')
 combined_maps <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/combined_maps/combined_maps.RDS')

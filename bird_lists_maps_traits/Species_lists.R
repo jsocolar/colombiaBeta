@@ -547,7 +547,8 @@ initial_species_list[nrow(initial_species_list) + 1, ] <- c('Grallaria satuata',
 initial_species_list[nrow(initial_species_list) + 1, ] <- c('Grallaria spatiator', 'Grallaria rufula', NA, 'Grallaria rufula', NA, 'Grallaria rufula', 'Grallaria rufula')
 initial_species_list[nrow(initial_species_list) + 1, ] <- c('Grallaria alvarezi', 'Grallaria rufula', NA, 'Grallaria rufula', NA, 'Grallaria rufula', 'Grallaria rufula')
 
-
+# Remove Pteroglossus aracari, which is included in McMullan in error.
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Pteroglossus aracari"), ]
 
 write.csv(initial_species_list, file = "Data/Birds/species_list_creation/initial_species_list.csv")
 
