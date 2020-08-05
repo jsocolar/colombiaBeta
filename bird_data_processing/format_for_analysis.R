@@ -3,6 +3,7 @@
 bird_surveys <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_current.RDS')
 point_distances <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/point_distances/point_distances_biogeographic_clip.RDS")
 
+
 include_species <- vector()
 for(i in 1:nrow(point_distances)){
   include_species[i] <- sum(point_distances[i,] > 0) != ncol(point_distances)

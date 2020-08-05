@@ -543,12 +543,12 @@ initial_species_list$eltontraits[initial_species_list$Pulido == "Drymotoxeres pu
 initial_species_list$eltontraits[initial_species_list$Pulido == "Automolus rufipectus"] <- "Automolus rubiginosus"
 
 initial_species_list[nrow(initial_species_list) + 1, ] <- c('Columba livia', 'Columba livia', NA, 'Columba livia', NA, 'Columba livia', 'Columba livia')
-initial_species_list[nrow(initial_species_list) + 1, ] <- c('Grallaria satuata', 'Grallaria rufula', NA, 'Grallaria rufula', NA, 'Grallaria rufula', 'Grallaria rufula')
+initial_species_list[nrow(initial_species_list) + 1, ] <- c('Grallaria saturata', 'Grallaria rufula', NA, 'Grallaria rufula', NA, 'Grallaria rufula', 'Grallaria rufula')
 initial_species_list[nrow(initial_species_list) + 1, ] <- c('Grallaria spatiator', 'Grallaria rufula', NA, 'Grallaria rufula', NA, 'Grallaria rufula', 'Grallaria rufula')
 initial_species_list[nrow(initial_species_list) + 1, ] <- c('Grallaria alvarezi', 'Grallaria rufula', NA, 'Grallaria rufula', NA, 'Grallaria rufula', 'Grallaria rufula')
 
 # Remove Pteroglossus aracari, which is included in McMullan in error.
 initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Pteroglossus aracari"), ]
 
-write.csv(initial_species_list, file = "Data/Birds/species_list_creation/initial_species_list.csv")
+write.csv(initial_species_list, file = "Data/Birds/species_list_creation/initial_species_list.csv", row.names = F)
 

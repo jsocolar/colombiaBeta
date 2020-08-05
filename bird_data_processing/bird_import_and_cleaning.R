@@ -31,6 +31,10 @@ goodpts <- wandes_pts$Point[wandes_pts$Habcode != "Sy"]
 wandes$Species <- as.character(wandes$Species)
 wandes$Species <- gsub("_", " ", wandes$Species)
 
+wandes <- wandes[wandes$Species %ni% c("Phyllomyias uropygialis", "Elaenia pallatangae"), ]
+wandes$Species[wandes$Species == "Myiozetetes similis"] <- "Myiozetetes cayanensis"
+dim(wandes)
+
 unique(wandes$Species[wandes$Species %ni% t2$HBW_LATIN & wandes$Species %ni% t2$CLEM_SCI_2019])
 p1 <- unique(wandes$Species[wandes$Species %ni% t2$HBW_LATIN])
 p2 <- unique(wandes$Species[wandes$Species %ni% t2$CLEM_SCI_2019])
@@ -81,7 +85,7 @@ wandes$Species[wandes$Species == "Hemispingus frontalis"] <- "Sphenopsis frontal
 wandes$Species[wandes$Species == "Carduelis psaltria"] <- "Spinus psaltria"
 wandes$Species[wandes$Species == "Premnornis guttuligera"] <- "Premnornis guttuliger"
 wandes$Species[wandes$Species == "Myiarchus tubericulifer"] <- "Myiarchus tuberculifer"
-wandes$Species[wandes$Species == "Myiozetetes simillis"] <- "Myiozetetes similis"
+wandes$Species[wandes$Species == "Myiozetetes simillis"] <- "Myiozetetes cayanensis"     # Reidentifying these birds as cayanensis, as per email from James
 wandes$Species[wandes$Species == "Oryzoborus funereus"] <- "Sporophila funerea"
 wandes$Species[wandes$Species == "Parula pitiayumi"] <- "Setophaga pitiayumi"
 wandes$Species[wandes$Species == "Leiothlypis peregrinea"] <- "Leiothlypis peregrina"

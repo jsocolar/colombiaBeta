@@ -132,7 +132,7 @@ clipping_polygons <- list(amazon_orinoco = st_transform(amazon_orinoco, AEAstrin
                           guajira_perija = st_transform(guajira_perija, AEAstring), catatumbo = st_transform(catatumbo, AEAstring))
 
 buffered_ranges <- list()
-for(i in 1:nrow(initial_species_list)){
+for(i in 1801:nrow(initial_species_list)){
   print(i)
   species <- gsub("_", " ", initial_species_list$HBW[i])
   range <- combined_maps[[species]]
