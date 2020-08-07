@@ -43,6 +43,13 @@ for(i in 1:length(species_list)){
   }
 }
 
+
+
+
+
+
 saveRDS(flattened_data, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data.RDS")
+
+flattened_data <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data.RDS")
 
 Q <- apply(bird_surveys$detection_array, MARGIN = c(1,3), FUN = function(x){return(sum(x, na.rm = T) > 0)})
