@@ -18,9 +18,13 @@ guajira_valledupar <- st_make_valid(st_union(valledupar, st_difference(maracaibo
 central <- st_make_valid(st_zm(st_read('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/biogeographic_clips/mountains_clips/centralAndes__cauca__magdalena.kml')))
 sm <- st_make_valid(st_zm(st_read('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/biogeographic_clips/mountains_clips/SNSM__guajira_valledupar.kml')))
 pasto <- st_make_valid(st_zm(st_read('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/biogeographic_clips/mountains_clips/pasto__pacific.kml')))
+tacarcuna <- st_make_valid(st_zm(st_read('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/biogeographic_clips/mountains_clips/tacarcuna__pacific.kml')))
 
-pacific <- st_make_valid(st_difference(pacific_prelim, pasto))
+
+pacific_prelim2 <- st_make_valid(st_difference(pacific_prelim, pasto))
+pacific <- st_make_valid(st_difference(pacific_prelim2, tacarcuna))
 pasto <- st_make_valid(st_intersection(pacific_prelim, pasto))
+tacarcuna <- st_make_valid(st_intersection(pacific_prelim, tacarcuna))
 
 cauca_west <- st_make_valid(st_difference(cauca, central))
 cauca_east <- st_make_valid(st_intersection(cauca, central))
@@ -30,17 +34,4 @@ magdalena_east <- st_make_valid(st_difference(magdalena, central))
 
 guajira_perija <- st_make_valid(st_difference(guajira_valledupar, sm))
 snsm <- st_make_valid(st_intersection(guajira_valledupar, sm))
-
-
-# setwd('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/biogeographic_clips/clipping_polygons')
-# st_write(amazon_orinoco, "amazon_orinoco.shp")
-# st_write(pacific, "pacific.shp")
-# st_write(pasto, 'pasto.shp')
-# st_write(cauca_west, 'cauca_west.shp')
-# st_write(cauca_east, 'cauca_east.shp')
-# st_write(magdalena_west, 'magdalena_west.shp')
-# st_write(magdalena_east, "magdalena_east.shp")
-# st_write(guajira_perija, "guajira_perija.shp")
-# st_write(snsm, 'snsm.shp')
-# st_write(catatumbo, 'catatumbo.shp')
 

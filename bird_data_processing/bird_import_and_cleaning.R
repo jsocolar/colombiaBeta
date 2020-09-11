@@ -1,3 +1,5 @@
+###### Script dependencies: Species_lists.R, currently uses Felicity's metafile but eventually will depend on point formatting script #####
+
 `%ni%` <- Negate(`%in%`)
 
 ##### For collaborative projects--figure out what machine we're on and automatically set the working directory ####
@@ -166,7 +168,7 @@ wandes <- wandes[-which(wandes$Species %in% c("Stelgidopteryx ruficollis", "Atti
 # JGG confirms that there is no good way to separate the flyovers from the perched birds, so we are discarding
 # all swallows from the West Andes data
 
-wandes <- wandes[-which(wandes$Species %in% c("Hummingbird sp", "Chaetura sp", "Unkn.", "Chaetura_cinereiventris", "Vireo_olivaceus")), ]
+wandes <- wandes[-which(wandes$Species %in% c("Hummingbird sp", "Chaetura sp", "Unkn.", "Chaetura cinereiventris", "Vireo olivaceus")), ]
 # The above either are not species level taxa, or were seen exclusively in flight (Chaetura cinereiventris, pers. comm. JGG),
 # or in the case of Vireo olivaceus cannot be reliably assigned to olivaceus vs. chivi (pers. comm. JGG).
 
@@ -282,7 +284,7 @@ llanos$Species[llanos$Species == "Turdus ignobilis"] <- "Turdus debilis"
 
 # We assume that all of the llanos Myiodynastes maculatus are nominate maculatus, given the Jan-March timeframe.
 llanos <- llanos[llanos$Species != "Vireo olivaceus", ] # Records are in February and March, when there's no way to separate true olivaceus from resident chivi after the fact
-
+llanos <- llanos[llanos$Species != "Streptoprocne zonaris", ]
 
 llanos1 <- llanos
 llanos2 <- llanos[llanos$HAB != "PALM",]
@@ -304,10 +306,6 @@ simon1 <- data.frame(readxl::read_excel(simon.file.path))
 all.equal(is.na(simon1$Point), is.na(simon1$Visit)) #  make sure that NAs in jacob1$Take universally match ""'s in jacob1$Point
 which(is.na(simon1$Point) & !is.na(simon1$Visit))
 which(!is.na(simon1$Point) & is.na(simon1$Visit))
-View(simon1[which(!is.na(simon1$Point) & is.na(simon1$Visit)), ])
-
-simon1$Visit[which(!is.na(simon1$Point) & is.na(simon1$Visit))] <- c(4, 4, 4, 1)
-all.equal(is.na(simon1$Point), is.na(simon1$Visit))
 
 unique(simon1$Dist)
 length(unique(simon1$Dist)) # make sure that unique doesn't include "" as a 12th item
@@ -661,12 +659,6 @@ saveRDS(bird_surveys, file = paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/D
 saveRDS(bird_surveys, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_current.RDS')
 
 bird_surveys <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_current.RDS')
-
-##### For Felicity ######
-allSpp # all species currently in the dataset (HBW/BirdLife taxonomy)
-
-AmazonSpp <- unique(jacob$Species[min(which(jacob$Point == 'SGP12')):nrow(jacob)])
-AmazonSpp # all species recorded from Amazonian points
 
 
 

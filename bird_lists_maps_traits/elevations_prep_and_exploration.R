@@ -1,5 +1,9 @@
+##### Script dependencies: Species_lists.R #####
+`%ni%` <- Negate(`%in%`)
+
 elevations <- read.csv("/Users/jacobsocolar/Google Drive/Simon_data/data/elevational_ranges_Quinones.csv")
 elevations$latin <- paste(elevations$genus, elevations$species, sep = ' ')
+elevations <- elevations[elevations$latin != "Frederickena unduliger", ]
 initial_species_list <- read.csv("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/initial_species_list.csv")
 
 # One-to-one (from a Colombian perspective) synonymy that is resolved by HBW/eBird/EltonTraits lookup
@@ -36,19 +40,17 @@ elevations2 <- rbind(elevations, missing_species)
 elevations2$lower[is.na(elevations2$lower & !is.na(elevations2$is_na))] <- 0
 write.csv(elevations2, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/elevations/elevations2.csv")
 
+
+# elevations2.csv is modified by hand to elevations_final.csv to account for specific elevational limits for splits,
+# inclusive elevational limits for lumps, and insertion of McMullan data for species with presences in our data at
+# species-standardized elevations outside of [-1,2].  Affected species are Scytalopus vicinior, Syrigma sibilatrix,
+# Mitrephanes, Dendroplex picus, Myrmoborus leucophrys, Creurgops verticalis.
 elevations_final <- read.csv("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/elevations/elevations_final.csv")
 elevations_final <- elevations_final[!is.na(elevations_final$is_na),]
 
 
 elevations_final$latin[elevations_final$latin %ni% initial_species_list$HBW]
 initial_species_list$HBW[initial_species_list$HBW %ni% elevations_final$latin]
-
-# Extras
-# Chlorostilbon melanorhynchus--also for maps
-# Trogon caligatus -- also for maps
-# Turdus assimilis -- part of albicollis in BirdLife taxonomy; also for maps
-# Lonchura atricapilla
-# Corapipo altera  -- also for maps
 
 
 

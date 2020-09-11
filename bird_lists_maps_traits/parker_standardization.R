@@ -5,6 +5,11 @@
 # Then we match names in Parker to names in HBW, first by automatically handling exact name matches to either 
 # HBW or Clements (we already have a HBW/Clements lookup table), then by hand.
 
+
+# Status of script: need to finish populating final table with correct data from parker
+
+##### Script dependencies: nf_species_list.R, birdlife_scraper.R, species_lists.R  #####
+
 library(sf)
 
 `%ni%` <- Negate(`%in%`)
@@ -68,6 +73,8 @@ t2 <- rbind(t2, data.frame(orig_sort = NA, concept_8 = NA, latin_name = NA, TAXO
                            CLEM_CAT_2019 = NA, SPECIES_CODE_2019 = NA, CLEM_SPECIES_CODE_2018 = NA, range = NA, 
                            SORT_INTEGRATED = NA))
 
+
+##### Generate taxonomic lookup table between HBW and parker #####
 parker_lookup <- data.frame(HBW = nf_species, parker = NA, parker2 = NA)
 
 for(i in 1:nrow(parker_lookup)){
@@ -1460,19 +1467,26 @@ parker_lookup$parker[parker_lookup$HBW == "Synallaxis beverlyae"] <- 'NEW'
 parker_lookup$parker[parker_lookup$HBW == "Hypocnemis rondoni"] <- 'NEW'
 parker_lookup$parker[parker_lookup$HBW == "Rallus crepitans"] <- 'MISSING'
 
+
+##### Create updated parker table using HBW taxonomy #####
 HBW_parker <- cbind(parker_lookup, as.data.frame(matrix(nrow = nrow(parker_lookup), ncol = 41)))
 names(HBW_parker)[4:44] <- names(parker)[27:67]
 
 # Species that need no updating or checking
-hp1.1 <- HBW_parker[!duplicated(HBW_parker$parker, fromLast = T) & !duplicated(HBW_parker$parker, fromLast = F), ]
-hp1 <- hp1.1[hp1.1$parker %ni% c('NEW', 'MISSING') & is.na(hp1.1$parker2), ]
+hp1 <- HBW_parker[!duplicated(HBW_parker$parker, fromLast = T) & !duplicated(HBW_parker$parker, fromLast = F) &
+                      HBW_parker$parker %ni% c('NEW', 'MISSING') & is.na(HBW_parker$parker2), ]
 for(i in 1:nrow(hp1)){
   hp1[i, 4:44] <- parker[which(paste(parker$GENUS, parker$SPECIES, sep = ' ') == hp1$parker[i]), 27:67]
 }
 
-# Species that occur twice
-hp2 <- HBW_parker[(duplicated(HBW_parker$parker, fromLast = T) | duplicated(HBW_parker$parker, fromLast = F)) & HBW_parker$parker %ni% c('NEW', 'MISSING') & is.na(HBW_parker$parker2) &
-                    HBW_parker$parker %ni% c('Cercomacra tyrannina', 'Rhynchotus rufescens'), ]
+# Species that occur twice in Parker, but not in Parker2
+hp2.1 <- HBW_parker[(duplicated(HBW_parker$parker, fromLast = T) | duplicated(HBW_parker$parker, fromLast = F)) & 
+                    HBW_parker$parker %ni% c('NEW', 'MISSING') & is.na(HBW_parker$parker2), ]
+retain <- vector()
+for(i in 1:nrow(hp2.1)){
+  retain[i] <- all(is.na(HBW_parker$parker2[HBW_parker$parker == hp2.1$parker[i]]))
+}
+hp2 <- hp2.1[retain, ]
 for(i in 1:nrow(hp2)){
   hp2[i, 4:44] <- parker[which(paste(parker$GENUS, parker$SPECIES, sep = ' ') == hp2$parker[i]), 27:67]
 }
@@ -1480,6 +1494,7 @@ hp2 <- hp2[order(hp2$parker), ]
 
 load('/Users/jacobsocolar/Dropbox/Work/Useful_data/BirdlifeTraits/birdlife_traits.Rdata')
 
+# Check whether BirdLife gives identical habitat preferences for the split taxa
 birdlife_habitats <- list()
 for(i in 1:length(birdlife_traits$habitats)){
   h_length <- length(birdlife_traits$habitats[[i]])
@@ -1496,7 +1511,6 @@ names(birdlife_habitats) <- birdlife_traits$names
 species_check <- vector()
 for(i in 1:nrow(hp2)){
   HBW_species <- hp2$HBW[hp2$parker == hp2$parker[i]]
- # if(sum(birdlife_habitats[HBW_species]))
   habs <- list()
   for(j in 1:length(HBW_species)){
     habs[[j]] <- birdlife_habitats[HBW_species[j]][[1]]$habitat[!grepl("Artificial", birdlife_habitats[HBW_species[j]][[1]]$class)]
@@ -1509,18 +1523,21 @@ for(i in 1:nrow(hp2)){
   }
 }
 
+# All cases where BirdLife does not give identical habitat preferences for the split taxa are checked by hand # STILL TO BE DONE
 
 # Species that have 2 names in parker for one taxon in HBW
 hp3 <- HBW_parker[!is.na(HBW_parker$parker2) & !(duplicated(HBW_parker$parker, fromLast = T) | duplicated(HBW_parker$parker, fromLast = F)), ]
 for(i in 1:nrow(hp3)){
   hp3[i, 4:44] <- parker[which(paste(parker$GENUS, parker$SPECIES, sep = ' ') == hp3$parker[i]), 27:67]
 }
+# STILL NEED TO DO SECOND SPECIES BY HAND
 
 # Species that occur twice and have 2 names in parker for one taxon in HBW
 hp4 <- HBW_parker[!is.na(HBW_parker$parker2) & (duplicated(HBW_parker$parker, fromLast = T) | duplicated(HBW_parker$parker, fromLast = F)), ]
 for(i in 1:nrow(hp4)){
   hp4[i, 4:44] <- parker[which(paste(parker$GENUS, parker$SPECIES, sep = ' ') == hp4$parker[i]), 27:67]
 }
+# Review ALL species involved (e.g. if the parker columns correspond to additional species in HBW)
 
 # NEw or missing
 hp5 <- HBW_parker[HBW_parker$parker %in% c('NEW', 'MISSING'), ]

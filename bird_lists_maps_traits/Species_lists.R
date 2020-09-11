@@ -1,3 +1,6 @@
+##### Script dependencies: none #####
+
+
 library(sf)
 library(magrittr)
 
@@ -74,7 +77,6 @@ load("Data/Birds/species_list_creation/HBW_colombia_overlaps.Rdata")
 # Get the list of species
 colombia_species <- unique(recast_range_maps$SCINAME[unlist(lapply(colombia_overlaps, FUN = function(i){return(length(i) != 0)}))])
 save(colombia_species, file = "Data/Birds/species_list_creation/colombia_species.Rdata")
-
 
 
 load("Data/Birds/species_list_creation/colombia_species.Rdata")
@@ -549,6 +551,28 @@ initial_species_list[nrow(initial_species_list) + 1, ] <- c('Grallaria alvarezi'
 
 # Remove Pteroglossus aracari, which is included in McMullan in error.
 initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Pteroglossus aracari"), ]
+
+# Remove Hemitriccus inornatus, which is not present on the Donegan (2019) baseline list
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Hemitriccus inornatus"), ]
+
+
+# Remove all swifts
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Cypseloides cherriei"), ]
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Cypseloides cryptus"), ]
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Cypseloides lemosi"), ]
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Streptoprocne rutila"), ]
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Streptoprocne zonaris"), ]
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Chaetura spinicaudus"), ]
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Chaetura cinereiventris"), ]
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Chaetura egregia"), ]
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Chaetura pelagica"), ]
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Chaetura chapmani"), ]
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Chaetura meridionalis"), ]
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Chaetura brachyura"), ]
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Aeronautes montivagus"), ]
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Tachornis furcata"), ]
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Tachornis squamata"), ]
+initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Panyptila cayennensis"), ]
 
 write.csv(initial_species_list, file = "Data/Birds/species_list_creation/initial_species_list.csv", row.names = F)
 

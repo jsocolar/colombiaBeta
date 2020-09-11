@@ -1,3 +1,5 @@
+##### Script dependencies: GEE_setup.sh #####
+
 `%ni%` <- Negate(`%in%`)
 
 ##### For collaborative projects--figure out what machine we're on and automatically set the working directory ####

@@ -1,5 +1,7 @@
 # This script reads in the Ayerbe maps and resolves taxonomy with HBW
 
+###### Script dependencies: Species_lists.R #####
+
 library(sf)
 `%ni%` <- Negate(`%in%`)
 AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
@@ -101,8 +103,6 @@ initial_species_list$HBW[initial_species_list$HBW %ni% initial_map_sf$Species]
 # Scytalopus sanctaemartae                  
 # Thripadectes ignobilis                    
 # Troglodytes ochraceus
-# Hemitriccus inornatus
-# Heterocercus aurantiivertex
 # Cyphorhinus phaeocephalus
 
 # In the below, * indicates splits that are mapped as parapatric by Ayerbe, such that the location of the division
@@ -236,11 +236,11 @@ ayerbe_missing_prelim <- do.call(rbind, missing_map_list)
 ayerbe_missing <- st_intersection(ayerbe_missing_prelim, st_transform(mainland, st_crs(ayerbe_missing_prelim))) # Crop to mainland, as hand-drawn ranges were not clipped to colomiban border
 
 ##### Combine for complete Ayerbe map set #####
-# note that there is no map, and no line in the sf frame, for Vireo olivaceus, Troglodytes ochraceus, Hemitriccus inornatus, or Heterocercus aurantiivertex
+# note that there is no map, and no line in the sf frame, for Vireo olivaceus or Troglodytes ochraceus
 ayerbe_maps_prelim <- initial_map_sf[initial_map_sf$Species %ni% mask_update$old_species, ]
 ayerbe_maps_prelim2 <- rbind(ayerbe_maps_prelim, ayerbe_splits)
 ayerbe_maps <- st_transform(rbind(ayerbe_maps_prelim2, ayerbe_missing), AEAstring)
-
+ayerbe_maps[ayerbe_]
 initial_species_list$HBW[initial_species_list$HBW %ni% ayerbe_maps$Species]
 
 saveRDS(ayerbe_maps, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_maps.RDS')
