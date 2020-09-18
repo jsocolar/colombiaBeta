@@ -1539,7 +1539,7 @@ for(i in 1:nrow(hp4)){
 }
 # Review ALL species involved (e.g. if the parker columns correspond to additional species in HBW)
 
-# NEw or missing
+# New or missing
 hp5 <- HBW_parker[HBW_parker$parker %in% c('NEW', 'MISSING'), ]
 
 new_parker1 <- rbind(hp1, hp2, hp3, hp4, hp5)

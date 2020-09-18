@@ -1,28 +1,38 @@
 # This script takes previously ingested and standardized data on birds, traits, ranges, points, and visits and produces a unified data object for analysis
 
-##### Script dependencies: combined_bird_maps.R, bird_import_and_cleaning.R, elevations_prep_and_exploration.R, eventually the points formatting script #####
+##### Script dependencies: combined_bird_maps.R, bird_import_and_cleaning.R, elevations_prep_and_exploration.R, points_formatting.R, migratory_dates.R, species_covariate_formatting.R #####
 
 `%ni%` <- Negate(`%in%`)
 
+# Get formatted bird surveys object
 bird_surveys <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_current.RDS')
+
+# Get a matrix (actually a dataframe) of the distance from each species range to each sampling point.
 point_distances <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/point_distances/point_distances_biogeographic_clip_ayerbe.RDS")
 
+# Get a list of species with ranges overlapping our points
 include_species <- vector()
 for(i in 1:nrow(point_distances)){
   include_species[i] <- sum(point_distances[i,] > 0) != ncol(point_distances)
 }
 
+# subset the point distances to just the species that overlap at least one point
 point_distances_include <- point_distances[include_species, ]
 
+# Get a list of the species that overlap at least one point in underscore format
 species_list <- gsub(" ", "_", row.names(point_distances_include))
 
+# Confirm that all detected species are in the species list
 which(bird_surveys$species_names %ni% species_list)
 
+# Extract detection array and pad with zeros for all never-detected species in species_list
 det_array <- bird_surveys$detection_array[,1:4,]
 det_array_padded <- abind::abind(det_array, array(data = 0, dim = c(848, 4, length(species_list) - dim(det_array)[3])), along = 3)
 
+# Species names for det_array_padded
 species_names <- c(bird_surveys$species_names, species_list[species_list %ni% bird_surveys$species_names])
 
+# Create flattened data object, where each species-point gets its own row
 nrow_flat <- sum(point_distances == 0)
 
 flattened_data <- as.data.frame(matrix(data = 0, nrow = nrow_flat, ncol = 6))
@@ -48,35 +58,33 @@ for(i in 1:length(species_list)){
 saveRDS(flattened_data, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data.RDS")
 flattened_data <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data.RDS")
 
-
+# Include column for number of visits
 flattened_data$nv <- 4
 flattened_data$nv[is.na(flattened_data$v4)] <- 3
 flattened_data$nv[is.na(flattened_data$v3)] <- 2
 
+# Column for whether the species is ever detected at the point
 flattened_data$Q <- as.numeric(rowSums(flattened_data[,3:6], na.rm = T) > 0)
 
-
+# Read in point covariate information and merge with flattened_data
 all_pts <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Points/all_pts.RDS")
-
-
 fd <- merge(flattened_data, all_pts, by.x = "point", by.y = "point", all.x = T)
 
-
-
-
+# Read in species-trait covariate information and merge with fd
 traits <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/traits.RDS")
-
+# Confirm that we have trait covariates for every species of interest
+all(flattened_data$species %in% traits$latin_underscore)
 fd <- merge(fd, traits, by.x = "species", by.y = "latin_underscore", all.x = T)
+# Compute species-standardized elevations
 fd$elev_sp_standard <- (fd$elev_ALOS - fd$lower)/(fd$upper - fd$lower)
 
-all(flattened_data$species %in% traits$latin_underscore)
 
-####
+# Read in migratory date information and merge with fd
 mig_dates <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/mig_dates.RDS")
 mig_dates$species <- gsub(" ", "_", mig_dates$latin)
-
 fd <- merge(fd, mig_dates, by.x = "species", by.y = "species", all.x = T)
 
+# For each row, determine if the species is within the appropriate migratory period
 fd$in_date_range <- 0
 for(i in 1:nrow(fd)){
   oday1 <- fd$oday1[i]
@@ -106,35 +114,25 @@ for(i in 1:nrow(fd)){
 }
 
 sum(fd$in_date_range)
+# Confirm that no detections fall outside the migratory date range.
 sum(fd$Q == 1 & fd$in_date_range == 0)
 
+# Remove superfluous columns from fd
 flattened_data_full <- fd[, names(fd) %ni% c("birds", "beetles", "habitat", "other", "latin.x", "latin.y")]
 saveRDS(flattened_data_full, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data_full.RDS")
-  
-  
-  
-final_data <- fd[fd$in_date_range == 1 & fd$elev_sp_standard > -1 & fd$elev_sp_standard < 2, ]
 
-nrow(final_data)
-sum(final_data$Q)
-nrow(final_data)
-
-
-fdq <- fd[fd$Q == 1,]
-
-View(fdq[fdq$elev_sp_standard > 1.9 | fdq$elev_sp_standard < -.9,])
-
-length(unique(fd$species[fd$elev_sp_standard > -1 & fd$elev_sp_standard < 2]))
-sum(fd$elev_sp_standard > -1 & fd$elev_sp_standard < 2, na.rm = T)
-
-sum(is.na(fd$elev_sp_standard > -1 & fd$elev_sp_standard < 2))
+# Look at statistics of species-standardized elevations at species-points with a detection  
+fdq <- flattened_data_full[flattened_data_full$Q == 1,]
+max(fdq$elev_sp_standard)
+min(fdq$elev_sp_standard)
+hist(fdq$elev_sp_standard)
 
 a <- seq(-1,2,.2)
 nq <- vector()
 nall <- vector()
 for(i in 2:length(a)){
   nq[i-1] <- sum(fdq$elev_sp_standard > a[i-1] & fdq$elev_sp_standard <= a[i])
-  nall[i-1] <- sum(fd$elev_sp_standard > a[i-1] & fd$elev_sp_standard <= a[i])
+  nall[i-1] <- sum(flattened_data_full$elev_sp_standard > a[i-1] & flattened_data_full$elev_sp_standard <= a[i])
 }
 
 plot(nq/nall ~ seq(-.9, 1.9, .2))
@@ -142,7 +140,13 @@ plot(nall ~ seq(-.9, 1.9, .2))
 min(nall)
 
 
-cutoff <- 2
-sum(fd$elev_sp_standard > cutoff, na.rm = T) + sum(fd$elev_sp_standard < (1 - cutoff), na.rm = T)
+# Subset to include only species-points that re in the date range and in an elevational range of (-1, 2)
+final_data <- flattened_data_full[flattened_data_full$in_date_range == 1 & flattened_data_full$elev_sp_standard > -1 & flattened_data_full$elev_sp_standard < 2, ]
+
+# Examine statistics of final dataset
+nrow(final_data)
+sum(final_data$Q)
+mean(final_data$Q)
+
 
 
