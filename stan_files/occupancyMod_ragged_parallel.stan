@@ -1,6 +1,4 @@
 // This is a Stan model for the full Colombia bird dataset.
-// 
-//
 
 functions{
     real partial_sum(
@@ -299,11 +297,10 @@ data {
         row_vector[n_visit_max] obsSM[n_tot];
         row_vector[n_visit_max] obsDE[n_tot];
         row_vector[n_visit_max] obsJG[n_tot];
-}
+} // Close the data block
 
 parameters {
 // Occupancy
-
     // Intercepts
         real mu_b0;
     
@@ -315,7 +312,7 @@ parameters {
     
         real<lower=0> sigma_b0_fam;
         vector[n_fam] b0_fam_raw;
-    
+
     // Slopes
         // Elevation effects
             real mu_b1_relev;
@@ -325,7 +322,7 @@ parameters {
             real<upper=0> mu_b1_relev2;   // constrain quadratic effect to be negative
             real<lower=0> sigma_b1_relev2_sp;
             vector[n_sp] b1_relev2_sp_raw;
-    
+
         // Pasture effects
             real mu_b2_pasture;
             
@@ -334,7 +331,7 @@ parameters {
             
             real<lower=0> sigma_b2_pasture_fam;
             vector[n_fam] b2_pasture_fam_raw;    
-        
+
         // Trait effects
             real b3_eastOnly;
             real b3_westOnly;
@@ -394,7 +391,6 @@ parameters {
             real b4_x_elevMedian_forestSpecialist;
 
 // Detection
-
     // Intercepts
         real mu_d0;
     
@@ -405,7 +401,6 @@ parameters {
         vector[n_fam] d0_fam_raw;
     
     // Slopes
-        
         // Pasture effects
             real mu_d1_pasture;
             
@@ -430,168 +425,179 @@ parameters {
             real d3_elevMedian;
             real d3_migratory;
 }
+
 transformed parameters{
     // occupancy
-    vector[n_sp] b0_sp = mu_b0 + b0_sp_raw * sigma_b0_sp;
-    vector[n_fam] b0_fam = b0_fam_raw * sigma_b0_fam;
-    vector[n_sp_cl] b0_sp_cl = b0_sp_cl_raw * sigma_b0_sp_cl;
+        vector[n_sp] b0_sp = mu_b0 + b0_sp_raw * sigma_b0_sp;
+        vector[n_fam] b0_fam = b0_fam_raw * sigma_b0_fam;
+        vector[n_sp_cl] b0_sp_cl = b0_sp_cl_raw * sigma_b0_sp_cl;
     
-    vector[n_sp] b1_relev_sp = mu_b1_relev + b1_relev_sp_raw * sigma_b1_relev_sp;
-    vector[n_sp] b1_relev2_sp = mu_b1_relev2 + b1_relev2_sp_raw * sigma_b1_relev2_sp;
+        vector[n_sp] b1_relev_sp = mu_b1_relev + b1_relev_sp_raw * sigma_b1_relev_sp;
+        vector[n_sp] b1_relev2_sp = mu_b1_relev2 + b1_relev2_sp_raw * sigma_b1_relev2_sp;
 
-    vector[n_sp] b2_pasture_sp = mu_b2_pasture + b2_pasture_sp_raw * sigma_b2_pasture_sp;
-    vector[n_fam] b2_pasture_fam = b2_pasture_fam_raw * sigma_b2_pasture_fam;
+        vector[n_sp] b2_pasture_sp = mu_b2_pasture + b2_pasture_sp_raw * sigma_b2_pasture_sp;
+        vector[n_fam] b2_pasture_fam = b2_pasture_fam_raw * sigma_b2_pasture_fam;
 
     // detection
-    vector[n_sp] d0_sp = mu_d0 + d0_sp_raw * sigma_d0_sp;
-    vector[n_fam] d0_fam = d0_fam_raw * sigma_d0_fam;
+        vector[n_sp] d0_sp = mu_d0 + d0_sp_raw * sigma_d0_sp;
+        vector[n_fam] d0_fam = d0_fam_raw * sigma_d0_fam;
 
-    vector[n_sp] d1_pasture_sp = mu_d1_pasture + d1_pasture_sp_raw * sigma_d1_pasture_sp;
-    vector[n_fam] d1_pasture_fam = d1_pasture_fam_raw * sigma_d1_pasture_fam;
+        vector[n_sp] d1_pasture_sp = mu_d1_pasture + d1_pasture_sp_raw * sigma_d1_pasture_sp;
+        vector[n_fam] d1_pasture_fam = d1_pasture_fam_raw * sigma_d1_pasture_fam;
 
-    vector[n_sp] d2_time_sp = mu_d2_time + d2_time_sp_raw * sigma_d2_time_sp;
+        vector[n_sp] d2_time_sp = mu_d2_time + d2_time_sp_raw * sigma_d2_time_sp;
 }
 
 model {
     //Likelihood
-    target += reduce_sum(
-        // partial_sum function
-        partial_sum, 
+        target += reduce_sum(
+           // partial_sum function
+                 partial_sum, 
         
-        // variable sizes
-        n_sp, n_fam, n_sp_cl, b0_sp_cl, 
+            // variable sizes
+                n_sp, n_fam, n_sp_cl, b0_sp_cl, 
         
-        // parameters
-        b0_sp, b0_fam, b1_relev_sp, b1_relev2_sp, b2_pasture_sp, b2_pasture_fam,
-        b3_eastOnly, b3_westOnly, b3_snsmOnly, b3_notWandes, b3_notEandes, b3_elevMedian, b3_elevBreadth,
-        b3_forestPresent, b3_forestSpecialist, b3_tfSpecialist, b3_dryForestPresent, b3_floodDrySpecialist,
-        b3_floodSpecialist, b3_aridPresent, b3_migratory, b3_mass, b3_dietInvert, b3_dietCarn, b3_dietFruitNect,
-        b3_dietGran, b3_x_elevMedian_forestPresent, b3_x_elevMedian_forestSpecialist, b4_eastOnly, b4_westOnly,
-        b4_snsmOnly, b4_notWandes, b4_notEandes,b4_elevMedian, b4_elevBreadth, b4_forestPresent, b4_forestSpecialist,
-        b4_tfSpecialist, b4_dryForestPresent, b4_floodDrySpecialist, b4_floodSpecialist, b4_aridPresent, b4_migratory,
-        b4_mass, b4_dietInvert, b4_dietCarn, b4_dietFruitNect, b4_dietGran, b4_x_elevMedian_forestPresent,
-        b4_x_elevMedian_forestSpecialist,
-        d0_sp, d0_fam, d1_pasture_sp, d1_pasture_fam, d2_time_sp, d2_obsSM, d2_obsDE, d2_obsJG, d3_mass, d3_elevMedian,
-        d3_migratory,
+            // parameters
+                b0_sp, b0_fam, b1_relev_sp, b1_relev2_sp, b2_pasture_sp, b2_pasture_fam,
+                b3_eastOnly, b3_westOnly, b3_snsmOnly, b3_notWandes, b3_notEandes, b3_elevMedian, b3_elevBreadth,
+                b3_forestPresent, b3_forestSpecialist, b3_tfSpecialist, b3_dryForestPresent, b3_floodDrySpecialist,
+                b3_floodSpecialist, b3_aridPresent, b3_migratory, b3_mass, b3_dietInvert, b3_dietCarn, b3_dietFruitNect,
+                b3_dietGran, b3_x_elevMedian_forestPresent, b3_x_elevMedian_forestSpecialist, b4_eastOnly, b4_westOnly,
+                b4_snsmOnly, b4_notWandes, b4_notEandes,b4_elevMedian, b4_elevBreadth, b4_forestPresent, b4_forestSpecialist,
+                b4_tfSpecialist, b4_dryForestPresent, b4_floodDrySpecialist, b4_floodSpecialist, b4_aridPresent, b4_migratory,
+                b4_mass, b4_dietInvert, b4_dietCarn, b4_dietFruitNect, b4_dietGran, b4_x_elevMedian_forestPresent,
+                b4_x_elevMedian_forestSpecialist,
+                d0_sp, d0_fam, d1_pasture_sp, d1_pasture_fam, d2_time_sp, d2_obsSM, d2_obsDE, d2_obsJG, d3_mass, d3_elevMedian,
+                d3_migratory,
         
-        // Data
-        id_sp, id_fam, id_sp_cl, Q, nv, relev, relev2, pasture, eastOnly, westOnly, snsmOnly, notWandes, notEandes,
-        elevMedian, elevBreadth, forestPresent, forestSpecialist, tfSpecialist, dryForestPresent, floodDrySpecialist,
-        floodSpecialist, aridPresent, migratory, mass, dietInvert, dietCarn, dietFruitNect, dietGran, time, obsSM,
-        obsDE, obsJG,
-        
-        det_data);
+            // Data
+                // random effect levels
+                id_sp, id_fam, id_sp_cl, 
+            
+                // Q and nv
+                Q, nv, 
+            
+                // covariates
+                relev, relev2, pasture, eastOnly, westOnly, snsmOnly, notWandes, notEandes,
+                elevMedian, elevBreadth, forestPresent, forestSpecialist, tfSpecialist, dryForestPresent, floodDrySpecialist,
+                floodSpecialist, aridPresent, migratory, mass, dietInvert, dietCarn, dietFruitNect, dietGran, time, obsSM,
+                obsDE, obsJG,
+            
+                // surveys
+                det_data
+            );
 
 
     // Priors
-    mu_b0 ~ student_t(7.763, 0, 1.566);  // This is Dorazio's suggested prior, which is approximately uniform on the probability scale between 0.1 and 0.99. See also Northrup & Gerber 2018
+        // Occupancy
+        mu_b0 ~ student_t(7.763, 0, 1.566);  // This is Dorazio's suggested prior, which is approximately uniform on the probability scale between 0.01 and 0.99. See also Northrup & Gerber 2018
     
-    sigma_b0_sp_cl ~ normal(0, 2);
-    b0_sp_cl_raw ~ normal(0, 1);
+        sigma_b0_sp_cl ~ normal(0, 2);
+        b0_sp_cl_raw ~ normal(0, 1);
     
-    sigma_b0_sp ~ normal(0, 2);
-    b0_sp_raw ~ normal(0, 1);
+        sigma_b0_sp ~ normal(0, 2);
+        b0_sp_raw ~ normal(0, 1);
     
-    sigma_b0_fam ~ normal(0, 2);
-    b0_fam_raw ~ normal(0, 1);
+        sigma_b0_fam ~ normal(0, 2);
+        b0_fam_raw ~ normal(0, 1);
     
-    mu_b1_relev ~ normal(0, 1);   // meant to be somewhat informative, as overall elevation relationships should be pretty flat
-    sigma_b1_relev_sp ~ normal(0, 2);
-    b1_relev_sp_raw ~ normal(0, 1);
+        mu_b1_relev ~ normal(0, 1);   // meant to be somewhat informative, as overall elevation relationships should be pretty flat
+        sigma_b1_relev_sp ~ normal(0, 2);
+        b1_relev_sp_raw ~ normal(0, 1);
     
-    mu_b1_relev2 ~ normal(0, 3);   // this is a half-normal prior as mu_b1_relev2 is constrained to be negative in the parameter declaration
-    sigma_b1_relev2_sp ~ normal(0, 2);
-    b1_relev_sp_raw ~ normal(0, 1);
+        mu_b1_relev2 ~ normal(0, 4);   // this is a half-normal prior as mu_b1_relev2 is constrained to be negative in the parameter declaration
+        sigma_b1_relev2_sp ~ normal(0, 2);
+        b1_relev_sp_raw ~ normal(0, 1);
 
-    mu_b2_pasture ~ normal(0, 2);
+        mu_b2_pasture ~ normal(0, 2);
     
-    sigma_b2_pasture_sp ~ normal(0, 2);
-    b2_pasture_sp_raw ~ normal(0, 1);
+        sigma_b2_pasture_sp ~ normal(0, 2);
+        b2_pasture_sp_raw ~ normal(0, 1);
     
-    sigma_b2_pasture_fam ~ normal(0, 2);
-    b2_pasture_fam_raw ~ normal(0, 1);
+        sigma_b2_pasture_fam ~ normal(0, 2);
+        b2_pasture_fam_raw ~ normal(0, 1);
     
-    b3_eastOnly ~ normal(0, 2);
-    b3_westOnly ~ normal(0, 2);
-    b3_snsmOnly ~ normal(0, 2);
-    b3_notWandes ~ normal(0, 2);
-    b3_notEandes ~ normal(0, 2);
+        b3_eastOnly ~ normal(0, 2);
+        b3_westOnly ~ normal(0, 2);
+        b3_snsmOnly ~ normal(0, 2);
+        b3_notWandes ~ normal(0, 2);
+        b3_notEandes ~ normal(0, 2);
     
-    b3_elevMedian ~ normal(0, 2);
-    b3_elevBreadth ~ normal(0, 2);
-    b3_forestPresent ~ normal(0, 2);
-    b3_forestSpecialist ~ normal(0, 2);
-    b3_tfSpecialist ~ normal(0, 2);
-    b3_dryForestPresent ~ normal(0, 2);
-    b3_floodDrySpecialist ~ normal(0, 2);
-    b3_floodSpecialist ~ normal(0, 2);
-    b3_aridPresent ~ normal(0, 2);
+        b3_elevMedian ~ normal(0, 2);
+        b3_elevBreadth ~ normal(0, 2);
+        b3_forestPresent ~ normal(0, 2);
+        b3_forestSpecialist ~ normal(0, 2);
+        b3_tfSpecialist ~ normal(0, 2);
+        b3_dryForestPresent ~ normal(0, 2);
+        b3_floodDrySpecialist ~ normal(0, 2);
+        b3_floodSpecialist ~ normal(0, 2);
+        b3_aridPresent ~ normal(0, 2);
         
-    b3_migratory ~ normal(0, 2);
-    b3_mass ~ normal(0, 2);
+        b3_migratory ~ normal(0, 2);
+        b3_mass ~ normal(0, 2);
     
-    b3_dietInvert ~ normal(0, 2);
-    b3_dietCarn ~ normal(0, 2);
-    b3_dietFruitNect ~ normal(0, 2);
-    b3_dietGran ~ normal(0, 2);
+        b3_dietInvert ~ normal(0, 2);
+        b3_dietCarn ~ normal(0, 2);
+        b3_dietFruitNect ~ normal(0, 2);
+        b3_dietGran ~ normal(0, 2);
     
-    b3_x_elevMedian_forestPresent ~ normal(0, 2);
-    b3_x_elevMedian_forestSpecialist ~ normal(0, 2);
+        b3_x_elevMedian_forestPresent ~ normal(0, 2);
+        b3_x_elevMedian_forestSpecialist ~ normal(0, 2);
     
     
-    b4_eastOnly ~ normal(0, 2);
-    b4_westOnly ~ normal(0, 2);
-    b4_snsmOnly ~ normal(0, 2);
-    b4_notWandes ~ normal(0, 2);
-    b4_notEandes ~ normal(0, 2);
+        b4_eastOnly ~ normal(0, 2);
+        b4_westOnly ~ normal(0, 2);
+        b4_snsmOnly ~ normal(0, 2);
+        b4_notWandes ~ normal(0, 2);
+        b4_notEandes ~ normal(0, 2);
     
-    b4_elevMedian ~ normal(0, 2);
-    b4_elevBreadth ~ normal(0, 2);
-    b4_forestPresent ~ normal(0, 2);
-    b4_forestSpecialist ~ normal(0, 2);
-    b4_tfSpecialist ~ normal(0, 2);
-    b4_dryForestPresent ~ normal(0, 2);
-    b4_floodDrySpecialist ~ normal(0, 2);
-    b4_floodSpecialist ~ normal(0, 2);
-    b4_aridPresent ~ normal(0, 2);
+        b4_elevMedian ~ normal(0, 2);
+        b4_elevBreadth ~ normal(0, 2);
+        b4_forestPresent ~ normal(0, 2);
+        b4_forestSpecialist ~ normal(0, 2);
+        b4_tfSpecialist ~ normal(0, 2);
+        b4_dryForestPresent ~ normal(0, 2);
+        b4_floodDrySpecialist ~ normal(0, 2);
+        b4_floodSpecialist ~ normal(0, 2);
+        b4_aridPresent ~ normal(0, 2);
         
-    b4_migratory ~ normal(0, 2);
-    b4_mass ~ normal(0, 2);
+        b4_migratory ~ normal(0, 2);
+        b4_mass ~ normal(0, 2);
     
-    b4_dietInvert ~ normal(0, 2);
-    b4_dietCarn ~ normal(0, 2);
-    b4_dietFruitNect ~ normal(0, 2);
-    b4_dietGran ~ normal(0, 2);
+        b4_dietInvert ~ normal(0, 2);
+        b4_dietCarn ~ normal(0, 2);
+        b4_dietFruitNect ~ normal(0, 2);
+        b4_dietGran ~ normal(0, 2);
     
-    b4_x_elevMedian_forestPresent ~ normal(0, 2);
-    b4_x_elevMedian_forestSpecialist ~ normal(0, 2);
+        b4_x_elevMedian_forestPresent ~ normal(0, 2);
+        b4_x_elevMedian_forestSpecialist ~ normal(0, 2);
 
-// Detection
-    mu_d0 ~ student_t(7.763, 0, 1.566);  // This is Dorazio's suggested prior, which is approximately uniform on the probability scale between 0.1 and 0.99. See also Northrup & Gerber 2018
+        // Detection
+        mu_d0 ~ student_t(7.763, 0, 1.566);  // This is Dorazio's suggested prior, which is approximately uniform on the probability scale between 0.1 and 0.99. See also Northrup & Gerber 2018
     
-    sigma_d0_sp ~ normal(0, 2);
-    d0_sp_raw ~ normal(0, 1);
+        sigma_d0_sp ~ normal(0, 2);
+        d0_sp_raw ~ normal(0, 1);
     
-    sigma_d0_fam ~ normal(0, 2);
-    d0_fam_raw ~ normal(0, 1);
+        sigma_d0_fam ~ normal(0, 2);
+        d0_fam_raw ~ normal(0, 1);
 
-    mu_d1_pasture ~ normal(0, 2);
+        mu_d1_pasture ~ normal(0, 2);
     
-    sigma_d1_pasture_sp ~ normal(0, 2);
-    d1_pasture_sp_raw ~ normal(0, 1);
+        sigma_d1_pasture_sp ~ normal(0, 2);
+        d1_pasture_sp_raw ~ normal(0, 1);
     
-    sigma_d1_pasture_fam ~ normal(0, 2);
-    d1_pasture_fam_raw ~ normal(0, 2);
+        sigma_d1_pasture_fam ~ normal(0, 2);
+        d1_pasture_fam_raw ~ normal(0, 2);
     
-    mu_d2_time ~ normal(0, 2);
-    sigma_d2_time_sp ~ normal(0, 2);
-    d2_time_sp_raw ~ normal(0, 1);
+        mu_d2_time ~ normal(0, 2);
+        sigma_d2_time_sp ~ normal(0, 2);
+        d2_time_sp_raw ~ normal(0, 1);
 
-    d2_obs_SM ~ normal(0, 1); // intentionally somewhat informative
-    d2_obs_DE ~ normal(0, 1);
-    d2_obs_JG ~ normal(0, 1);        
+        d2_obs_SM ~ normal(0, 1); // intentionally somewhat informative
+        d2_obs_DE ~ normal(0, 1);
+        d2_obs_JG ~ normal(0, 1);        
 
-    d3_mass ~ normal(0, 2);
-    d3_elevMedian ~ normal(0, 2);
-    d3_migratory ~ normal(0, 2);
+        d3_mass ~ normal(0, 2);
+        d3_elevMedian ~ normal(0, 2);
+        d3_migratory ~ normal(0, 2);
 }
