@@ -449,45 +449,6 @@ transformed parameters{
 }
 
 model {
-    //Likelihood
-        target += reduce_sum(
-           // partial_sum function
-                 partial_sum, 
-        
-            // variable sizes
-                n_sp, n_fam, n_sp_cl, b0_sp_cl, 
-        
-            // parameters
-                b0_sp, b0_fam, b1_relev_sp, b1_relev2_sp, b2_pasture_sp, b2_pasture_fam,
-                b3_eastOnly, b3_westOnly, b3_snsmOnly, b3_notWandes, b3_notEandes, b3_elevMedian, b3_elevBreadth,
-                b3_forestPresent, b3_forestSpecialist, b3_tfSpecialist, b3_dryForestPresent, b3_floodDrySpecialist,
-                b3_floodSpecialist, b3_aridPresent, b3_migratory, b3_mass, b3_dietInvert, b3_dietCarn, b3_dietFruitNect,
-                b3_dietGran, b3_x_elevMedian_forestPresent, b3_x_elevMedian_forestSpecialist, b4_eastOnly, b4_westOnly,
-                b4_snsmOnly, b4_notWandes, b4_notEandes,b4_elevMedian, b4_elevBreadth, b4_forestPresent, b4_forestSpecialist,
-                b4_tfSpecialist, b4_dryForestPresent, b4_floodDrySpecialist, b4_floodSpecialist, b4_aridPresent, b4_migratory,
-                b4_mass, b4_dietInvert, b4_dietCarn, b4_dietFruitNect, b4_dietGran, b4_x_elevMedian_forestPresent,
-                b4_x_elevMedian_forestSpecialist,
-                d0_sp, d0_fam, d1_pasture_sp, d1_pasture_fam, d2_time_sp, d2_obsSM, d2_obsDE, d2_obsJG, d3_mass, d3_elevMedian,
-                d3_migratory,
-        
-            // Data
-                // random effect levels
-                id_sp, id_fam, id_sp_cl, 
-            
-                // Q and nv
-                Q, nv, 
-            
-                // covariates
-                relev, relev2, pasture, eastOnly, westOnly, snsmOnly, notWandes, notEandes,
-                elevMedian, elevBreadth, forestPresent, forestSpecialist, tfSpecialist, dryForestPresent, floodDrySpecialist,
-                floodSpecialist, aridPresent, migratory, mass, dietInvert, dietCarn, dietFruitNect, dietGran, time, obsSM,
-                obsDE, obsJG,
-            
-                // surveys
-                det_data
-            );
-
-
     // Priors
         // Occupancy
         mu_b0 ~ student_t(7.763, 0, 1.566);  // This is Dorazio's suggested prior, which is approximately uniform on the probability scale between 0.01 and 0.99. See also Northrup & Gerber 2018
@@ -593,11 +554,46 @@ model {
         sigma_d2_time_sp ~ normal(0, 2);
         d2_time_sp_raw ~ normal(0, 1);
 
-        d2_obs_SM ~ normal(0, 1); // intentionally somewhat informative
-        d2_obs_DE ~ normal(0, 1);
-        d2_obs_JG ~ normal(0, 1);        
+        d2_obsSM ~ normal(0, 1); // intentionally somewhat informative
+        d2_obsDE ~ normal(0, 1);
+        d2_obsJG ~ normal(0, 1);        
 
         d3_mass ~ normal(0, 2);
         d3_elevMedian ~ normal(0, 2);
         d3_migratory ~ normal(0, 2);
+        
+    //Likelihood
+        target += reduce_sum(
+           // partial_sum function
+                 partial_sum, 
+        
+            // variable sizes
+                n_sp, n_fam, n_sp_cl, b0_sp_cl, 
+        
+            // parameters
+                b0_sp, b0_fam, b1_relev_sp, b1_relev2_sp, b2_pasture_sp, b2_pasture_fam,
+                b3_eastOnly, b3_westOnly, b3_snsmOnly, b3_notWandes, b3_notEandes, b3_elevMedian, b3_elevBreadth,
+                b3_forestPresent, b3_forestSpecialist, b3_tfSpecialist, b3_dryForestPresent, b3_floodDrySpecialist,
+                b3_floodSpecialist, b3_aridPresent, b3_migratory, b3_mass, b3_dietInvert, b3_dietCarn, b3_dietFruitNect,
+                b3_dietGran, b3_x_elevMedian_forestPresent, b3_x_elevMedian_forestSpecialist, b4_eastOnly, b4_westOnly,
+                b4_snsmOnly, b4_notWandes, b4_notEandes,b4_elevMedian, b4_elevBreadth, b4_forestPresent, b4_forestSpecialist,
+                b4_tfSpecialist, b4_dryForestPresent, b4_floodDrySpecialist, b4_floodSpecialist, b4_aridPresent, b4_migratory,
+                b4_mass, b4_dietInvert, b4_dietCarn, b4_dietFruitNect, b4_dietGran, b4_x_elevMedian_forestPresent,
+                b4_x_elevMedian_forestSpecialist,
+                d0_sp, d0_fam, d1_pasture_sp, d1_pasture_fam, d2_time_sp, d2_obsSM, d2_obsDE, d2_obsJG, d3_mass, d3_elevMedian,
+                d3_migratory,
+        
+            // Data
+                // random effect levels
+                id_sp, id_fam, id_sp_cl, 
+                // Q and nv
+                Q, nv, 
+                // covariates
+                relev, relev2, pasture, eastOnly, westOnly, snsmOnly, notWandes, notEandes,
+                elevMedian, elevBreadth, forestPresent, forestSpecialist, tfSpecialist, dryForestPresent, floodDrySpecialist,
+                floodSpecialist, aridPresent, migratory, mass, dietInvert, dietCarn, dietFruitNect, dietGran, time, obsSM,
+                obsDE, obsJG,
+                // surveys
+                det_data
+            );
 }
