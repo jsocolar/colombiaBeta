@@ -123,7 +123,7 @@ simon_visit_data$Date[simon_visit_data$Date == 42237] <- "22/08/2019"
 simon_visit_data$Date[simon_visit_data$Date == "31/06/2019"] <- "31/07/2019"
 simon_visit_data$Visit[simon_visit_data$Point == "CHA3" & simon_visit_data$Date == "23/07/2019"] <- 2
 simon_visit_data$Visit[simon_visit_data$Point == "CHA2" & simon_visit_data$Date == "23/07/2019"] <- 2
-
+simon_visit_data$Visit[simon_visit_data$Point == "CHP1" & simon_visit_data$Date == "24/07/2019"] <- 3   # Remove this if the correct visit 3 reappears
 # format times/dates to POSIXct times, with correct timezone, etc
 simon_visit_data$t2 <- lubridate::hms(sapply(strsplit(as.character(simon_visit_data$Time), " "), "[[", 2))
 simon_visit_data$posix <- lubridate::force_tz(simon_visit_data$t2 + as.Date(simon_visit_data$Date, format = "%d/%m/%Y"), "America/Bogota")
@@ -298,6 +298,10 @@ all_pts$hps2 <- as.numeric(hps_calc(all_pts$lat, all_pts$lon, all_pts$posix2))
 all_pts$hps3 <- as.numeric(hps_calc(all_pts$lat, all_pts$lon, all_pts$posix3))
 all_pts$hps4 <- as.numeric(hps_calc(all_pts$lat, all_pts$lon, all_pts$posix4))
 
+all_pts$nv <- 0
+for(i in 1:nrow(all_pts)){
+  all_pts$nv[i] <- sum(!is.na(all_pts[i,c("obs1", "obs2", "obs3", "obs4")]))
+}
 
 saveRDS(all_pts, file = "GIS/Points/all_pts.RDS")
 

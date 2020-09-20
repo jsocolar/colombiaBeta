@@ -2,7 +2,14 @@
 
 functions{
     real partial_sum(
-
+// Data slicing and indexing
+    // Detection slice            
+        int[,] det_slice,      // a slice of the detection array where rows are species-points and columns are visits
+        
+    // cutpoints for slicing                       
+        int start,             // the starting row of the detection slice
+        int end,              // the ending row of the detection slice   
+        
 // numbers of random effect levels
         int n_sp,               // number of species
         int n_fam,              // number of families
@@ -153,19 +160,10 @@ functions{
         row_vector[] time,     
         row_vector[] obsSM,
         row_vector[] obsDE,
-        row_vector[] obsJG,
-
-// Data slicing and indexing
-    // Detection slice            
-        int[,] det_slice,      // a slice of the detection array where rows are species-points and columns are visits
-        
-    // cutpoints for slicing                       
-        int start,             // the starting row of the detection slice
-        int end              // the ending row of the detection slice   
-                     
+        row_vector[] obsJG
     ){   // End of function inputs, beginning of computational part of function.
 // indexing variables
-        int len = end - start;
+        int len = 1 + end - start;
         int r0 = start - 1;
         
 // variables for computation
@@ -565,6 +563,12 @@ model {
         target += reduce_sum(
            // partial_sum function
                  partial_sum, 
+                 
+           // surveys
+                det_data,
+                
+            // grainsize
+                grainsize,
         
             // variable sizes
                 n_sp, n_fam, 
@@ -594,8 +598,6 @@ model {
                 relev, relev2, pasture, eastOnly, westOnly, snsmOnly, notWandes, notEandes,
                 elevMedian, elevBreadth, forestPresent, forestSpecialist, tfSpecialist, dryForestPresent, floodDrySpecialist,
                 floodSpecialist, aridPresent, migratory, mass, dietInvert, dietCarn, dietFruitNect, dietGran, time, obsSM,
-                obsDE, obsJG,
-                // surveys
-                det_data
+                obsDE, obsJG
             );
 }

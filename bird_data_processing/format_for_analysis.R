@@ -58,17 +58,14 @@ for(i in 1:length(species_list)){
 saveRDS(flattened_data, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data.RDS")
 flattened_data <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data.RDS")
 
-# Include column for number of visits
-flattened_data$nv <- 4
-flattened_data$nv[is.na(flattened_data$v4)] <- 3
-flattened_data$nv[is.na(flattened_data$v3)] <- 2
-
 # Column for whether the species is ever detected at the point
 flattened_data$Q <- as.numeric(rowSums(flattened_data[,3:6], na.rm = T) > 0)
 
 # Read in point covariate information and merge with flattened_data
 all_pts <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Points/all_pts.RDS")
 fd <- merge(flattened_data, all_pts, by.x = "point", by.y = "point", all.x = T)
+fd$v4[fd$nv %in% c(2,3)] <- NA
+fd$v3[fd$nv == 2] <- NA
 
 # Read in species-trait covariate information and merge with fd
 traits <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/traits.RDS")
@@ -121,6 +118,7 @@ sum(fd$Q == 1 & fd$in_date_range == 0)
 flattened_data_full <- fd[, names(fd) %ni% c("birds", "beetles", "habitat", "other", "latin.x", "latin.y")]
 saveRDS(flattened_data_full, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data_full.RDS")
 
+flattened_data_full <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data_full.RDS")
 # Look at statistics of species-standardized elevations at species-points with a detection  
 fdq <- flattened_data_full[flattened_data_full$Q == 1,]
 max(fdq$elev_sp_standard)
@@ -140,13 +138,14 @@ plot(nall ~ seq(-.9, 1.9, .2))
 min(nall)
 
 
-# Subset to include only species-points that re in the date range and in an elevational range of (-1, 2)
-final_data <- flattened_data_full[flattened_data_full$in_date_range == 1 & flattened_data_full$elev_sp_standard > -1 & flattened_data_full$elev_sp_standard < 2, ]
+# Subset to include only species-points that are in the date range and in an elevational range of (-1, 2)
+bird_data_trimmed <- flattened_data_full[flattened_data_full$in_date_range == 1 & flattened_data_full$elev_sp_standard > -1 & flattened_data_full$elev_sp_standard < 2, ]
+saveRDS(bird_data_trimmed, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_data_trimmed.RDS")
 
 # Examine statistics of final dataset
-nrow(final_data)
-sum(final_data$Q)
-mean(final_data$Q)
+nrow(bird_data_trimmed)
+sum(bird_data_trimmed$Q)
+mean(bird_data_trimmed$Q)
 
 
 
