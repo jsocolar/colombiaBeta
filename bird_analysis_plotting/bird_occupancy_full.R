@@ -37,7 +37,7 @@ birds$migrat_birdlife[is.na(birds$migrat_birdlife)] <- "not a migrant"
 
 stan_data <- list(
 # Grainsize for reduce_sum
-  grainsize = 591808,
+  grainsize = 1,
   
 # Dimensions
 #  n_sp_cl = length(unique(birds$sp_cl)),
@@ -94,7 +94,7 @@ mod_R <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/stan_
                        cpp_options = list(stan_threads = TRUE))
 samps_R <- mod_R$sample(data = stan_data, 
                         chains = 1,
-                        threads_per_chain = 1,
-                        refresh = 0)
+                        threads_per_chain = 4,
+                        refresh = 1)
 
 

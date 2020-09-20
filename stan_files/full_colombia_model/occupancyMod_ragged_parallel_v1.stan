@@ -219,7 +219,7 @@ functions{
             // likelihood
             if (Q[r0 + r] == 1) {
                 lp[r] = log_inv_logit(logit_psi) +  // likelihood of occupancy
-                    bernoulli_logit_lpmf(det_slice[r0 + r, 1:nv[r0 + r]] | logit_theta[1:nv[r0 + r]]);   // likelihood of observed detection history given occupancy
+                    bernoulli_logit_lpmf(det_slice[r, 1:nv[r0 + r]] | logit_theta[1:nv[r0 + r]]);   // likelihood of observed detection history given occupancy
             } else {
                 lp[r] = log_sum_exp(
                             log_inv_logit(logit_psi) + // likelihood of occupancy
