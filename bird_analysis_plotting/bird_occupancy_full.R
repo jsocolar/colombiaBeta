@@ -59,8 +59,8 @@ stan_data <- list(
   id_fam = as.numeric(as.factor(birds$Family)),
 
 # Covariates
-  relev = vscale(birds$elev_sp_standard),
-  relev2 = vscale(birds$elev_sp_standard^2),
+  relev = (birds$elev_sp_standard -.5)/sd(birds$elev_sp_standard),
+  relev2 = ((birds$elev_sp_standard -.5)/sd(birds$elev_sp_standard))^2,
   pasture = birds$pasture,
   eastOnly = birds$east_only,
   westOnly = birds$west_only,
@@ -92,9 +92,12 @@ stan_data <- list(
 # Run ragged model ----
 mod_R <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/stan_files/full_colombia_model/occupancyMod_ragged_parallel_v1.stan",
                        cpp_options = list(stan_threads = TRUE))
-samps_R <- mod_R$sample(data = stan_data, 
+samps_R_2 <- mod_R$sample(data = stan_data, 
                         chains = 1,
                         threads_per_chain = 4,
-                        refresh = 1)
+                        refresh = 1,
+                        iter_sampling = 500,
+                        iter_warmup = 500,
+                        save_warmup = 1)
 
-
+saveRDS(samps_R_2, "samps_R_2.RDS")

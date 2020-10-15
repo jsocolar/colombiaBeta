@@ -110,6 +110,7 @@ functions{
         real d3_mass,
         real d3_elevMedian,
         real d3_migratory,
+// add effect of time by elevMedian
                      
 // Data
     // Integer IDs for random effect grouping terms
@@ -459,13 +460,13 @@ model {
         sigma_b0_fam ~ normal(0, 2);
         b0_fam_raw ~ normal(0, 1);
     
-        mu_b1_relev ~ normal(0, 1);   // meant to be somewhat informative, as overall elevation relationships should be pretty flat
+        mu_b1_relev ~ normal(0, 2);   // meant to be somewhat informative, as overall elevation relationships should be pretty flat
         sigma_b1_relev_sp ~ normal(0, 2);
         b1_relev_sp_raw ~ normal(0, 1);
     
         mu_b1_relev2 ~ normal(0, 4);   // this is a half-normal prior as mu_b1_relev2 is constrained to be negative in the parameter declaration
         sigma_b1_relev2_sp ~ normal(0, 2);
-        b1_relev_sp_raw ~ normal(0, 1);
+        b1_relev2_sp_raw ~ normal(0, 1);
 
         mu_b2_pasture ~ normal(0, 2);
     
