@@ -148,4 +148,113 @@ sum(bird_data_trimmed$Q)
 mean(bird_data_trimmed$Q)
 
 
+############
+vscale <- function(x){return(as.vector(scale(x)))}
 
+birds <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_data_trimmed.RDS")
+birds$sp_cl <- paste(birds$species, birds$cluster, sep = "__")
+birds$elev_median <- rowMeans(cbind(birds$lower, birds$upper))
+
+det_data <- as.matrix(birds[,c("v1", "v2", "v3", "v4")])
+det_data[is.na(det_data)] <- -1
+
+obsSM <- matrix(as.numeric(c(birds$obs1 == "SCM", birds$obs2 == "SCM", birds$obs3 == "SCM", birds$obs4 == "SCM")), ncol = 4)
+obsSM[is.na(obsSM)] <- 0
+
+obsDE <- matrix(as.numeric(c(birds$obs1 == "DPE", birds$obs2 == "DPE", birds$obs3 == "DPE", birds$obs4 == "DPE")), ncol = 4)
+obsDE[is.na(obsDE)] <- 0
+
+obsJG <- matrix(as.numeric(c(birds$obs1 == "JJG", birds$obs2 == "JJG", birds$obs3 == "JJG", birds$obs4 == "JJG")), ncol = 4)
+obsJG[is.na(obsJG)] <- 0
+
+time <- matrix((scale(c(birds$hps1, birds$hps2, birds$hps3, birds$hps4))), ncol = 4)
+time[is.na(time)] <- 0  # these zeros correspond to visits that don't actually exist
+time_mean <- mean(c(birds$hps1, birds$hps2, birds$hps3, birds$hps4), na.rm = T)
+time_sd <- sd(c(birds$hps1, birds$hps2, birds$hps3, birds$hps4), na.rm = T)
+
+birds$relev <- (birds$elev_sp_standard -.5)/sd(birds$elev_sp_standard)
+birds$relev2 <- birds$relev^2
+relev_offset <- .5
+relev_sd <- sd(birds$elev_sp_standard)
+
+birds$elev_median_scaled <- vscale(birds$elev_median)
+elev_median_mean <- mean(birds$elev_median)
+elev_median_sd <- sd(birds$elev_median)
+
+birds$elev_breadth_scaled <- vscale(birds$elev_breadth)
+elev_breadth_mean <- mean(birds$elev_breadth)
+elev_breadth_sd <- sd(birds$elev_breadth)
+
+birds$log_mass_scaled <- vscale(log(birds$BodyMass.Value))
+log_mass_mean <- mean(log(birds$BodyMass.Value))
+log_mass_sd <- sd(log(birds$BodyMass.Value))
+
+birds$lowland <- as.numeric(birds$lower == 0)
+
+saveRDS(birds, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.RDS")
+
+
+###########
+bird_stan_data1 <- list(
+  # Grainsize for reduce_sum
+  grainsize = 1,
+  
+  # Dimensions
+  n_spCl = length(unique(birds$sp_cl)),
+  n_sp = length(unique(birds$species)),
+  n_fam = length(unique(birds$Family)),
+  n_tot = nrow(birds),
+  n_visit_max = max(birds$nv),
+  
+  # Detection matrix
+  det_data = det_data,
+  
+  # Q and nv
+  Q = birds$Q,
+  nv = birds$nv,
+  
+  # Random effect IDs
+  id_spCl = as.numeric(as.factor(birds$sp_cl)),
+  id_sp = as.numeric(as.factor(birds$species)),
+  id_fam = as.numeric(as.factor(birds$Family)),
+  
+  # Covariates
+  relev = birds$relev,
+  relev2 = birds$relev2,
+  pasture = birds$pasture,
+  eastOnly = birds$east_only,
+  westOnly = birds$west_only,
+  snsmOnly = birds$snsm_only,
+  notWandes = birds$wandes_absent,
+  notEandes = birds$eandes_absent,
+  lowland = birds$lowland,
+  elevMedian = birds$elev_median_scaled,
+  elevBreadth = birds$elev_breadth_scaled,
+  forestPresent = birds$forest_present,
+  forestSpecialist = birds$forest_specialist,
+  tfSpecialist = birds$tf_specialist,
+  dryForestPresent = birds$dry_forest_present,
+  floodDrySpecialist = birds$flood_dry_specialist,
+  floodSpecialist = birds$floodplain_specialist,
+  aridPresent = birds$arid_present,
+  migratory = as.numeric(!is.na(birds$start1)),
+  mass = birds$log_mass_scaled,
+  dietInvert = as.numeric(birds$Diet.5Cat == "Invertebrate"),
+  dietCarn = as.numeric(birds$Diet.5Cat == "VertFishScav"),
+  dietFruitNect = as.numeric(birds$Diet.5Cat == "FruiNect"),
+  dietGran = as.numeric(birds$Diet.5Cat == "PlantSeed"),
+  time = time,
+  obsSM = obsSM,
+  obsJG = obsJG,
+  obsDE = obsDE)
+
+bird_standata1_means_and_sds <- list(time_mean = time_mean, time_sd = time_sd,
+                      relev_offset = relev_offset, relev_sd = relev_sd,
+                      elev_median_mean = elev_median_mean, elev_median_sd = elev_median_sd,
+                      elev_breadth_mean = elev_breadth_mean, elev_breadth_sd = elev_breadth_sd,
+                      log_mass_mean = log_mass_mean, log_mass_sd = log_mass_sd)
+
+bird_stan_data1_package <- list(data = bird_stan_data1,
+                           means_and_sds = bird_standata1_means_and_sds)
+
+saveRDS(bird_stan_data1_package, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data1_package.RDS")

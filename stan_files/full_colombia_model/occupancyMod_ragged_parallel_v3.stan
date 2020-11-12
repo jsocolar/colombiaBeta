@@ -234,7 +234,7 @@ functions{
           log1m_inv_logit(logit_psi)); // likelihood of non-occupancy
       }
     } 
-    return sum(lp); // perhaps instead of storing lp as vector and summing it would be better to just do lp += ?
+    return sum(lp);
   } // end of function
 } // Close the functions block
 

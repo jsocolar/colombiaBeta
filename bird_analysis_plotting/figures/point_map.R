@@ -1,11 +1,15 @@
 library(sf)
 library(reticulate)
 
+source('/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/GIS_processing/get_mainland.R')
+mainland2 <- st_simplify(mainland, dTolerance = .01)
+
 setwd("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS")
 
 
 `%ni%` <- Negate(`%in%`)
 AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+
 
 # Load point locations
 all_pts <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Points/all_pts.RDS")
@@ -57,6 +61,8 @@ s_am_main <- s_am[which(st_area(s_am) == max(st_area(s_am)))]
 americas <- st_union(n_am_main, s_am_main)
 
 
+source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/GIS_processing/hydrosheds_extraction.R")
+
 ##### Plotting #####
 col <- colorspace::lighten(viridis::viridis(501), amount = .4)
 
@@ -66,3 +72,14 @@ plot(rasterElev, col = col, legend = T, add = T)
 points(all_pts$lon, all_pts$lat, pch = 16, col = rgb(0, 0, 0, max = 255, alpha = 15))
 points(all_pts$lon, all_pts$lat, pch = 1, col = rgb(0, 0, 0, max = 255, alpha = 255))
 
+regions <- list(pacific = pacific, cauca_west = cauca_west, cauca_east = cauca_east, magdalena_west = magdalena_west,
+                magdalena_east = magdalena_east, amazon_orinoco = amazon_orinoco, snsm = snsm, guajira_perija = guajira_perija,
+                catatumbo = catatumbo, pasto = pasto, tacarcuna = tacarcuna)
+
+colors <- viridis::viridis(11)[c(5,11,3,10,1,4,9,6,8,7,2)]
+plot(americas, col = 'gray90', border = 'gray90', xlim = c(-80, -66), ylim = c(-4.6, 13.1))
+for(i in 1:length(regions)){
+  plot(st_intersection(regions[[i]], mainland2), col = colors[i], border = colors[i], add = T)
+}
+# west Andes west; Cauca Valley west; Cauca Valley east; Magdalena Valley west; Magdalena Valley east & north;
+# east Andes east; Tacarcuna foothills; Sierra Nevada de Santa Marta; Guajira/Perijá; Catatumbo; Pasto

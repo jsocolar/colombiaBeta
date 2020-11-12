@@ -73,7 +73,7 @@ for(i in 1:nrow(traits)){
   traits$snsm_only[i] <- as.numeric(st_intersects(cps$snsm, map, sparse = F)[1,1] & !st_intersects(not_snsm, map, sparse = F)[1,1])    # Santa Marta endemics (in a Colombian context)
 }
 
-saveRDS(traits, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/traits_prelim.RDS")
+#saveRDS(traits, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/traits_prelim.RDS")
 
 
 
@@ -87,7 +87,8 @@ families <- birdlife_v4[,c("Scientific name", "Order", "Family name")]
 traits <- merge(traits, families, by.x = "latin", by.y = "Scientific name", all.x = T)
 traits$Genus <- sapply(strsplit(as.character(traits$latin), " "), "[[", 1)
 names(traits)[names(traits) == "Family name"] <- "Family"
-
+traits$Family[is.na(traits$Family) & traits$Genus == "Grallaria"] <- "Grallariidae"
+traits$Order[is.na(traits$Order) & traits$Genus == "Grallaria"] <- "PASSERIFORMES"
 
 ##### Add Parker traits #####
 parker <- read.csv('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/new_parker.csv')
@@ -143,7 +144,9 @@ for(i in 1:nrow(bts)){
   }
 }
 
+
 traits <- merge(traits, bts, by.x = "latin", by.y = "latin", all.x = T)
+traits$migrat_birdlife[is.na(traits$migrat_birdlife)] <- "not a migrant"
 
 # Add habitats from birdlife
 birdlife_habitats <- data.frame(latin = birdlife_traits$names, 

@@ -1508,7 +1508,8 @@ for(i in 1:length(birdlife_traits$habitats)){
 }
 names(birdlife_habitats) <- birdlife_traits$names
 
-species_check <- vector()
+species_check <- list()
+counter <- 0
 for(i in 1:nrow(hp2)){
   HBW_species <- hp2$HBW[hp2$parker == hp2$parker[i]]
   habs <- list()
@@ -1517,33 +1518,231 @@ for(i in 1:nrow(hp2)){
   }
   for(j in 2:length(HBW_species)){
     if(!isTRUE(all.equal(habs[[1]], habs[[j]]))){
-      print(c(i, HBW_species[1], HBW_species[j]))
-      species_check <- c(species_check, HBW_species)
+      counter <- counter + 1
+      species_check[[counter]] <- c(i, HBW_species[1], HBW_species[j])
     }
   }
 }
 
 # All cases where BirdLife does not give identical habitat preferences for the split taxa are checked by hand # STILL TO BE DONE
+hp2[hp2$HBW == "Psittacara frontatus", c('F7', 'F8')] <- ""
+hp2[hp2$HBW == "Arremon franciscanus", 'F1'] <- ""; hp2[hp2$HBW == "Arremon franciscanus", c('F7', 'N1')] <- "Y"
+hp2[hp2$HBW == "Atlapetes melanopsis", 'N3'] <- "Y"
+hp2[hp2$HBW == "Clibanornis rufipectus", 'F1'] <- ""
+hp2[hp2$HBW == "Bubo magellanicus", c('F1', 'F8')] <- ""
+hp2[hp2$HBW %in% c('Capito auratus', 'Capito brunneipectus'), "F2"] <- ""
+hp2[hp2$HBW == "Systellura decussata", c('N2', 'N10')] <- ""; hp2[hp2$HBW == "Systellura decussata", 'F7'] <- "Y"
+hp2[hp2$HBW == "Systellura roraimae", c('N1', 'N2', 'N10')] <- ""; hp2[hp2$HBW == "Systellura roraimae", c('F4', 'F5', 'N3')] <- "Y"
+hp2[hp2$HBW == "Antrostomus vociferus", c('F10', 'F11')] <- ""; hp2[hp2$HBW %in% c("Antrostomus vociferus", "Antrostomus arizonae"), "F7"] <- "Y"
+hp2[hp2$HBW == "Cercomacroides fuscicauda", c('F1', 'F4')] <- ""
+hp2[hp2$HBW == "Cinclodes fuscus", 'N10'] <- ""; hp2[hp2$HBW == "Cinclodes fuscus", 'A3'] <- "Y"
+hp2[hp2$HBW == "Cinclodes albiventris", 'N7'] <- ""
+hp2[hp2$HBW == "Cinclodes albidiventris", c('N7', 'N9')] <- ""
+hp2[hp2$HBW == "Colaptes mexicanoides", c('N1', 'F8')] <- ""
+hp2[hp2$HBW == "Patagioenas albilinea", 'F11'] <- ""
+hp2[hp2$HBW %in% c("Cyanocorax hafferi", "Cyanocorax heilprini"), c('F1', 'F3')] <- ""
+hp2[hp2$HBW == "Glaucidium minutissimum", c('F11', 'F4', 'F7')] <- ""
+hp2[hp2$HBW == "Glaucidium sanchezi", 'F1'] <- ""
+hp2[hp2$HBW == "Glaucidium griseiceps", c('F11', 'F4', 'F7')] <- ""
+hp2[hp2$HBW == "Amazilia humboldtii", 'F14'] <- "Y"
+hp2[hp2$HBW == "Amazilia grayi", c('F14', 'F1')] <- ""; hp2[hp2$HBW == "Amazilia grayi", c('F7', 'N2')] <- "Y"
+hp2[hp2$HBW == "Hylopezus macularius", 'F2'] <- "Y"
+hp2[hp2$HBW == "Hylopezus auricularis", 'F1'] <- ""; hp2[hp2$HBW == "Hylopezus auricularis", c('F2')] <- "Y"
+hp2[hp2$HBW %in% c("Icterus jamacaii", "Icterus icterus"), 'F3'] <- ""
+hp2[hp2$HBW == "Inezia subflava", c('F7', 'F8')] <- ""; hp2[hp2$HBW == "Inezia subflava", c('F2', 'N11')] <- "Y"
+hp2[hp2$HBW == "Lepidocolaptes squamatus", c('F7', 'F8')] <- "Y"
+hp2[hp2$HBW == "Leptotila battyi", c('F3', 'F8')] <- ""; hp2[hp2$HBW == "Leptotila battyi", 'F2'] <- "Y"
+hp2[hp2$HBW == "Malacoptila minor", 'F4'] <- ""
+hp2[hp2$HBW == "Melanerpes pulcher", 'F7'] <- "Y"
+hp2[hp2$HBW == "Agelaioides fringillarius", 'F7'] <- "Y"
+hp2[hp2$HBW == "Agelaioides badius", c('N6', 'N7')] <- "Y"
+hp2[hp2$HBW == "Momotus coeruliceps", c('F2', 'F8')] <- ""
+hp2[hp2$HBW == "Momotus lessonii", 'F2'] <- ""
+hp2[hp2$HBW == "Momotus momota", 'F4'] <- ""
+hp2[hp2$HBW == "Momotus subrufescens", 'F4'] <- ""
+hp2[hp2$HBW == "Muscisaxicola griseus", 'N2'] <- ""
+hp2[hp2$HBW == "Muscisaxicola rufivertex", 'N1'] <- "Y"
+hp2[hp2$HBW == "Myiopsitta luchsi", 'N2'] <- "Y"; hp2[hp2$HBW == "Myiopsitta luchsi", 'F8'] <- ""
+hp2[hp2$HBW == "Sciaphylax castanea", 'F12'] <- "Y"
+hp2[hp2$HBW == "Myrmotherula snowi", 'F12'] <- ""
+hp2[hp2$HBW == "Nyctibius jamaicensis", 'F7'] <- "Y"
+hp2[hp2$HBW == "Nyctiprogne vielliardi", 'F3'] <- ""
+hp2[hp2$HBW == "Odontophorus melanotis", 'F1'] <- "Y"
+hp2[hp2$HBW == "Ortalis squamata", c('F7', 'F8')] <- ""
+hp2[hp2$HBW == "Megascops atricapilla", 'F9'] <- ""
+hp2[hp2$HBW == "Megascops sanctaecatarinae", 'F1'] <- ""; hp2[hp2$HBW == "Megascops sanctaecatarinae", c('F7', 'N5')] <- "Y"
+hp2[hp2$HBW == "Megascops vermiculatus", c('F7', 'F11')] <- ""
+hp2[hp2$HBW == "Megascops hoyi", c('F1', 'F7', 'F11')] <- ""
+hp2[hp2$HBW == "Paroaria nigrogenis", 'N6'] <- "Y"
+hp2[hp2$HBW == "Myrmelastes saturatus", 'F1'] <- ""
+hp2[hp2$HBW == "Myrmelastes humaythae", 'F4'] <- ""
+hp2[hp2$HBW == "Myrmelastes rufifacies", 'F4'] <- ""
+hp2[hp2$HBW == "Phaethornis major", 'F4'] <- ""
+hp2[hp2$HBW == "Phaethornis striigularis", 'F7'] <- "Y"
+hp2[hp2$HBW == "Phaethornis rupurumii", 'F4'] <- ""
+hp2[hp2$HBW == "Phaethornis squalidus", 'F8'] <- ""
+hp2[hp2$HBW == "Phibalura boliviana", 'F1'] <- ""
+hp2[hp2$HBW == "Phyllomyias weedeni", c('F1', 'F8')] <- ""
+hp2[hp2$HBW == "Piculus leucolaemus", 'F2'] <- "Y"
+hp2[hp2$HBW == "Microspingus lateralis", 'F9'] <- ""
+hp2[hp2$HBW == "Microspingus cabanisi", 'F4'] <- ""; hp2[hp2$HBW == "Microspingus cabanisi", 'F1'] <- "Y"
+hp2[hp2$HBW == "Pseudoseisura unirufa", 'F7'] <- ""
+hp2[hp2$HBW == "Pyrrhura amazonum", 'F4'] <- ""
+hp2[hp2$HBW == "Pyrrhura lucianii", 'F4'] <- ""
+hp2[hp2$HBW == "Pyrrhura subandina", 'F4'] <- ""
+hp2[hp2$HBW == "Pyrrhura snethlageae", 'F4'] <- ""
+hp2[hp2$HBW == "Rhea tarapacensis", c('N4', 'N5', 'N6', 'N7')] <- "";   hp2[hp2$HBW == "Rhea tarapacensis", 'N9'] <- "Y" # Rhea pennata isn't in the study region
+hp2[hp2$HBW == "Scytalopus urubambae", 'N3'] <- ""
+hp2[hp2$HBW == "Scytalopus affinis", 'F5'] <- ""
+hp2[hp2$HBW == "Scytalopus pachecoi", 'F4'] <- ""
+hp2[hp2$HBW == "Scytalopus speluncae", 'F1'] <- ""
+hp2[hp2$HBW == "Scytalopus chocoensis", 'F1'] <- "Y"
+hp2[hp2$HBW == "Tachycineta stolzmanni", c('F7', 'N1')] <- "Y"; hp2[hp2$HBW == "Tachycineta stolzmanni", 'F14'] <- ""
+hp2[hp2$HBW == "Tangara cyanoptera", c('F1', 'F4')] <- "Y";  hp2[hp2$HBW == "Tangara cyanoptera", 'F15'] <- "Q"; hp2[hp2$HBW == "Tangara cyanoptera", 'N3'] <- "" # This is parker's thraupis cyanoptera, but got caught up in Tangara cyanoptera...
+hp2[hp2$HBW == "Thamnophilus sticturus", 'F12'] <- ""
+hp2[hp2$HBW == "Thamnophilus atrinucha", 'F12'] <- ""
+hp2[hp2$HBW == "Thamnophilus pelzelni", 'F12'] <- ""
+hp2[hp2$HBW == "Trogon mesurus", 'F2'] <- ""; hp2[hp2$HBW == "Trogon mesurus", 'F7'] <- "Y"
+hp2[hp2$HBW == "Veniliornis chocoensis", 'F8'] <- ""
+
+
+
+
 
 # Species that have 2 names in parker for one taxon in HBW
 hp3 <- HBW_parker[!is.na(HBW_parker$parker2) & !(duplicated(HBW_parker$parker, fromLast = T) | duplicated(HBW_parker$parker, fromLast = F)), ]
 for(i in 1:nrow(hp3)){
   hp3[i, 4:44] <- parker[which(paste(parker$GENUS, parker$SPECIES, sep = ' ') == hp3$parker[i]), 27:67]
+  print(c(i, hp3$parker[i], hp3$parker2[i]))
+  print(parker[which(paste(parker$GENUS, parker$SPECIES, sep = ' ') == hp3$parker[i]), 27:67])
+  print(parker[which(paste(parker$GENUS, parker$SPECIES, sep = ' ') == hp3$parker2[i]), 27:67])
 }
-# STILL NEED TO DO SECOND SPECIES BY HAND
+hp3[hp3$HBW == "Accipiter striatus", c('F1', 'F9', 'F15')] <- "Y"
+hp3[hp3$HBW == "Anas platyrhynchos", 'A6'] <- "Y"
+hp3[hp3$HBW == "Setophaga petechia", c('F14', 'N1')] <- "Y"
+hp3[hp3$HBW == "Formicivora serrana", 'F12'] <- "Y"
+hp3[hp3$HBW == "Xiphocolaptes falcirostris", 'F7'] <- "Y"
+hp3[hp3$HBW == "Synallaxis azarae", 'F7'] <- "Y"
+hp3[hp3$HBW == "Xiphocolaptes promeropirhynchus", c('F1', 'F2')] <- "Y"
+hp3[hp3$HBW == "Butorides striatus", 'A6'] <- "Y"
+hp3[hp3$HBW == "Campylopterus curvipennis", 'F4'] <- "Y"
+hp3[hp3$HBW == "Peucaea botterii", 'F10'] <- "Y"
+hp3[hp3$HBW == "Psittacara holochlorus", 'F8'] <- "Y"
+
 
 # Species that occur twice and have 2 names in parker for one taxon in HBW
 hp4 <- HBW_parker[!is.na(HBW_parker$parker2) & (duplicated(HBW_parker$parker, fromLast = T) | duplicated(HBW_parker$parker, fromLast = F)), ]
 for(i in 1:nrow(hp4)){
   hp4[i, 4:44] <- parker[which(paste(parker$GENUS, parker$SPECIES, sep = ' ') == hp4$parker[i]), 27:67]
 }
-# Review ALL species involved (e.g. if the parker columns correspond to additional species in HBW)
+hp4[hp4$HBW == "Rhynchotus maculicollis", c('N5', 'N6', 'N7')] <- ""
+hp4[hp4$HBW == "Xiphorhynchus guttatus", 'F2'] <- "Y"
+hp4[hp4$HBW == "Xiphorhynchus guttatoides", 'F2'] <- "Y"
+hp4[hp4$HBW == "Cercomacroides parkeri", 'F1'] <- ""; hp4[hp4$HBW == "Cercomacroides parkeri", 'F4'] <- "Y"
+hp4[6,] <- ""
+hp4$HBW[6] <- "Cercomacroides tyrannina"
+hp4$F1[6] <- "Y"; hp4$F4[6] <- "Y"
+hp4[7,] <- ""
+hp4$HBW[7] <- "Dendrocolaptes punctipectus"
+hp4$F1[7] <- "Y"
+hp4[8,] <- ""
+hp4$HBW[8] <- "Dendrocolaptes sanctithomae"
+hp4$F1[8] <- "Y"
+
+
 
 # New or missing
 hp5 <- HBW_parker[HBW_parker$parker %in% c('NEW', 'MISSING'), ]
+hp5[hp5$HBW == "Cichlocolaptes mazarbarnetti", 'F1'] <- "Y"
+hp5[hp5$HBW == "Cranioleuca henricae", 'F7'] <- "Y"
+hp5[hp5$HBW == "Formicivora acutirostris", 'A1'] <- "Y"
+hp5[hp5$HBW == "Glaucidium mooreorum", 'F1'] <- "Y"
+hp5[hp5$HBW == "Machaeropterus eckelberryi", 'F4'] <- "Y"
+hp5[hp5$HBW == "Megascops gilesi", 'F4'] <- "Y"
+hp5[hp5$HBW == "Myrmoderus eowilsoni", 'F4'] <- "Y"
+hp5[hp5$HBW == "Scytalopus alvarezlopezi", 'F4'] <- "Y"
+hp5[hp5$HBW == "Scytalopus rodriguezi", 'F4'] <- "Y"
+hp5[hp5$HBW == "Synallaxis cinerea", c('F1', 'F4')] <- "Y"
+hp5[hp5$HBW == "Guyramemua affinis", 'N4'] <- "Y"
+hp5[hp5$HBW == "Paraclaravis geoffroyi", c('F1', 'F4')] <- "Y"
+hp5[hp5$HBW == "Eriocnemis isabellae", 'F5'] <- "Y"
+hp5[hp5$HBW == "Gallinago jamesoni", c('F5', 'F6', 'N10', 'A1')] <- "Y"
+hp5[hp5$HBW == "Glaucidium nubicola", 'F4'] <- "Y"
+hp5[hp5$HBW == "Cnipodectes superrufus", 'F1'] <- "Y"
+hp5[hp5$HBW == "Grallaria ridgelyi", 'F4'] <- "Y"
+hp5[hp5$HBW == "Herpsilochmus sellowi", 'F7'] <- "Y"
+hp5[hp5$HBW == "Herpsilochmus gentryi", c('F1', 'F12')] <- "Y"
+hp5[hp5$HBW == "Micrastur mintoni", 'F1'] <- "Y"
+hp5[hp5$HBW == "Rallus crepitans", c('F14', 'A2')] <- "Y"
+hp5[hp5$HBW == "Formicivora paludicola", 'A1'] <- "Y"
+hp5[hp5$HBW == "Hemitriccus cohnhafti", 'F1'] <- "Y"
+hp5[hp5$HBW == "Herpsilochmus praedictus", c('F1', 'F12')] <- "Y"
+hp5[hp5$HBW == "Herpsilochmus stotzi", c('F1', 'F12')] <- "Y"
+hp5[hp5$HBW == "Hypocnemis rondoni", c('F1', 'F2', 'F15')] <- "Y"
+hp5[hp5$HBW == "Percnostola arenarum", c('F1', 'F12')] <- "Y"
+hp5[hp5$HBW == "Scytalopus gettyae", 'F4'] <- "Y"
+hp5[hp5$HBW == "Scytalopus gonzagai", 'F4'] <- "Y"
+hp5[hp5$HBW == "Scytalopus petrophilus", c('A1', 'F4', 'N3', 'N5')] <- "Y"
+hp5[hp5$HBW == "Thripophaga amacurensis", c('F3', 'F8')] <- "Y"
+hp5[hp5$HBW == "Thryophilus sernai", 'F7'] <- "Y"
+hp5[hp5$HBW == "Turdus sanchezorum", 'F2'] <- "Y"
+hp5[hp5$HBW == "Zimmerius villarejoi", 'F12'] <- "Y"
+hp5[hp5$HBW == "Scytalopus iraiensis", 'A1'] <- "Y"
+hp5[hp5$HBW == "Tityra leucura", c('F1', 'F15')] <- "Y"
+hp5[hp5$HBW == "Atlapetes blancae", c('F4', 'F5')] <- "Y"
+hp5[hp5$HBW == "Formicivora erythronotos", 'F1'] <- "E"
+hp5[hp5$HBW == "Lipaugus weberi", 'F4'] <- "Y"
+hp5[hp5$HBW == "Scytalopus schulenbergi", 'F5'] <- "Y"
+hp5[hp5$HBW == "Chlorostilbon olivaresi", c('F7', 'F12', 'N1')] <- "Y"
+hp5[hp5$HBW == "Capito fitzpatricki", 'F4'] <- "Y"
+hp5[hp5$HBW == "Phylloscartes beckeri", 'F4'] <- "Y"
+hp5[hp5$HBW == "Phylloscartes paulista", 'F1'] <- "Y"
+hp5[hp5$HBW == "Scytalopus diamantinensis", c('F4', 'N5')] <- "Y"
+hp5[hp5$HBW == "Scytalopus stilesi", 'F4'] <- "Y"
+hp5[hp5$HBW == "Scytalopus parkeri", c('F4', 'F5')] <- "Y"
+hp5[hp5$HBW == "Synallaxis beverlyae", 'N12'] <- "Y"
+hp5[hp5$HBW == "Oreopholus ruficollis", c('N1', 'N9')] <- "Y"
+hp5[hp5$HBW == "Vireo masteri", 'F4'] <- "Y"
+hp5[hp5$HBW == "Cygnus buccinator", c('A1', 'A6')] <- "Y"
+hp5[hp5$HBW == "Capito wallacei", 'F4'] <- "Y"
+hp5[hp5$HBW == "Acrobatornis fonsecai", 'F7'] <- "Y"
+hp5[hp5$HBW == "Contopus cooperi", 'F4'] <- "Y"
+hp5[hp5$HBW == "Formicivora grantsaui", 'N5'] <- "Y"
+hp5[hp5$HBW == "Henicorhina negreti", 'F4'] <- "Y"
+hp5[hp5$HBW == "Scytalopus perijanus", c('F4', 'F5', 'N10')] <- "Y"
+hp5[hp5$HBW == "Sporophila beltoni", c('N4', 'N7')] <- "Y"
+hp5[hp5$HBW == "Glaucidium parkeri", 'F4'] <- "Y"
+hp5[hp5$HBW == "Myiopagis olallai", 'F4'] <- "Y"
+hp5[hp5$HBW == "Serpophaga griseicapilla", c('N1', 'N7', 'F7')] <- "Y"
+hp5[hp5$HBW == "Estrilda astrild", c('N1', 'N7')] <- "Y"
+hp5[hp5$HBW == "Chloris chloris", 'N7'] <- "Y"
+hp5[hp5$HBW == "Grallaria fenwickorum", 'F4'] <- "Y"
+hp5[hp5$HBW == "Lonchura malacca", 'N13'] <- "Y"
+hp5[hp5$HBW == "Lonchura oryzivora", 'N13'] <- "Y"
+# No natural habitat associations for Psittacula krameri
+hp5[hp5$HBW == "Scytalopus robbinsi", 'F4'] <- "Y"
+hp5[hp5$HBW == "Thamnophilus divisorius", 'F1'] <- "Y"
+hp5[hp5$HBW == "Zimmerius chicomendesi", 'F12'] <- "Y"
+
+hp5[71,] <- ""
+hp5$HBW[71] <- "Grallaria alvarezi"
+hp5$F4[71] <- "Y"
+
+hp5[72,] <- ""
+hp5$HBW[72] <- "Grallaria saturata"
+hp5$F4[72] <- "Y"
+
+hp5[73,] <- ""
+hp5$HBW[73] <- "Grallaria spatiator"
+hp5$F4[73] <- "Y"
+
+hp5[74,] <- ""
+hp5$HBW[74] <- "Columba livia"
+
+
 
 new_parker1 <- rbind(hp1, hp2, hp3, hp4, hp5)
-
+sum(duplicated(new_parker1$HBW))
 new_parker <- new_parker1[!duplicated(new_parker1$HBW), ]
 
 write.csv(new_parker, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/new_parker.csv')

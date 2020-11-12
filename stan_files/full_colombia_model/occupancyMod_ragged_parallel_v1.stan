@@ -13,12 +13,9 @@ functions{
 // numbers of random effect levels
         int n_sp,               // number of species
         int n_fam,              // number of families
-//        int n_sp_cl,            // number of species-clusters
         
 // Model terms             
     // Occupancy
-        // Spatial effects
-//        vector b0_sp_cl,       // intercepts by species-cluster
         
         // Taxonomic effects
         vector b0_sp,          // intercepts by species
@@ -27,7 +24,10 @@ functions{
         // Elevation effects             
         vector b1_relev_sp,    // slopes for elevation by species
         vector b1_relev2_sp,   // slopes for elevation^2 by species
-        // add new terms for lowland species?
+        
+        real b1_lowland,
+        real b1_x_lowland_relev,
+        real b1_x_lowland_relev2,
         
         // Pasture effects             
         vector b2_pasture_sp,  // slopes for pasture by species
@@ -110,6 +110,8 @@ functions{
         real d3_mass,
         real d3_elevMedian,
         real d3_migratory,
+        real d3_dietCarn,
+        real d3_x_time_elevMedian,
 // add effect of time by elevMedian
                      
 // Data
@@ -128,6 +130,7 @@ functions{
         vector relev,    
         vector relev2, 
 
+        vector lowland,     
         
     // Pasture             
         vector pasture, 
@@ -179,35 +182,35 @@ functions{
         for (r in 1:len) {
             // calculate psi & theta
             logit_psi = 
-//                b0_sp_cl[id_sp_cl[r0+r]] + 
                 b0_sp[id_sp[r0+r]] + b0_fam[id_fam[r0+r]] +
                 
                 b1_relev_sp[id_sp[r0+r]]*relev[r0+r] + b1_relev2_sp[id_sp[r0+r]]*relev2[r0+r] +
-                
+                b1_lowland*lowland[r0+r] + b1_x_lowland_relev*lowland[r0+r]*relev[r0+r] + b1_x_lowland_relev2*lowland[r0+r]*relev2[r0+r] +
+        
                 b2_pasture_sp[id_sp[r0+r]]*pasture[r0+r] + b2_pasture_fam[id_fam[r0+r]]*pasture[r0+r] +
-                
+        
                 b3_eastOnly*eastOnly[r0+r] + b3_westOnly*westOnly[r0+r] + b3_snsmOnly*snsmOnly[r0+r] + b3_notWandes*notWandes[r0+r] + b3_notEandes*notEandes[r0+r] +
                 b3_elevMedian*elevMedian[r0+r] + b3_elevBreadth*elevBreadth[r0+r] + 
                 b3_forestPresent*forestPresent[r0+r] + b3_forestSpecialist*forestSpecialist[r0+r] + b3_tfSpecialist*tfSpecialist[r0+r] + 
-                    b3_dryForestPresent*dryForestPresent[r0+r] + b3_floodDrySpecialist*floodDrySpecialist[r0+r] + b3_floodSpecialist*floodSpecialist[r0+r] +
-                    b3_aridPresent*aridPresent[r0+r] +
+                b3_dryForestPresent*dryForestPresent[r0+r] + b3_floodDrySpecialist*floodDrySpecialist[r0+r] + b3_floodSpecialist*floodSpecialist[r0+r] +
+                b3_aridPresent*aridPresent[r0+r] +
                 b3_migratory*migratory[r0+r] + b3_mass*mass[r0+r] + 
                 b3_dietInvert*dietInvert[r0+r] + b3_dietCarn*dietCarn[r0+r] + b3_dietFruitNect*dietFruitNect[r0+r] + b3_dietGran*dietGran[r0+r] +
                 b3_x_elevMedian_forestPresent*elevMedian[r0+r]*forestPresent[r0+r] + b3_x_elevMedian_forestSpecialist*elevMedian[r0+r]*forestSpecialist[r0+r] +
-                
-                
+        
+        
                 b4_eastOnly*eastOnly[r0+r]*pasture[r0+r] + b4_westOnly*westOnly[r0+r]*pasture[r0+r] + b4_snsmOnly*snsmOnly[r0+r]*pasture[r0+r] + 
-                    b4_notWandes*notWandes[r0+r]*pasture[r0+r] + b4_notEandes*notEandes[r0+r]*pasture[r0+r] +
+                b4_notWandes*notWandes[r0+r]*pasture[r0+r] + b4_notEandes*notEandes[r0+r]*pasture[r0+r] +
                 b4_elevMedian*elevMedian[r0+r]*pasture[r0+r] + b4_elevBreadth*elevBreadth[r0+r]*pasture[r0+r] + 
                 b4_forestPresent*forestPresent[r0+r]*pasture[r0+r] + b4_forestSpecialist*forestSpecialist[r0+r]*pasture[r0+r] + 
-                    b4_tfSpecialist*tfSpecialist[r0+r]*pasture[r0+r] + b4_dryForestPresent*dryForestPresent[r0+r]*pasture[r0+r] + 
-                    b4_floodDrySpecialist*floodDrySpecialist[r0+r]*pasture[r0+r] + b4_floodSpecialist*floodSpecialist[r0+r]*pasture[r0+r] +
-                    b4_aridPresent*aridPresent[r0+r]*pasture[r0+r] +
+                b4_tfSpecialist*tfSpecialist[r0+r]*pasture[r0+r] + b4_dryForestPresent*dryForestPresent[r0+r]*pasture[r0+r] + 
+                b4_floodDrySpecialist*floodDrySpecialist[r0+r]*pasture[r0+r] + b4_floodSpecialist*floodSpecialist[r0+r]*pasture[r0+r] +
+                b4_aridPresent*aridPresent[r0+r]*pasture[r0+r] +
                 b4_migratory*migratory[r0+r]*pasture[r0+r] + b4_mass*mass[r0+r]*pasture[r0+r] + 
                 b4_dietInvert*dietInvert[r0+r]*pasture[r0+r] + b4_dietCarn*dietCarn[r0+r]*pasture[r0+r] + b4_dietFruitNect*dietFruitNect[r0+r]*pasture[r0+r] + 
-                    b4_dietGran*dietGran[r0+r]*pasture[r0+r] +
+                b4_dietGran*dietGran[r0+r]*pasture[r0+r] +
                 b4_x_elevMedian_forestPresent*elevMedian[r0+r]*forestPresent[r0+r]*pasture[r0+r] + 
-                    b4_x_elevMedian_forestSpecialist*elevMedian[r0+r]*forestSpecialist[r0+r]*pasture[r0+r];
+                b4_x_elevMedian_forestSpecialist*elevMedian[r0+r]*forestSpecialist[r0+r]*pasture[r0+r];
             
             // calculate logit_theta.  Note that this is vectorized because the time and observer covariates are row vectors
             // where nv < 4, logit_theta will have some trailing dummy terms.
@@ -215,7 +218,7 @@ functions{
                 d0_sp[id_sp[r0+r]] + d0_fam[id_fam[r0+r]] +
                 d1_pasture_sp[id_sp[r0+r]]*pasture[r0+r] + d1_pasture_fam[id_fam[r0+r]]*pasture[r0+r] +
                 d2_time_sp[id_sp[r0+r]]*time[r0+r] + d2_obsSM*obsSM[r0+r] + d2_obsDE*obsDE[r0+r] + d2_obsJG*obsJG[r0+r] +
-                d3_mass*mass[r0+r] + d3_elevMedian*elevMedian[r0+r] + d3_migratory*migratory[r0+r];
+                d3_mass*mass[r0+r] + d3_elevMedian*elevMedian[r0+r] + d3_migratory*migratory[r0+r] + d3_dietCarn*dietCarn[r0+r] + d3_x_time_elevMedian*time[r0+r]*elevMedian[r0+r];
             
             // likelihood
             if (Q[r0 + r] == 1) {
@@ -228,7 +231,7 @@ functions{
                             log1m_inv_logit(logit_psi)); // likelihood of non-occupancy
             }
         } 
-    return sum(lp); // perhaps instead of storing lp as vector and summing it would be better to just do lp += ?
+    return sum(lp);
     } // end of function
 } // Close the functions block
 
@@ -239,7 +242,6 @@ data {
     // dimensions
         int<lower=1> n_sp; // number of species
         int<lower=1> n_fam; // number of families
-//        int<lower=1> n_sp_cl; // number of unique species:cluster 
         int<lower=1> n_tot; // number of total rows (number of unique species:point)
         int<lower=1> n_visit_max; // maximum number of visits to a point
     
@@ -256,12 +258,12 @@ data {
         // Random effect levels
         int<lower=1> id_sp[n_tot];
         int<lower=1> id_fam[n_tot];
-//        int<lower=1> id_sp_cl[n_tot];
-        
+
         // Elevation
         vector[n_tot] relev;
         vector[n_tot] relev2;
-        
+        vector[n_tot] lowland;
+
         // Pasture
         vector[n_tot] pasture;
         
@@ -302,9 +304,6 @@ parameters {
     // Intercepts
         real mu_b0;
     
-//        real<lower=0> sigma_b0_sp_cl;
-//        vector[n_sp_cl] b0_sp_cl_raw;
-    
         real<lower=0> sigma_b0_sp;
         vector[n_sp] b0_sp_raw;
     
@@ -321,6 +320,10 @@ parameters {
             real<lower=0> sigma_b1_relev2_sp;
             vector[n_sp] b1_relev2_sp_raw;
 
+            real b1_lowland;
+            real b1_x_lowland_relev;
+            real b1_x_lowland_relev2;
+            
         // Pasture effects
             real mu_b2_pasture;
             
@@ -422,6 +425,8 @@ parameters {
             real d3_mass;
             real d3_elevMedian;
             real d3_migratory;
+            real d3_dietCarn;
+            real d3_x_time_elevMedian;
 }
 
 transformed parameters{
@@ -451,9 +456,6 @@ model {
         // Occupancy
         mu_b0 ~ student_t(7.763, 0, 1.566);  // This is Dorazio's suggested prior, which is approximately uniform on the probability scale between 0.01 and 0.99. See also Northrup & Gerber 2018
     
-//        sigma_b0_sp_cl ~ normal(0, 2);
-//        b0_sp_cl_raw ~ normal(0, 1);
-    
         sigma_b0_sp ~ normal(0, 2);
         b0_sp_raw ~ normal(0, 1);
     
@@ -468,6 +470,11 @@ model {
         sigma_b1_relev2_sp ~ normal(0, 2);
         b1_relev2_sp_raw ~ normal(0, 1);
 
+        b1_lowland ~ normal(0, 2);
+        b1_x_lowland_relev ~ normal(0, 2);
+        b1_x_lowland_relev2 ~ normal(0, 2);
+        
+        
         mu_b2_pasture ~ normal(0, 2);
     
         sigma_b2_pasture_sp ~ normal(0, 2);
@@ -546,7 +553,7 @@ model {
         d1_pasture_sp_raw ~ normal(0, 1);
     
         sigma_d1_pasture_fam ~ normal(0, 2);
-        d1_pasture_fam_raw ~ normal(0, 2);
+        d1_pasture_fam_raw ~ normal(0, 1);
     
         mu_d2_time ~ normal(0, 2);
         sigma_d2_time_sp ~ normal(0, 2);
@@ -559,6 +566,8 @@ model {
         d3_mass ~ normal(0, 2);
         d3_elevMedian ~ normal(0, 2);
         d3_migratory ~ normal(0, 2);
+        d3_dietCarn ~ normal(0, 2);
+        d3_x_time_elevMedian ~ normal(0,2);
         
     //Likelihood
         target += reduce_sum(
@@ -576,8 +585,11 @@ model {
 //                n_sp_cl,  
         
             // parameters
-//                b0_sp_cl,
-                b0_sp, b0_fam, b1_relev_sp, b1_relev2_sp, b2_pasture_sp, b2_pasture_fam,
+                b0_sp, b0_fam, b1_relev_sp, b1_relev2_sp, 
+                b1_lowland, b1_x_lowland_relev, b1_x_lowland_relev2,
+                
+                b2_pasture_sp, b2_pasture_fam,
+                
                 b3_eastOnly, b3_westOnly, b3_snsmOnly, b3_notWandes, b3_notEandes, b3_elevMedian, b3_elevBreadth,
                 b3_forestPresent, b3_forestSpecialist, b3_tfSpecialist, b3_dryForestPresent, b3_floodDrySpecialist,
                 b3_floodSpecialist, b3_aridPresent, b3_migratory, b3_mass, b3_dietInvert, b3_dietCarn, b3_dietFruitNect,
@@ -587,16 +599,16 @@ model {
                 b4_mass, b4_dietInvert, b4_dietCarn, b4_dietFruitNect, b4_dietGran, b4_x_elevMedian_forestPresent,
                 b4_x_elevMedian_forestSpecialist,
                 d0_sp, d0_fam, d1_pasture_sp, d1_pasture_fam, d2_time_sp, d2_obsSM, d2_obsDE, d2_obsJG, d3_mass, d3_elevMedian,
-                d3_migratory,
+                d3_migratory, d3_dietCarn, d3_x_time_elevMedian,
         
             // Data
                 // random effect levels
                 id_sp, id_fam, 
-//                id_sp_cl, 
+
                 // Q and nv
                 Q, nv, 
                 // covariates
-                relev, relev2, pasture, eastOnly, westOnly, snsmOnly, notWandes, notEandes,
+                relev, relev2, lowland, pasture, eastOnly, westOnly, snsmOnly, notWandes, notEandes,
                 elevMedian, elevBreadth, forestPresent, forestSpecialist, tfSpecialist, dryForestPresent, floodDrySpecialist,
                 floodSpecialist, aridPresent, migratory, mass, dietInvert, dietCarn, dietFruitNect, dietGran, time, obsSM,
                 obsDE, obsJG
