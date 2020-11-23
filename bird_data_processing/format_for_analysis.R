@@ -193,7 +193,6 @@ birds$lowland <- as.numeric(birds$lower == 0)
 
 saveRDS(birds, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.RDS")
 
-
 ###########
 bird_stan_data1 <- list(
   # Grainsize for reduce_sum

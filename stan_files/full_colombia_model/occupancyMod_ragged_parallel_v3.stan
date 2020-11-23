@@ -701,110 +701,110 @@ parameters {
 model {
   // Priors and Jacobian adjustments
     // Occupancy
-        mu_b0 ~ student_t(7.763, 0, 1.566);  // This is Dorazio's suggested prior, which is approximately uniform on the probability scale between 0.01 and 0.99. See also Northrup & Gerber 2018
-    
-        sigma_b0_spCl ~ normal(0, 2);
+        mu_b0 ~ normal(0, 4);
+        
+        sigma_b0_spCl ~ normal(0, 3);
         b0_spCl ~ normal(0, sigma_b0_spCl);
     
         real sigma_b0_sp = exp(log_sigma_b0_sp);
         target += log_sigma_b0_sp;
-        sigma_b0_sp ~ normal(0, 2);
+        sigma_b0_sp ~ normal(0, 3);
         b0_sp ~ normal(mu_b0, sigma_b0_sp);
     
         real sigma_b0_fam = exp(log_sigma_b0_fam);
         target += log_sigma_b0_fam;
-        sigma_b0_fam ~ normal(0, 2);
+        sigma_b0_fam ~ normal(0, 3);
         b0_fam ~ normal(0, sigma_b0_fam);
     
-        mu_b1_relev ~ normal(0, 2);
+        mu_b1_relev ~ normal(0, 4);
         
         real sigma_b1_relev_sp = exp(log_sigma_b1_relev_sp);
         target += log_sigma_b1_relev_sp;
-        sigma_b1_relev_sp ~ normal(0, 2);
+        sigma_b1_relev_sp ~ normal(0, 3);
         b1_relev_sp ~ normal(mu_b1_relev, sigma_b1_relev_sp);
     
         mu_b1_relev2 ~ normal(0, 4);
         
         real sigma_b1_relev2_sp = exp(log_sigma_b1_relev2_sp);
         target += log_sigma_b1_relev2_sp;
-        sigma_b1_relev2_sp ~ normal(0, 2);
+        sigma_b1_relev2_sp ~ normal(0, 3);
         b1_relev2_sp ~ normal(mu_b1_relev2, sigma_b1_relev2_sp);
 
 
-        b1_lowland ~ normal(0, 2);
-        b1_x_lowland_relev ~ normal(0, 2);
-        b1_x_lowland_relev2 ~ normal(0, 2);
+        b1_lowland ~ normal(0, 4);
+        b1_x_lowland_relev ~ normal(0, 4);
+        b1_x_lowland_relev2 ~ normal(0, 4);
 
 
-        mu_b2_pasture ~ normal(0, 2);
+        mu_b2_pasture ~ normal(0, 4);
     
         real sigma_b2_pasture_sp = exp(log_sigma_b2_pasture_sp);
         target += log_sigma_b2_pasture_sp;
-        sigma_b2_pasture_sp ~ normal(0, 2);
+        sigma_b2_pasture_sp ~ normal(0, 3);
         b2_pasture_sp ~ normal(mu_b2_pasture, sigma_b2_pasture_sp);
         
         real sigma_b2_pasture_fam = exp(log_sigma_b2_pasture_fam);
         target += log_sigma_b2_pasture_fam;
-        sigma_b2_pasture_fam ~ normal(0, 2);
+        sigma_b2_pasture_fam ~ normal(0, 3);
         b2_pasture_fam ~ normal(0, sigma_b2_pasture_fam);
     
-        b3_eastOnly ~ normal(0, 2);
-        b3_westOnly ~ normal(0, 2);
-        b3_snsmOnly ~ normal(0, 2);
-        b3_notWandes ~ normal(0, 2);
-        b3_notEandes ~ normal(0, 2);
+        b3_eastOnly ~ normal(0, 4);
+        b3_westOnly ~ normal(0, 4);
+        b3_snsmOnly ~ normal(0, 4);
+        b3_notWandes ~ normal(0, 4);
+        b3_notEandes ~ normal(0, 4);
     
-        b3_elevMedian ~ normal(0, 2);
-        b3_elevBreadth ~ normal(0, 2);
-        b3_forestPresent ~ normal(0, 2);
-        b3_forestSpecialist ~ normal(0, 2);
-        b3_tfSpecialist ~ normal(0, 2);
-        b3_dryForestPresent ~ normal(0, 2);
-        b3_floodDrySpecialist ~ normal(0, 2);
-        b3_floodSpecialist ~ normal(0, 2);
-        b3_aridPresent ~ normal(0, 2);
+        b3_elevMedian ~ normal(0, 4);
+        b3_elevBreadth ~ normal(0, 4);
+        b3_forestPresent ~ normal(0, 4);
+        b3_forestSpecialist ~ normal(0, 4);
+        b3_tfSpecialist ~ normal(0, 4);
+        b3_dryForestPresent ~ normal(0, 4);
+        b3_floodDrySpecialist ~ normal(0, 4);
+        b3_floodSpecialist ~ normal(0, 4);
+        b3_aridPresent ~ normal(0, 4);
         
-        b3_migratory ~ normal(0, 2);
-        b3_mass ~ normal(0, 2);
+        b3_migratory ~ normal(0, 4);
+        b3_mass ~ normal(0, 4);
     
-        b3_dietInvert ~ normal(0, 2);
-        b3_dietCarn ~ normal(0, 2);
-        b3_dietFruitNect ~ normal(0, 2);
-        b3_dietGran ~ normal(0, 2);
+        b3_dietInvert ~ normal(0, 4);
+        b3_dietCarn ~ normal(0, 4);
+        b3_dietFruitNect ~ normal(0, 4);
+        b3_dietGran ~ normal(0, 4);
     
-        b3_x_elevMedian_forestPresent ~ normal(0, 2);
-        b3_x_elevMedian_forestSpecialist ~ normal(0, 2);
+        b3_x_elevMedian_forestPresent ~ normal(0, 4);
+        b3_x_elevMedian_forestSpecialist ~ normal(0, 4);
     
     
-        b4_eastOnly ~ normal(0, 2);
-        b4_westOnly ~ normal(0, 2);
-        b4_snsmOnly ~ normal(0, 2);
-        b4_notWandes ~ normal(0, 2);
-        b4_notEandes ~ normal(0, 2);
+        b4_eastOnly ~ normal(0, 4);
+        b4_westOnly ~ normal(0, 4);
+        b4_snsmOnly ~ normal(0, 4);
+        b4_notWandes ~ normal(0, 4);
+        b4_notEandes ~ normal(0, 4);
     
-        b4_elevMedian ~ normal(0, 2);
-        b4_elevBreadth ~ normal(0, 2);
-        b4_forestPresent ~ normal(0, 2);
-        b4_forestSpecialist ~ normal(0, 2);
-        b4_tfSpecialist ~ normal(0, 2);
-        b4_dryForestPresent ~ normal(0, 2);
-        b4_floodDrySpecialist ~ normal(0, 2);
-        b4_floodSpecialist ~ normal(0, 2);
-        b4_aridPresent ~ normal(0, 2);
+        b4_elevMedian ~ normal(0, 4);
+        b4_elevBreadth ~ normal(0, 4);
+        b4_forestPresent ~ normal(0, 4);
+        b4_forestSpecialist ~ normal(0, 4);
+        b4_tfSpecialist ~ normal(0, 4);
+        b4_dryForestPresent ~ normal(0, 4);
+        b4_floodDrySpecialist ~ normal(0, 4);
+        b4_floodSpecialist ~ normal(0, 4);
+        b4_aridPresent ~ normal(0, 4);
         
-        b4_migratory ~ normal(0, 2);
-        b4_mass ~ normal(0, 2);
+        b4_migratory ~ normal(0, 4);
+        b4_mass ~ normal(0, 4);
     
-        b4_dietInvert ~ normal(0, 2);
-        b4_dietCarn ~ normal(0, 2);
-        b4_dietFruitNect ~ normal(0, 2);
-        b4_dietGran ~ normal(0, 2);
+        b4_dietInvert ~ normal(0, 4);
+        b4_dietCarn ~ normal(0, 4);
+        b4_dietFruitNect ~ normal(0, 4);
+        b4_dietGran ~ normal(0, 4);
     
-        b4_x_elevMedian_forestPresent ~ normal(0, 2);
-        b4_x_elevMedian_forestSpecialist ~ normal(0, 2);
+        b4_x_elevMedian_forestPresent ~ normal(0, 4);
+        b4_x_elevMedian_forestSpecialist ~ normal(0, 4);
 
       // Detection
-        mu_d0 ~ student_t(7.763, 0, 1.566);  // This is Dorazio's suggested prior, which is approximately uniform on the probability scale between 0.1 and 0.99. See also Northrup & Gerber 2018
+        mu_d0 ~ student_t(7.763, 0, 1.566);  // This is Dorazio's suggested prior, which is approximately uniform on the probability scale between 0.01 and 0.99. See also Northrup & Gerber 2018
   
         real sigma_d0_sp = exp(log_sigma_d0_sp);
         target += log_sigma_d0_sp;
