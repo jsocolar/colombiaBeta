@@ -70,7 +70,7 @@ raster_elev <- raster::raster("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GI
 elev_df <- raster::as.data.frame(raster_elev, xy = T)
 
 numerator <- denominator <- rep(0, nrow(elev_df))
-overall <- rep(0, 1614)
+#overall <- rep(0, 1614)
 j <- 1
 for(i in 1:1614){
   print(i)
@@ -106,13 +106,18 @@ for(i in 1:1614){
   numerator <- numerator + sp_log_ratio
   denominator <- denominator + !sp_exclude
  
-  overall[i] <- log(sum(sp_prediction_df$sp_forest[!sp_exclude])/sum(sp_prediction_df$sp_pasture[!sp_exclude]))
+#  overall[i] <- log(sum(sp_prediction_df$sp_forest[!sp_exclude])/sum(sp_prediction_df$sp_pasture[!sp_exclude]))
 }
 
+sum(!is.nan(overall))
+overall2 <- overall[1:614]
 
-mean(overall[!is.nan(overall)])
+mean(overall2[!is.nan(overall2)])
 
-mean((numerator/denominator)[!is.nan(numerator/denominator)])
+pointwise <- numerator/denominator
+
+mean(pointwise[!is.nan(pointwise)])
+min(pointwise[!is.nan(pointwise)])
 
 
 

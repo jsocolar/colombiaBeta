@@ -299,3 +299,30 @@ fullmod_samples <- mod_R_3$sample(data = bird_stan_data2_package$data,
 
 
 
+saveRDS(fullmod_samples, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/fullmod_samples_2511.RDS")
+
+#############
+samples_2511 <- cmdstanr::read_cmdstan_csv('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs/occupancyMod_ragged_parallel_v3_threads-202011191247-1-deb0d8.csv')
+samples2_2511 <- cmdstanr::read_cmdstan_csv('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs/occupancyMod_ragged_parallel_v3_threads-202011191247-1-deb0d8.csv', 
+                                                        variables = samples_2511$metadata$stan_variables[c(1:3, 5:87)])
+muSamples_2511 <- cmdstanr::read_cmdstan_csv('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs/occupancyMod_ragged_parallel_v3_threads-202011191247-1-deb0d8.csv', 
+                                             variables = "mu_b0")
+
+bird_stan_data3_package <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data2_package.RDS')
+bird_stan_data3_package$data$mu_b0_off <- posterior::summarise_draws(muSamples_2511$post_warmup_draws)$median
+bird_stan_data3_package$data$mu_b0_mult <- posterior::summarise_draws(muSamples_2511$post_warmup_draws)$mad
+
+
+
+mod_R_4 <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/stan_files/full_colombia_model/occupancyMod_ragged_parallel_v4.stan",
+                         cpp_options = list(stan_threads = TRUE))
+fullmod_samples <- mod_R_4$sample(data = bird_stan_data3_package$data, 
+                                  chains = 1,
+                                  threads_per_chain = 4,
+                                  refresh = 1,
+                                  iter_sampling = 500,
+                                  iter_warmup = 500,
+                                  save_warmup = 1,
+                                  step_size = .0015,
+                                  max_treedepth = 9,
+                                  output_dir = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs")
