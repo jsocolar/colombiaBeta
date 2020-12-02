@@ -283,6 +283,7 @@ offsets_and_multipliers <- list(
 )
 
 bird_stan_data2_package <- list(data = c(bird_stan_data1_package$data, offsets_and_multipliers), means_and_sds = bird_stan_data1_package$means_and_sds)
+saveRDS(bird_stan_data2_package, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data2_package.RDS")
 
 mod_R_3 <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/stan_files/full_colombia_model/occupancyMod_ragged_parallel_v3.stan",
                        cpp_options = list(stan_threads = TRUE))
@@ -311,8 +312,9 @@ muSamples_2511 <- cmdstanr::read_cmdstan_csv('/Users/jacobsocolar/Dropbox/Work/C
 bird_stan_data3_package <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data2_package.RDS')
 bird_stan_data3_package$data$mu_b0_off <- posterior::summarise_draws(muSamples_2511$post_warmup_draws)$median
 bird_stan_data3_package$data$mu_b0_mult <- posterior::summarise_draws(muSamples_2511$post_warmup_draws)$mad
+saveRDS(bird_stan_data3_package, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data3_package.RDS")
 
-
+##############
 
 mod_R_4 <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/stan_files/full_colombia_model/occupancyMod_ragged_parallel_v4.stan",
                          cpp_options = list(stan_threads = TRUE))
@@ -326,3 +328,8 @@ fullmod_samples <- mod_R_4$sample(data = bird_stan_data3_package$data,
                                   step_size = .0015,
                                   max_treedepth = 9,
                                   output_dir = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs")
+
+
+saveRDS(fullmod_samples, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/fullmod_samples_0212.RDS")
+
+
