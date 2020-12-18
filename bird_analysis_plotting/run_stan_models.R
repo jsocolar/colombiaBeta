@@ -1,4 +1,5 @@
 library("cmdstanr"); library("dplyr"); library("posterior")
+`%ni%` <- Negate(`%in%`)
 
 bird_stan_data1_package <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data1_package.RDS")
 
@@ -332,4 +333,48 @@ fullmod_samples <- mod_R_4$sample(data = bird_stan_data3_package$data,
 
 saveRDS(fullmod_samples, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/fullmod_samples_0212.RDS")
 
+###############
+bird_stan_data3_package <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data3_package.RDS")
+birds <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.RDS")
+
+bird_stan_data4_package_prelim <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data4_package_prelim.RDS")
+
+bird_stan_data4_package_prelim$data <- c(bird_stan_data4_package_prelim$data, bird_stan_data3_package$data[names(bird_stan_data3_package$data) %ni% 
+                                                                                                      c("b4_eastOnly_off", "b4_eastOnly_mult", "b4_westOnly_off", "b4_westOnly_mult",
+                                                                                                        "b4_snsmOnly_off", "b4_snsmOnly_mult", "b4_notWandes_off", "b4_notWandes_mult",
+                                                                                                        "b4_notEandes_off", "b4_notEandes_mult", names(bird_stan_data4_package_prelim$data))])
+
+b3samples <- cmdstanr::read_cmdstan_csv('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs/occupancyMod_ragged_parallel_v3_threads-202011191247-1-deb0d8.csv', 
+                                        variables = c("b3_eastOnly", "b3_westOnly", "b3_snsmOnly", "b3_notEandes", "b3_notWandes"))
+posterior::summarise_draws(b3samples$post_warmup_draws)
+
+bird_stan_data4_package_prelim$data$b3_mountain_barrier_off <- 0
+bird_stan_data4_package_prelim$data$b3_mountain_barrier_mult <- 1
+bird_stan_data4_package_prelim$data$b3_valley_barrier_off <- 0
+bird_stan_data4_package_prelim$data$b3_valley_barrier_mult <- 1
+
+  
+b4samples <- cmdstanr::read_cmdstan_csv('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs/occupancyMod_ragged_parallel_v3_threads-202011191247-1-deb0d8.csv', 
+                                          variables = c("b4_eastOnly", "b4_westOnly", "b4_snsmOnly", "b4_notEandes", "b4_notWandes"))
+posterior::summarise_draws(b4samples$post_warmup_draws)
+bird_stan_data4_package_prelim$data$b4_mountain_barrier_off <- -1
+bird_stan_data4_package_prelim$data$b4_mountain_barrier_mult <- 0.55
+bird_stan_data4_package_prelim$data$b4_valley_barrier_off <- -1
+bird_stan_data4_package_prelim$data$b4_valley_barrier_mult <- 0.8
+  
+bird_stan_data4_package <- bird_stan_data4_package_prelim
+
+mod_R_5 <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/stan_files/full_colombia_model/occupancy_v5.stan",
+                         cpp_options = list(stan_threads = TRUE))
+
+mod5_samples <- mod_R_5$sample(data = bird_stan_data4_package$data, 
+                                  chains = 1,
+                                  threads_per_chain = 1,
+                                  refresh = 1,
+                                  iter_sampling = 1,
+                                  iter_warmup = 1,
+                                  save_warmup = 1,
+                                  step_size = .0015,
+                                  max_treedepth = 9,
+                                  output_dir = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs")
 

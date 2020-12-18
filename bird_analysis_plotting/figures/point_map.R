@@ -83,3 +83,7 @@ for(i in 1:length(regions)){
 }
 # west Andes west; Cauca Valley west; Cauca Valley east; Magdalena Valley west; Magdalena Valley east & north;
 # east Andes east; Tacarcuna foothills; Sierra Nevada de Santa Marta; Guajira/Perijá; Catatumbo; Pasto
+
+points(all_pts$lon, all_pts$lat, pch = 16, col = rgb(0, 0, 0, max = 255, alpha = 15))
+points(all_pts$lon, all_pts$lat, pch = 1, col = rgb(0, 0, 0, max = 255, alpha = 255))
+

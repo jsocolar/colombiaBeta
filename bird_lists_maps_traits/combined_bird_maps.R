@@ -414,6 +414,10 @@ for(i in 1:nrow(initial_species_list)){
 saveRDS(ayerbe_buffered_ranges, file = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_buffered_ranges.RDS")
 ayerbe_buffered_ranges <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_buffered_ranges.RDS")
 
+bird_surveys <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_current.RDS')
+colombia_points <- st_as_sf(readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Points/all_pts.RDS"), 
+                                                        coords = c('lon', 'lat'), crs = 4326)
+bird_points <- st_transform(colombia_points[colombia_points$point %in% bird_surveys$point_names, ], AEAstring)
 
 ayerbe_distances <- list()
 dsp <- vector()
@@ -423,7 +427,7 @@ for(i in 1:length(bird_surveys$species_names)){
   species_range <- ayerbe_buffered_ranges[[gsub('_', ' ', species)]]
   surveys <- bird_surveys$detection_array[,,i]
   point_names <- bird_surveys$point_names[rowSums(surveys, na.rm = T) > 0]
-  points <- bird_points[bird_points$point_id %in% point_names, ]
+  points <- bird_points[bird_points$point %in% point_names, ]
   if(!is.na(species_range)){
     distance_matrix <- st_distance(points, species_range)
     ayerbe_distances[[i]] <- as.vector(distance_matrix)
@@ -460,7 +464,6 @@ for(i in 1:length(bad_species)){
           geom_sf(data = sp_pts[[which(dsp == bad_species[i])]], inherit.aes = F) +
           ggtitle(bad_species[i]))
 }
-
 
 
 ##### Combined map errors #####
@@ -521,7 +524,7 @@ for(i in 1:length(bird_surveys$species_names)){
   species_range <- ayerbe_buffered_ranges_updated[[gsub('_', ' ', species)]]
   surveys <- bird_surveys$detection_array[,,i]
   point_names <- bird_surveys$point_names[rowSums(surveys, na.rm = T) > 0]
-  points <- bird_points[bird_points$point_id %in% point_names, ]
+  points <- bird_points[bird_points$point %in% point_names, ]
   distance_matrix <- st_distance(points, species_range)
   distances[[i]] <- as.vector(distance_matrix)
   dsp[i] <- species
@@ -538,12 +541,9 @@ bad_species <- dsp[mdist > d]
 
 bad_species
 
-
 point_distances <- as.data.frame(matrix(data = NA, nrow = nrow(initial_species_list), ncol = nrow(bird_points)))
-names(point_distances) <- bird_points$point_id
+names(point_distances) <- bird_points$point
 row.names(point_distances) <- initial_species_list$HBW
-
-st_distance(bird_points, ayerbe_buffered_ranges_updated[[1]])
 
 for(i in 1:length(ayerbe_buffered_ranges_updated)){
   print(i)
@@ -551,16 +551,3 @@ for(i in 1:length(ayerbe_buffered_ranges_updated)){
 }
 
 saveRDS(point_distances, file = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/point_distances/point_distances_biogeographic_clip_ayerbe.RDS")
-
-include <- exclude <- vector()
-for(i in 1:nrow(point_distances)){include[i] <- sum(point_distances[i,] > 0) != ncol(point_distances)}
-for(i in 1:nrow(point_distances)){exclude[i] <- sum(point_distances[i,] > 0) == ncol(point_distances)}
-sum(include)
-sum(exclude)
-
-initial_species_list$HBW[exclude]
-
-sum(point_distances == 0)
-
-
-

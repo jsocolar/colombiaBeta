@@ -4,6 +4,8 @@ model_fit2 <- cmdstanr::read_cmdstan_csv('/Users/jacobsocolar/Dropbox/Work/Colom
 samples <- model_fit$post_warmup_draws
 samples2 <- model_fit2$post_warmup_draws
 
+source("/Users/jacobsocolar/Dropbox/Work/Code/stanstuff/parsummarise_draws.R") # parsummarise_draws function
+
 posterior_summary <- parsummarise_draws(samples, 4, 1000)
 posterior_summary2 <- parsummarise_draws(samples2, 4, 50)
 print(posterior_summary2[posterior_summary2$rhat > 1.05,], n = 30)
@@ -79,10 +81,16 @@ for(sp in 1:1614){
   elev2_coef[sp, ] <- t(as.numeric(samples[,,paste0('b1_relev2_sp[',sp,']')] + samples[,,'b1_x_lowland_relev2']*traitdata$lowland[sp]))
 }
 
-species_results_prelim <- list(species = traitdata$species, forest_int = forest_int, pasture_offset = pasture_offset, elev1_coef = elev1_coef, elev2_coef = elev2_coef)
+cluster_sigma <- as.numeric(samples[,,"sigma_b0_spCl"])
+
+species_results_prelim <- list(species = traitdata$species, forest_int = forest_int, pasture_offset = pasture_offset, elev1_coef = elev1_coef, elev2_coef = elev2_coef, cluster_sigma = cluster_sigma)
 
 saveRDS(species_results_prelim, '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/species_results_prelim.RDS')
-  
+
+species_results_prelim <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/species_results_prelim.RDS')
+
+pasture_offset <- species_results_prelim$pasture_offset
+
 pasture_effects <- as.data.frame(cbind(
                      apply(pasture_offset, 1, function(x) quantile(x, .05)),
                      apply(pasture_offset, 1, function(x) quantile(x, .95)),
@@ -111,13 +119,7 @@ hist(pasture_effects$mean[pasture_effects$q95 < 0])
 pasture_effects$species[pasture_effects$mean < -10]
 
 ##############
-logit_normal_mean <- function(l.mu, l.sigma){
-  l.points <- seq(l.mu - 7*l.sigma, mu + 7*l.sigma, 14*l.sigma/5000)
-  weights <- dnorm(l.points, mean = l.mu, sd = l.sigma)
-  p.points <- boot::inv.logit(l.points)
-  l.mean <- weighted.mean(p.points, weights)
-  return(l.mean)
-}
+
 
 
 

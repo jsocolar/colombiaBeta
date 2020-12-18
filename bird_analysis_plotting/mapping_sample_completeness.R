@@ -19,7 +19,7 @@ latlng <- ee$Image$pixelLonLat()$addBands(DEM)
 latlng <- latlng$reduceRegion(reducer = ee$Reducer$toList(),
                                 geometry = roi,
                                 maxPixels = 10^9,
-                                scale=500)
+                                scale=1000)
   
 # Convert to arrays
 lats <- np$array((ee$Array(latlng$get("latitude"))$getInfo()))
@@ -32,8 +32,8 @@ raster_elev <- raster::rasterFromXYZ(elevation,crs="+proj=longlat +datum=WGS84 +
 
 raster_elev_AEA <- raster::projectRaster(raster_elev, crs = sp::CRS(AEAstring))
 
-raster::writeRaster(raster_elev, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev.grd")
-raster::writeRaster(raster_elev_AEA, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev_AEA.grd")
+raster::writeRaster(raster_elev, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev.grd", overwrite = T)
+raster::writeRaster(raster_elev_AEA, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev_AEA.grd", overwrite = T)
 
 ###### Rasterize the Ayerbe maps
 ayerbe_list_updated <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_list_updated.RDS')
@@ -46,7 +46,6 @@ for(i in 1:length(ayerbe_buffered_ranges_updated)){
   ayerbe_buffer_raster <- fasterize::fasterize(st_transform(st_sf(ayerbe_buffered_ranges_updated[[i]]), 4326), raster_elev)
   raster::writeRaster(ayerbe_buffer_raster, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/buffered/', names(ayerbe_list_updated)[i], '_buffered.grd'))
 }
-
 
 completeness_prop <- raster::as.data.frame(raster_elev, xy = T)
 completeness_prop$recorded_1elev <- completeness_prop$present_1elev <- completeness_prop$recorded_buffer_1elev <- completeness_prop$present_buffer_1elev <- 
@@ -107,6 +106,8 @@ for(i in 1:length(species_names)){
 
 saveRDS(completeness_prop, file = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/sample_completeness/completeness_prop.RDS")
 
+completeness_prop <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/sample_completeness/completeness_prop.RDS")
+
 recorded_over_full <- cbind(completeness_prop$x, completeness_prop$y, completeness_prop$recordedsp_noelev/completeness_prop$fullsp_noelev)
 recorded_over_full_raster <- raster::rasterFromXYZ(recorded_over_full)
 raster::plot(recorded_over_full_raster)
@@ -124,6 +125,12 @@ raster::plot(all_over_full_raster)
 recorded1_over_present1 <- cbind(completeness_prop$x, completeness_prop$y, completeness_prop$recorded_1elev/completeness_prop$present_1elev)
 recorded1_over_present1_raster <- raster::rasterFromXYZ(recorded1_over_present1)
 raster::plot(recorded1_over_present1_raster)
+
+breaks <- seq(0,1,.01)
+col=c(rep("gray90", 63), viridis::viridis(37))
+
+raster::plot(recorded1_over_present1_raster, col=col, breaks = breaks)
+
 
 
 recorded2_over_present2 <- cbind(completeness_prop$x, completeness_prop$y, completeness_prop$recorded_2elev/completeness_prop$present_2elev)
@@ -147,10 +154,32 @@ sd_elev <- sd(birds$elev_sp_standard)
 elevations <- completeness_prop$elevation
 elevations[is.na(elevations)] <- -99999
 
-local_pres_forest <- local_pres_pasture <- matrix(0, nrow = length(elevations), ncol = 2)
-total_pres_forest <- total_pres_pasture <- matrix(0, nrow = nrow(traitdata), ncol = 2)
+logit_normal_mean_1 <- function(logit.mu, logit.sigma){
+  integrate(function(x){boot::inv.logit(x)*dnorm(x,logit.mu, logit.sigma)}, lower = logit.mu - 7*logit.sigma, upper = logit.mu + 7*logit.sigma, subdivisions = 500L)
+}
 
-for(j in 1:2){
+logit_normal_mean <- function(l.mu, l.sigma){
+  integrals <- sapply(l.mu, logit_normal_mean_1, logit.sigma = l.sigma)
+  if(!all(integrals[4,]=="OK")){stop('some integrals not OK!')}
+  return(as.numeric(integrals[1,]))
+}
+
+jmax <- 1
+
+local_ratios01 <- local_ratios05 <- local_ratios10 <- 
+  use01_sum <- use05_sum <- use10_sum <-
+  matrix(0, nrow = length(elevations), ncol = jmax)
+
+total_pres_forest01 <- total_pres_pasture01 <- total_pres_forest05 <- total_pres_pasture05 <- 
+  total_pres_forest10 <- total_pres_pasture10 <- matrix(0, nrow = nrow(traitdata), ncol = jmax)
+
+
+raster_probs <- raster_elev
+raster_probs$pasture <- raster_probs$forest <- 0
+raster_probs <- raster::dropLayer(raster_probs, 1)
+
+for(j in 1:jmax){
+  dir.create(paste0("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/species_predictions/iteration_",j))
   for(i in 1:nrow(traitdata)){
     print(c(j, i))
     sp_id <- traitdata$sp_id[i]
@@ -161,27 +190,73 @@ for(j in 1:2){
     raster_df$layer[is.na(raster_df$layer)] <- 0
     elevations_sp_scaled <- ((elevations - td$lower)/(td$upper - td$lower) - .5)/sd_elev
     elevations_sp_scaled2 <- elevations_sp_scaled^2
-    raster_df$layer[(elevations_sp_scaled < -1) | (elevations_sp_scaled > 3)] <- 0
+    raster_df$layer[(elevations_sp_scaled < -1.5) | (elevations_sp_scaled > 1.5)] <- 0
+    
+    elevations_sp_scaled_forcalc <- ((seq(0,6000,20) - td$lower)/(td$upper - td$lower) - .5)/sd_elev
+    elevations_sp_scaled2_forcalc <- elevations_sp_scaled_forcalc^2
 
-    forest_logit <- species_results_prelim$forest_int[sp_id,j] + species_results_prelim$elev1_coef[sp_id,j]*elevations_sp_scaled + 
-        species_results_prelim$elev2_coef[sp_id,j]*elevations_sp_scaled2
-    pasture_logit <- forest_logit + species_results_prelim$pasture_offset[sp_id,j]
-    species_probs_forest <- boot::inv.logit(forest_logit)*raster_df$layer
-    species_probs_pasture <- boot::inv.logit(pasture_logit)*raster_df$layer
+    forest_logits_abstract <- species_results_prelim$forest_int[sp_id,j] + species_results_prelim$elev1_coef[sp_id,j]*elevations_sp_scaled_forcalc + 
+        species_results_prelim$elev2_coef[sp_id,j]*elevations_sp_scaled2_forcalc
+    pasture_logits_abstract <- forest_logits_abstract + species_results_prelim$pasture_offset[sp_id,j]
     
-    total_pres_forest[i,j] <- sum(species_probs_forest)
-    total_pres_pasture[i,j] <- sum(species_probs_pasture)
+    species_probs_forest_abstract <- logit_normal_mean(forest_logits_abstract, species_results_prelim$cluster_sigma[j])
+    species_probs_pasture_abstract <- logit_normal_mean(pasture_logits_abstract, species_results_prelim$cluster_sigma[j])
     
-    local_pres_forest[,j] <- local_pres_forest[,j] + species_probs_forest
-    local_pres_pasture[,j] <- local_pres_pasture[,j] + species_probs_pasture
+    relevant_elevs <- elevations[raster_df$layer!=0]
+    relevant_elevs[relevant_elevs < 0] <- 0
+    relevant_elevs_index <- floor(relevant_elevs*(301/6000)) + 1
+
+    species_probs_forest <- species_probs_pasture <- raster_df$layer
+    species_probs_forest[species_probs_forest!=0] <- species_probs_forest_abstract[relevant_elevs_index]
+    species_probs_pasture[species_probs_pasture!=0] <- species_probs_pasture_abstract[relevant_elevs_index]
+    
+    raster_probs$forest <- species_probs_forest
+    raster_probs$pasture <- species_probs_pasture
+    
+    raster::writeRaster(raster_probs, filename = paste0("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/species_predictions/iteration_",
+                                                        j, "/", species, ".grd"))
+    
+
+    use01 <- species_probs_forest > .01 | species_probs_pasture > .01
+    use05 <- species_probs_forest > .05 | species_probs_pasture > .05
+    use10 <- species_probs_forest > .10 | species_probs_pasture > .10
+    
+    use01_sum[,j] <- use01_sum[,j] + use01
+    use05_sum[,j] <- use05_sum[,j] + use05
+    use10_sum[,j] <- use10_sum[,j] + use10
+    
+    lr01 <- lr05 <- lr10 <- log(species_probs_forest/species_probs_pasture)
+    lr01[!use01] <- 0
+    lr05[!use05] <- 0
+    lr10[!use10] <- 0
+    
+    local_ratios01[,j] <- local_ratios01[,j] + lr01
+    local_ratios05[,j] <- local_ratios05[,j] + lr05
+    local_ratios10[,j] <- local_ratios10[,j] + lr10
+    
+    
+    total_pres_forest01[i,j] <- sum(species_probs_forest[use01])
+    total_pres_pasture01[i,j] <- sum(species_probs_pasture[use01])
+    
+    total_pres_forest05[i,j] <- sum(species_probs_forest[use05])
+    total_pres_pasture05[i,j] <- sum(species_probs_pasture[use05])
+    
+    total_pres_forest10[i,j] <- sum(species_probs_forest[use10])
+    total_pres_pasture10[i,j] <- sum(species_probs_pasture[use10])
   }
 }
 
 
+tp05 <- total_pres_pasture05[total_pres_pasture05 > 0]
+tf05 <- total_pres_forest05[total_pres_forest05 > 0]
+mean(log(tf05/tp05))
+exp(mean(log(tf05/tp05)))
 
-fp_total_mean_pres_ratio <- colSums(total_pres_pasture/total_pres_forest)/1614
-fp_total_mean_pres_logratio <- colSums(log(total_pres_pasture/total_pres_forest))/1614
 
+summary(local_ratios05[use05_sum > 0]/use05_sum[use05_sum > 0])
+
+raster_local <- raster_elev
+raster_local$local <- local_ratios05/use05_sum
 
 fp_local_mean_pres_ratio <- local_pres_pasture[local_pres_pasture[,1] != 0,]/local_pres_forest[local_pres_pasture[,1] != 0,]
 summary(fp_local_mean_pres_ratio[,2])

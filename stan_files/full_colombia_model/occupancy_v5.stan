@@ -41,11 +41,14 @@ functions{
     
     // Trait effects; covariates vary by species and all slopes are universal
     // Biogeography
-    real b3_eastOnly, 
+    real b3_mountain_barrier, 
+    real b3_valley_barrier,
+    
+    real b3_eastOnly,
     real b3_westOnly,
     real b3_snsmOnly,
-    real b3_notWandes,
     real b3_notEandes,
+    real b3_notWandes,
     
     // Elevations
     real b3_elevMedian,
@@ -74,11 +77,8 @@ functions{
     real b3_x_elevMedian_forestSpecialist,
     
     // pasture-x-trait interactions: covariates vary by species and all slopes are universal. Identical to the b3 terms, but multipled by the pasture covariate.
-    real b4_eastOnly, 
-    real b4_westOnly,
-    real b4_snsmOnly,
-    real b4_notWandes,
-    real b4_notEandes,
+    real b4_mountain_barrier, 
+    real b4_valley_barrier,
     
     real b4_elevMedian,
     real b4_elevBreadth,
@@ -101,6 +101,9 @@ functions{
     
     real b4_x_elevMedian_forestPresent,
     real b4_x_elevMedian_forestSpecialist,
+    
+    // Range effects
+    vector b5_distance_to_range_sp,    // slopes for distance-to-range by species
     
     // Detection
     // Taxonomic effects
@@ -146,11 +149,14 @@ functions{
     vector pasture, 
     
     // Traits
-    vector eastOnly, 
+    vector mountain_barrier, 
+    vector valley_barrier,
+    
+    vector eastOnly,
     vector westOnly,
     vector snsmOnly,
-    vector notWandes,
     vector notEandes,
+    vector notWandes,
     
     vector elevMedian,
     vector elevBreadth,
@@ -170,6 +176,9 @@ functions{
     vector dietCarn,
     vector dietFruitNect,
     vector dietGran,
+    
+    // Distance to range
+    vector distance_to_range,
     
     // Detection nuisance covariates
     row_vector[] time,     
@@ -203,7 +212,8 @@ functions{
           
           b2_pasture_sp[id_sp[r0+r]]*pasture[r0+r] + b2_pasture_fam[id_fam[r0+r]]*pasture[r0+r] +
           
-          b3_eastOnly*eastOnly[r0+r] + b3_westOnly*westOnly[r0+r] + b3_snsmOnly*snsmOnly[r0+r] + b3_notWandes*notWandes[r0+r] + b3_notEandes*notEandes[r0+r] +
+          b3_mountain_barrier*mountain_barrier[r0+r] + b3_valley_barrier*valley_barrier[r0+r] +
+          b3_eastOnly*eastOnly[r0+r] + b3_westOnly*westOnly[r0+r] + b3_snsmOnly*snsmOnly[r0+r] + b3_notEandes*notEandes[r0+r] + b3_notWandes*notWandes[r0+r] +
           b3_elevMedian*elevMedian[r0+r] + b3_elevBreadth*elevBreadth[r0+r] + 
           b3_forestPresent*forestPresent[r0+r] + b3_forestSpecialist*forestSpecialist[r0+r] + b3_tfSpecialist*tfSpecialist[r0+r] + 
           b3_dryForestPresent*dryForestPresent[r0+r] + b3_floodDrySpecialist*floodDrySpecialist[r0+r] + b3_floodSpecialist*floodSpecialist[r0+r] +
@@ -213,8 +223,7 @@ functions{
           b3_x_elevMedian_forestPresent*elevMedian[r0+r]*forestPresent[r0+r] + b3_x_elevMedian_forestSpecialist*elevMedian[r0+r]*forestSpecialist[r0+r] +
           
           
-          b4_eastOnly*eastOnly[r0+r]*pasture[r0+r] + b4_westOnly*westOnly[r0+r]*pasture[r0+r] + b4_snsmOnly*snsmOnly[r0+r]*pasture[r0+r] + 
-          b4_notWandes*notWandes[r0+r]*pasture[r0+r] + b4_notEandes*notEandes[r0+r]*pasture[r0+r] +
+          b4_mountain_barrier*mountain_barrier[r0+r]*pasture[r0+r] + b4_valley_barrier*valley_barrier[r0+r]*pasture[r0+r] +
           b4_elevMedian*elevMedian[r0+r]*pasture[r0+r] + b4_elevBreadth*elevBreadth[r0+r]*pasture[r0+r] + 
           b4_forestPresent*forestPresent[r0+r]*pasture[r0+r] + b4_forestSpecialist*forestSpecialist[r0+r]*pasture[r0+r] + 
           b4_tfSpecialist*tfSpecialist[r0+r]*pasture[r0+r] + b4_dryForestPresent*dryForestPresent[r0+r]*pasture[r0+r] + 
@@ -224,8 +233,10 @@ functions{
           b4_dietInvert*dietInvert[r0+r]*pasture[r0+r] + b4_dietCarn*dietCarn[r0+r]*pasture[r0+r] + b4_dietFruitNect*dietFruitNect[r0+r]*pasture[r0+r] + 
           b4_dietGran*dietGran[r0+r]*pasture[r0+r] +
           b4_x_elevMedian_forestPresent*elevMedian[r0+r]*forestPresent[r0+r]*pasture[r0+r] + 
-          b4_x_elevMedian_forestSpecialist*elevMedian[r0+r]*forestSpecialist[r0+r]*pasture[r0+r];
-        
+          b4_x_elevMedian_forestSpecialist*elevMedian[r0+r]*forestSpecialist[r0+r]*pasture[r0+r]+
+          
+          b5_distance_to_range_sp[id_sp[r0+r]]*distance_to_range[r0+r];
+          
         // calculate logit_theta for that species_point.  Note that this is vectorized because the time and observer covariates are row vectors
         // where nv < 4, logit_theta will have some trailing dummy terms.
         logit_theta = 
@@ -284,11 +295,14 @@ data {
   vector[n_tot] pasture;
   
   // Traits
+  vector[n_tot] mountain_barrier;
+  vector[n_tot] valley_barrier;
+  
   vector[n_tot] eastOnly;
   vector[n_tot] westOnly;
   vector[n_tot] snsmOnly;
-  vector[n_tot] notWandes;
   vector[n_tot] notEandes;
+  vector[n_tot] notWandes;
   
   vector[n_tot] elevMedian;
   vector[n_tot] elevBreadth;
@@ -308,6 +322,8 @@ data {
   vector[n_tot] dietCarn;
   vector[n_tot] dietFruitNect;
   vector[n_tot] dietGran;
+  
+  vector[n_tot] distance_to_range;
   
   // Nuisance detection covariates
   row_vector[n_visit_max] time[n_tot];
@@ -372,6 +388,12 @@ data {
   vector[n_fam] b2_pasture_fam_off;
   vector[n_fam] b2_pasture_fam_mult;
   
+  real b3_mountain_barrier_off;
+  real b3_mountain_barrier_mult;
+  
+  real b3_valley_barrier_off;
+  real b3_valley_barrier_mult;
+  
   real b3_eastOnly_off;
   real b3_eastOnly_mult;
   
@@ -381,11 +403,11 @@ data {
   real b3_snsmOnly_off;
   real b3_snsmOnly_mult;
   
-  real b3_notWandes_off;
-  real b3_notWandes_mult;
-  
   real b3_notEandes_off;
   real b3_notEandes_mult;
+  
+  real b3_notWandes_off;
+  real b3_notWandes_mult;
   
   real b3_elevMedian_off;
   real b3_elevMedian_mult;
@@ -438,20 +460,11 @@ data {
   real b3_x_elevMedian_forestSpecialist_off; 
   real b3_x_elevMedian_forestSpecialist_mult;
   
-  real b4_eastOnly_off; 
-  real b4_eastOnly_mult;
+  real b4_mountain_barrier_off; 
+  real b4_mountain_barrier_mult;
   
-  real b4_westOnly_off;
-  real b4_westOnly_mult;
-  
-  real b4_snsmOnly_off;
-  real b4_snsmOnly_mult;
-  
-  real b4_notWandes_off; 
-  real b4_notWandes_mult;
-  
-  real b4_notEandes_off;
-  real b4_notEandes_mult;
+  real b4_valley_barrier_off;
+  real b4_valley_barrier_mult;
   
   real b4_elevMedian_off;
   real b4_elevMedian_mult;
@@ -570,339 +583,325 @@ data {
 
 parameters {
   // Occupancy
-  // Intercepts
-  real<offset=mu_b0_off, multiplier=mu_b0_mult> mu_b0;
-  
-  real<lower=0> sigma_b0_spCl;
-  vector<multiplier=sigma_b0_spCl>[n_spCl] b0_spCl;
-  
-  real<offset=log_sigma_b0_sp_off, multiplier=log_sigma_b0_sp_mult> log_sigma_b0_sp;
-  vector<offset=mu_b0, multiplier=exp(log_sigma_b0_sp)>[n_sp] b0_sp;
-  
-  real<offset=log_sigma_b0_fam_off, multiplier=log_sigma_b0_fam_mult> log_sigma_b0_fam;
-  vector<offset=0, multiplier=exp(log_sigma_b0_fam)>[n_fam] b0_fam;
-  
-  // Slopes
-  // Elevation effects
-  real<offset=mu_b1_relev_off, multiplier=mu_b1_relev_mult> mu_b1_relev;
-  real<offset=log_sigma_b1_relev_sp_off, multiplier=log_sigma_b1_relev_sp_mult> log_sigma_b1_relev_sp;
-  vector<offset=b1_relev_sp_off, multiplier=b1_relev_sp_mult>[n_sp] b1_relev_sp;
-  
-  real<offset=mu_b1_relev2_off, multiplier=mu_b1_relev2_mult> mu_b1_relev2;
-  real<offset=log_sigma_b1_relev2_sp_off, multiplier=log_sigma_b1_relev2_sp_mult> log_sigma_b1_relev2_sp;
-  vector<offset=b1_relev2_sp_off, multiplier=b1_relev2_sp_mult>[n_sp] b1_relev2_sp;
-  
-  real<offset=b1_lowland_off, multiplier=b1_lowland_mult> b1_lowland;
-  real<offset=b1_x_lowland_relev_off, multiplier=b1_x_lowland_relev_mult> b1_x_lowland_relev;
-  real<offset=b1_x_lowland_relev2_off, multiplier=b1_x_lowland_relev2_mult> b1_x_lowland_relev2;
-  
-  // Pasture effects
-  real<offset=mu_b2_pasture_off, multiplier=mu_b2_pasture_mult> mu_b2_pasture;
-  real<offset=log_sigma_b2_pasture_sp_off, multiplier=log_sigma_b2_pasture_sp_mult> log_sigma_b2_pasture_sp;
-  vector<offset=mu_b2_pasture, multiplier=exp(log_sigma_b2_pasture_sp)>[n_sp] b2_pasture_sp;    
-  
-  real<offset=log_sigma_b2_pasture_fam_off, multiplier=log_sigma_b2_pasture_fam_mult> log_sigma_b2_pasture_fam;
-  vector<offset=0, multiplier=exp(log_sigma_b2_pasture_fam)>[n_fam] b2_pasture_fam;    
-  
-  // Trait effects
-  real<offset=b3_eastOnly_off, multiplier=b3_eastOnly_mult> b3_eastOnly;
-  real<offset=b3_westOnly_off, multiplier=b3_westOnly_mult> b3_westOnly;
-  real<offset=b3_snsmOnly_off, multiplier=b3_snsmOnly_mult> b3_snsmOnly;
-  real<offset=b3_notWandes_off, multiplier=b3_notWandes_mult> b3_notWandes;
-  real<offset=b3_notEandes_off, multiplier=b3_notEandes_mult> b3_notEandes;
-  
-  real<offset=b3_elevMedian_off, multiplier=b3_elevMedian_mult> b3_elevMedian;
-  real<offset=b3_elevBreadth_off, multiplier=b3_elevBreadth_mult> b3_elevBreadth;
-  
-  real<offset=b3_forestPresent_off, multiplier=b3_forestPresent_mult> b3_forestPresent;
-  real<offset=b3_forestSpecialist_off, multiplier=b3_forestSpecialist_mult> b3_forestSpecialist;
-  real<offset=b3_tfSpecialist_off, multiplier=b3_tfSpecialist_mult> b3_tfSpecialist;
-  real<offset=b3_dryForestPresent_off, multiplier=b3_dryForestPresent_mult> b3_dryForestPresent;
-  real<offset=b3_floodDrySpecialist_off, multiplier=b3_floodDrySpecialist_mult> b3_floodDrySpecialist;
-  real<offset=b3_floodSpecialist_off, multiplier=b3_floodSpecialist_mult> b3_floodSpecialist;
-  real<offset=b3_aridPresent_off, multiplier=b3_aridPresent_mult> b3_aridPresent;
-  
-  real<offset=b3_migratory_off, multiplier=b3_migratory_mult> b3_migratory;
-  real<offset=b3_mass_off, multiplier=b3_mass_mult> b3_mass;
-  
-  real<offset=b3_dietInvert_off, multiplier=b3_dietInvert_mult> b3_dietInvert;
-  real<offset=b3_dietCarn_off, multiplier=b3_dietCarn_mult> b3_dietCarn;
-  real<offset=b3_dietFruitNect_off, multiplier=b3_dietFruitNect_mult> b3_dietFruitNect;
-  real<offset=b3_dietGran_off, multiplier=b3_dietGran_mult> b3_dietGran;
-  
-  real<offset=b3_x_elevMedian_forestPresent_off, multiplier=b3_x_elevMedian_forestPresent_mult> b3_x_elevMedian_forestPresent;
-  real<offset=b3_x_elevMedian_forestSpecialist_off, multiplier=b3_x_elevMedian_forestSpecialist_mult> b3_x_elevMedian_forestSpecialist;
-  
-  // pasture-x-trait interactions
-  real<offset=b4_eastOnly_off, multiplier=b4_eastOnly_mult> b4_eastOnly; 
-  real<offset=b4_westOnly_off, multiplier=b4_westOnly_mult> b4_westOnly;
-  real<offset=b4_snsmOnly_off, multiplier=b4_snsmOnly_mult> b4_snsmOnly;
-  real<offset=b4_notWandes_off, multiplier=b4_notWandes_mult> b4_notWandes;
-  real<offset=b4_notEandes_off, multiplier=b4_notEandes_mult> b4_notEandes;
-  
-  real<offset=b4_elevMedian_off, multiplier=b4_elevMedian_mult> b4_elevMedian;
-  real<offset=b4_elevBreadth_off, multiplier=b4_elevBreadth_mult> b4_elevBreadth;
-  
-  real<offset=b4_forestPresent_off, multiplier=b4_forestPresent_mult> b4_forestPresent;
-  real<offset=b4_forestSpecialist_off, multiplier=b4_forestSpecialist_mult> b4_forestSpecialist;
-  real<offset=b4_tfSpecialist_off, multiplier=b4_tfSpecialist_mult> b4_tfSpecialist;
-  real<offset=b4_dryForestPresent_off, multiplier=b4_dryForestPresent_mult> b4_dryForestPresent;
-  real<offset=b4_floodDrySpecialist_off, multiplier=b4_floodDrySpecialist_mult> b4_floodDrySpecialist;
-  real<offset=b4_floodSpecialist_off, multiplier=b4_floodSpecialist_mult> b4_floodSpecialist;
-  real<offset=b4_aridPresent_off, multiplier=b4_aridPresent_mult> b4_aridPresent;
-  
-  real<offset=b4_migratory_off, multiplier=b4_migratory_mult> b4_migratory;
-  real<offset=b4_mass_off, multiplier=b4_mass_mult> b4_mass;
-  
-  real<offset=b4_dietInvert_off, multiplier=b4_dietInvert_mult> b4_dietInvert;
-  real<offset=b4_dietCarn_off, multiplier=b4_dietCarn_mult> b4_dietCarn;
-  real<offset=b4_dietFruitNect_off, multiplier=b4_dietFruitNect_mult> b4_dietFruitNect;
-  real<offset=b4_dietGran_off, multiplier=b4_dietGran_mult> b4_dietGran;
-  
-  real<offset=b4_x_elevMedian_forestPresent_off, multiplier=b4_x_elevMedian_forestPresent_mult> b4_x_elevMedian_forestPresent;
-  real<offset=b4_x_elevMedian_forestSpecialist_off, multiplier=b4_x_elevMedian_forestSpecialist_mult> b4_x_elevMedian_forestSpecialist;
-  
+    // Intercepts
+      // mean-centered by species
+        real<offset=mu_b0_off, multiplier=mu_b0_mult> mu_b0;
+        real<offset=log_sigma_b0_sp_off, multiplier=log_sigma_b0_sp_mult> log_sigma_b0_sp;
+        vector<offset=mu_b0, multiplier=exp(log_sigma_b0_sp)>[n_sp] b0_sp;
+      // zero-centered by species-by-cluster
+        real<lower=0> sigma_b0_spCl;
+        vector<multiplier=sigma_b0_spCl>[n_spCl] b0_spCl;
+      // zero-centered by family
+        real<offset=log_sigma_b0_fam_off, multiplier=log_sigma_b0_fam_mult> log_sigma_b0_fam;
+        vector<offset=0, multiplier=exp(log_sigma_b0_fam)>[n_fam] b0_fam;
+    // Slopes
+      // mean-centered relev by species
+        real<offset=mu_b1_relev_off, multiplier=mu_b1_relev_mult> mu_b1_relev;
+        real<offset=log_sigma_b1_relev_sp_off, multiplier=log_sigma_b1_relev_sp_mult> log_sigma_b1_relev_sp;
+        vector<offset=b1_relev_sp_off, multiplier=b1_relev_sp_mult>[n_sp] b1_relev_sp;
+      // mean-centered relev2 by species
+        real<offset=mu_b1_relev2_off, multiplier=mu_b1_relev2_mult> mu_b1_relev2;
+        real<offset=log_sigma_b1_relev2_sp_off, multiplier=log_sigma_b1_relev2_sp_mult> log_sigma_b1_relev2_sp;
+        vector<offset=b1_relev2_sp_off, multiplier=b1_relev2_sp_mult>[n_sp] b1_relev2_sp;
+      // lowland interactions (universal)
+        real<offset=b1_lowland_off, multiplier=b1_lowland_mult> b1_lowland;
+        real<offset=b1_x_lowland_relev_off, multiplier=b1_x_lowland_relev_mult> b1_x_lowland_relev;
+        real<offset=b1_x_lowland_relev2_off, multiplier=b1_x_lowland_relev2_mult> b1_x_lowland_relev2;
+      // mean-centered pasture-by-species
+        real<offset=mu_b2_pasture_off, multiplier=mu_b2_pasture_mult> mu_b2_pasture;
+        real<offset=log_sigma_b2_pasture_sp_off, multiplier=log_sigma_b2_pasture_sp_mult> log_sigma_b2_pasture_sp;
+        vector<offset=mu_b2_pasture, multiplier=exp(log_sigma_b2_pasture_sp)>[n_sp] b2_pasture_sp;    
+      // zero-centered pasture-by-family
+        real<offset=log_sigma_b2_pasture_fam_off, multiplier=log_sigma_b2_pasture_fam_mult> log_sigma_b2_pasture_fam;
+        vector<offset=0, multiplier=exp(log_sigma_b2_pasture_fam)>[n_fam] b2_pasture_fam;    
+      // Trait effects
+        // biogeographic limits
+          real<offset=b3_mountain_barrier_off, multiplier=b3_mountain_barrier_mult> b3_mountain_barrier;
+          real<offset=b3_valley_barrier_off, multiplier=b3_valley_barrier_mult> b3_valley_barrier;
+          real<offset=b3_eastOnly_off, multiplier=b3_eastOnly_mult> b3_eastOnly;
+          real<offset=b3_westOnly_off, multiplier=b3_westOnly_mult> b3_westOnly;
+          real<offset=b3_snsmOnly_off, multiplier=b3_snsmOnly_mult> b3_snsmOnly;
+          real<offset=b3_notEandes_off, multiplier=b3_notEandes_mult> b3_notEandes;
+          real<offset=b3_notWandes_off, multiplier=b3_notWandes_mult> b3_notWandes;
+        // elevational distribution
+          real<offset=b3_elevMedian_off, multiplier=b3_elevMedian_mult> b3_elevMedian;
+          real<offset=b3_elevBreadth_off, multiplier=b3_elevBreadth_mult> b3_elevBreadth;
+        // habitat associations
+          real<offset=b3_forestPresent_off, multiplier=b3_forestPresent_mult> b3_forestPresent;
+          real<offset=b3_forestSpecialist_off, multiplier=b3_forestSpecialist_mult> b3_forestSpecialist;
+          real<offset=b3_tfSpecialist_off, multiplier=b3_tfSpecialist_mult> b3_tfSpecialist;
+          real<offset=b3_dryForestPresent_off, multiplier=b3_dryForestPresent_mult> b3_dryForestPresent;
+          real<offset=b3_floodDrySpecialist_off, multiplier=b3_floodDrySpecialist_mult> b3_floodDrySpecialist;
+          real<offset=b3_floodSpecialist_off, multiplier=b3_floodSpecialist_mult> b3_floodSpecialist;
+          real<offset=b3_aridPresent_off, multiplier=b3_aridPresent_mult> b3_aridPresent;
+        // Functional traits
+          real<offset=b3_migratory_off, multiplier=b3_migratory_mult> b3_migratory;
+          real<offset=b3_mass_off, multiplier=b3_mass_mult> b3_mass;
+          real<offset=b3_dietInvert_off, multiplier=b3_dietInvert_mult> b3_dietInvert;
+          real<offset=b3_dietCarn_off, multiplier=b3_dietCarn_mult> b3_dietCarn;
+          real<offset=b3_dietFruitNect_off, multiplier=b3_dietFruitNect_mult> b3_dietFruitNect;
+          real<offset=b3_dietGran_off, multiplier=b3_dietGran_mult> b3_dietGran;
+          real<offset=b3_x_elevMedian_forestPresent_off, multiplier=b3_x_elevMedian_forestPresent_mult> b3_x_elevMedian_forestPresent;
+          real<offset=b3_x_elevMedian_forestSpecialist_off, multiplier=b3_x_elevMedian_forestSpecialist_mult> b3_x_elevMedian_forestSpecialist;
+      // Pasture-x-trait interactions
+        // biogeographic limits
+          real<offset=b4_mountain_barrier_off, multiplier=b4_mountain_barrier_mult> b4_mountain_barrier; 
+          real<offset=b4_valley_barrier_off, multiplier=b4_valley_barrier_mult> b4_valley_barrier;
+        // elevational distribution
+          real<offset=b4_elevMedian_off, multiplier=b4_elevMedian_mult> b4_elevMedian;
+          real<offset=b4_elevBreadth_off, multiplier=b4_elevBreadth_mult> b4_elevBreadth;
+        // habitat association
+          real<offset=b4_forestPresent_off, multiplier=b4_forestPresent_mult> b4_forestPresent;
+          real<offset=b4_forestSpecialist_off, multiplier=b4_forestSpecialist_mult> b4_forestSpecialist;
+          real<offset=b4_tfSpecialist_off, multiplier=b4_tfSpecialist_mult> b4_tfSpecialist;
+          real<offset=b4_dryForestPresent_off, multiplier=b4_dryForestPresent_mult> b4_dryForestPresent;
+          real<offset=b4_floodDrySpecialist_off, multiplier=b4_floodDrySpecialist_mult> b4_floodDrySpecialist;
+          real<offset=b4_floodSpecialist_off, multiplier=b4_floodSpecialist_mult> b4_floodSpecialist;
+          real<offset=b4_aridPresent_off, multiplier=b4_aridPresent_mult> b4_aridPresent;
+        // Functional traits
+          real<offset=b4_migratory_off, multiplier=b4_migratory_mult> b4_migratory;
+          real<offset=b4_mass_off, multiplier=b4_mass_mult> b4_mass;
+          real<offset=b4_dietInvert_off, multiplier=b4_dietInvert_mult> b4_dietInvert;
+          real<offset=b4_dietCarn_off, multiplier=b4_dietCarn_mult> b4_dietCarn;
+          real<offset=b4_dietFruitNect_off, multiplier=b4_dietFruitNect_mult> b4_dietFruitNect;
+          real<offset=b4_dietGran_off, multiplier=b4_dietGran_mult> b4_dietGran;
+          real<offset=b4_x_elevMedian_forestPresent_off, multiplier=b4_x_elevMedian_forestPresent_mult> b4_x_elevMedian_forestPresent;
+          real<offset=b4_x_elevMedian_forestSpecialist_off, multiplier=b4_x_elevMedian_forestSpecialist_mult> b4_x_elevMedian_forestSpecialist;
+      // Mean-centered distance-to-range by species
+        real mu_b5_distance_to_range;
+        real<lower=0> sigma_b5_distance_to_range_sp;
+        vector<offset = mu_b5_distance_to_range, multiplier=sigma_b5_distance_to_range_sp>[n_sp] b5_distance_to_range_sp;
   // Detection
-  // Intercepts
-  real<offset=mu_d0_off, multiplier=mu_d0_mult> mu_d0;
-  
-  real<offset=log_sigma_d0_sp_off, multiplier=log_sigma_d0_sp_mult> log_sigma_d0_sp;
-  vector<offset=mu_d0, multiplier=exp(log_sigma_d0_sp)>[n_sp] d0_sp;
-  
-  real<offset=log_sigma_d0_fam_off, multiplier=log_sigma_d0_fam_mult> log_sigma_d0_fam;
-  vector<offset=0, multiplier=exp(log_sigma_d0_fam)>[n_fam] d0_fam;
-  
-  // Slopes
-  // Pasture effects
-  real<offset=mu_d1_pasture_off, multiplier=mu_d1_pasture_mult> mu_d1_pasture;
-  real<offset=log_sigma_d1_pasture_sp_off, multiplier=log_sigma_d1_pasture_sp_mult> log_sigma_d1_pasture_sp;
-  vector<offset=mu_d1_pasture, multiplier=exp(log_sigma_d1_pasture_sp)>[n_sp] d1_pasture_sp;
-  
-  real<offset=log_sigma_d1_pasture_fam_off, multiplier=log_sigma_d1_pasture_fam_mult> log_sigma_d1_pasture_fam;
-  vector<offset=0, multiplier=exp(log_sigma_d1_pasture_fam)>[n_fam] d1_pasture_fam;
-  
-  // Nuisance effects
-  real<offset=mu_d2_time_off, multiplier=mu_d2_time_mult> mu_d2_time;
-  real<offset=log_sigma_d2_time_sp_off, multiplier=log_sigma_d2_time_sp_mult> log_sigma_d2_time_sp;
-  vector<offset=mu_d2_time, multiplier=exp(log_sigma_d2_time_sp)>[n_sp] d2_time_sp;
-  
-  real<offset=d2_obsSM_off, multiplier=d2_obsSM_mult> d2_obsSM;       
-  real<offset=d2_obsDE_off, multiplier=d2_obsDE_mult> d2_obsDE;       
-  real<offset=d2_obsJG_off, multiplier=d2_obsJG_mult> d2_obsJG;      
-  
-  // Trait effects
-  real<offset=d3_mass_off, multiplier=d3_mass_mult> d3_mass;
-  real<offset=d3_elevMedian_off, multiplier=d3_elevMedian_mult> d3_elevMedian;
-  real<offset=d3_migratory_off, multiplier=d3_migratory_mult> d3_migratory;
-  real<offset=d3_dietCarn_off, multiplier=d3_dietCarn_mult> d3_dietCarn;
-  real<offset=d3_x_time_elevMedian_off, multiplier=d3_x_time_elevMedian_mult> d3_x_time_elevMedian;
+    // Intercepts
+      // mean-centered by species
+        real<offset=mu_d0_off, multiplier=mu_d0_mult> mu_d0;
+        real<offset=log_sigma_d0_sp_off, multiplier=log_sigma_d0_sp_mult> log_sigma_d0_sp;
+        vector<offset=mu_d0, multiplier=exp(log_sigma_d0_sp)>[n_sp] d0_sp;
+      // zero-centered by family
+        real<offset=log_sigma_d0_fam_off, multiplier=log_sigma_d0_fam_mult> log_sigma_d0_fam;
+        vector<offset=0, multiplier=exp(log_sigma_d0_fam)>[n_fam] d0_fam;
+    // Slopes
+      // mean-centered pasture by species
+        real<offset=mu_d1_pasture_off, multiplier=mu_d1_pasture_mult> mu_d1_pasture;
+        real<offset=log_sigma_d1_pasture_sp_off, multiplier=log_sigma_d1_pasture_sp_mult> log_sigma_d1_pasture_sp;
+        vector<offset=mu_d1_pasture, multiplier=exp(log_sigma_d1_pasture_sp)>[n_sp] d1_pasture_sp;
+      // zero-centered pasture by family
+        real<offset=log_sigma_d1_pasture_fam_off, multiplier=log_sigma_d1_pasture_fam_mult> log_sigma_d1_pasture_fam;
+        vector<offset=0, multiplier=exp(log_sigma_d1_pasture_fam)>[n_fam] d1_pasture_fam;
+      // mean-centered time by species
+        real<offset=mu_d2_time_off, multiplier=mu_d2_time_mult> mu_d2_time;
+        real<offset=log_sigma_d2_time_sp_off, multiplier=log_sigma_d2_time_sp_mult> log_sigma_d2_time_sp;
+        vector<offset=mu_d2_time, multiplier=exp(log_sigma_d2_time_sp)>[n_sp] d2_time_sp;
+      // observer
+        real<offset=d2_obsSM_off, multiplier=d2_obsSM_mult> d2_obsSM;       
+        real<offset=d2_obsDE_off, multiplier=d2_obsDE_mult> d2_obsDE;       
+        real<offset=d2_obsJG_off, multiplier=d2_obsJG_mult> d2_obsJG;      
+      // Trait effects
+        real<offset=d3_mass_off, multiplier=d3_mass_mult> d3_mass;
+        real<offset=d3_elevMedian_off, multiplier=d3_elevMedian_mult> d3_elevMedian;
+        real<offset=d3_migratory_off, multiplier=d3_migratory_mult> d3_migratory;
+        real<offset=d3_dietCarn_off, multiplier=d3_dietCarn_mult> d3_dietCarn;
+        real<offset=d3_x_time_elevMedian_off, multiplier=d3_x_time_elevMedian_mult> d3_x_time_elevMedian;
 } // End parameters block
 
 model {
   // Priors and Jacobian adjustments
-  // Occupancy
-  mu_b0 ~ normal(0, 5);
+    // Occupancy
+      mu_b0 ~ normal(0, 5);
   
-  sigma_b0_spCl ~ normal(0, 3);
-  b0_spCl ~ normal(0, sigma_b0_spCl);
+      sigma_b0_spCl ~ normal(0, 3);
+      b0_spCl ~ normal(0, sigma_b0_spCl);
   
-  real sigma_b0_sp = exp(log_sigma_b0_sp);
-  target += log_sigma_b0_sp;
-  sigma_b0_sp ~ normal(0, 3);
-  b0_sp ~ normal(mu_b0, sigma_b0_sp);
+      real sigma_b0_sp = exp(log_sigma_b0_sp);
+      target += log_sigma_b0_sp;
+      sigma_b0_sp ~ normal(0, 3);
+      b0_sp ~ normal(mu_b0, sigma_b0_sp);
   
-  real sigma_b0_fam = exp(log_sigma_b0_fam);
-  target += log_sigma_b0_fam;
-  sigma_b0_fam ~ normal(0, 3);
-  b0_fam ~ normal(0, sigma_b0_fam);
+      real sigma_b0_fam = exp(log_sigma_b0_fam);
+      target += log_sigma_b0_fam;
+      sigma_b0_fam ~ normal(0, 3);
+      b0_fam ~ normal(0, sigma_b0_fam);
   
-  mu_b1_relev ~ normal(0, 4);
+      mu_b1_relev ~ normal(0, 4);
   
-  real sigma_b1_relev_sp = exp(log_sigma_b1_relev_sp);
-  target += log_sigma_b1_relev_sp;
-  sigma_b1_relev_sp ~ normal(0, 3);
-  b1_relev_sp ~ normal(mu_b1_relev, sigma_b1_relev_sp);
+      real sigma_b1_relev_sp = exp(log_sigma_b1_relev_sp);
+      target += log_sigma_b1_relev_sp;
+      sigma_b1_relev_sp ~ normal(0, 3);
+      b1_relev_sp ~ normal(mu_b1_relev, sigma_b1_relev_sp);
   
-  mu_b1_relev2 ~ normal(0, 4);
+      mu_b1_relev2 ~ normal(0, 4);
   
-  real sigma_b1_relev2_sp = exp(log_sigma_b1_relev2_sp);
-  target += log_sigma_b1_relev2_sp;
-  sigma_b1_relev2_sp ~ normal(0, 3);
-  b1_relev2_sp ~ normal(mu_b1_relev2, sigma_b1_relev2_sp);
-  
-  
-  b1_lowland ~ normal(0, 4);
-  b1_x_lowland_relev ~ normal(0, 4);
-  b1_x_lowland_relev2 ~ normal(0, 4);
+      real sigma_b1_relev2_sp = exp(log_sigma_b1_relev2_sp);
+      target += log_sigma_b1_relev2_sp;
+      sigma_b1_relev2_sp ~ normal(0, 3);
+      b1_relev2_sp ~ normal(mu_b1_relev2, sigma_b1_relev2_sp);
   
   
-  mu_b2_pasture ~ normal(0, 4);
-  
-  real sigma_b2_pasture_sp = exp(log_sigma_b2_pasture_sp);
-  target += log_sigma_b2_pasture_sp;
-  sigma_b2_pasture_sp ~ normal(0, 3);
-  b2_pasture_sp ~ normal(mu_b2_pasture, sigma_b2_pasture_sp);
-  
-  real sigma_b2_pasture_fam = exp(log_sigma_b2_pasture_fam);
-  target += log_sigma_b2_pasture_fam;
-  sigma_b2_pasture_fam ~ normal(0, 3);
-  b2_pasture_fam ~ normal(0, sigma_b2_pasture_fam);
-  
-  b3_eastOnly ~ normal(0, 4);
-  b3_westOnly ~ normal(0, 4);
-  b3_snsmOnly ~ normal(0, 4);
-  b3_notWandes ~ normal(0, 4);
-  b3_notEandes ~ normal(0, 4);
-  
-  b3_elevMedian ~ normal(0, 4);
-  b3_elevBreadth ~ normal(0, 4);
-  b3_forestPresent ~ normal(0, 4);
-  b3_forestSpecialist ~ normal(0, 4);
-  b3_tfSpecialist ~ normal(0, 4);
-  b3_dryForestPresent ~ normal(0, 4);
-  b3_floodDrySpecialist ~ normal(0, 4);
-  b3_floodSpecialist ~ normal(0, 4);
-  b3_aridPresent ~ normal(0, 4);
-  
-  b3_migratory ~ normal(0, 4);
-  b3_mass ~ normal(0, 4);
-  
-  b3_dietInvert ~ normal(0, 4);
-  b3_dietCarn ~ normal(0, 4);
-  b3_dietFruitNect ~ normal(0, 4);
-  b3_dietGran ~ normal(0, 4);
-  
-  b3_x_elevMedian_forestPresent ~ normal(0, 4);
-  b3_x_elevMedian_forestSpecialist ~ normal(0, 4);
+      b1_lowland ~ normal(0, 4);
+      b1_x_lowland_relev ~ normal(0, 4);
+      b1_x_lowland_relev2 ~ normal(0, 4);
   
   
-  b4_eastOnly ~ normal(0, 4);
-  b4_westOnly ~ normal(0, 4);
-  b4_snsmOnly ~ normal(0, 4);
-  b4_notWandes ~ normal(0, 4);
-  b4_notEandes ~ normal(0, 4);
+      mu_b2_pasture ~ normal(0, 4);
   
-  b4_elevMedian ~ normal(0, 4);
-  b4_elevBreadth ~ normal(0, 4);
-  b4_forestPresent ~ normal(0, 4);
-  b4_forestSpecialist ~ normal(0, 4);
-  b4_tfSpecialist ~ normal(0, 4);
-  b4_dryForestPresent ~ normal(0, 4);
-  b4_floodDrySpecialist ~ normal(0, 4);
-  b4_floodSpecialist ~ normal(0, 4);
-  b4_aridPresent ~ normal(0, 4);
+      real sigma_b2_pasture_sp = exp(log_sigma_b2_pasture_sp);
+      target += log_sigma_b2_pasture_sp;
+      sigma_b2_pasture_sp ~ normal(0, 3);
+      b2_pasture_sp ~ normal(mu_b2_pasture, sigma_b2_pasture_sp);
   
-  b4_migratory ~ normal(0, 4);
-  b4_mass ~ normal(0, 4);
+      real sigma_b2_pasture_fam = exp(log_sigma_b2_pasture_fam);
+      target += log_sigma_b2_pasture_fam;
+      sigma_b2_pasture_fam ~ normal(0, 3);
+      b2_pasture_fam ~ normal(0, sigma_b2_pasture_fam);
   
-  b4_dietInvert ~ normal(0, 4);
-  b4_dietCarn ~ normal(0, 4);
-  b4_dietFruitNect ~ normal(0, 4);
-  b4_dietGran ~ normal(0, 4);
+      b3_mountain_barrier ~ normal(0, 4);
+      b3_valley_barrier ~ normal(0, 4);
+      b3_eastOnly ~ normal(0, 4);
+      b3_westOnly ~ normal(0, 4);
+      b3_snsmOnly ~ normal(0, 4);
+      b3_notEandes ~ normal(0, 4);
+      b3_notWandes ~ normal(0, 4);
   
-  b4_x_elevMedian_forestPresent ~ normal(0, 4);
-  b4_x_elevMedian_forestSpecialist ~ normal(0, 4);
+      b3_elevMedian ~ normal(0, 4);
+      b3_elevBreadth ~ normal(0, 4);
+      b3_forestPresent ~ normal(0, 4);
+      b3_forestSpecialist ~ normal(0, 4);
+      b3_tfSpecialist ~ normal(0, 4);
+      b3_dryForestPresent ~ normal(0, 4);
+      b3_floodDrySpecialist ~ normal(0, 4);
+      b3_floodSpecialist ~ normal(0, 4);
+      b3_aridPresent ~ normal(0, 4);
   
-  // Detection
-  mu_d0 ~ student_t(7.763, 0, 1.566);  // This is Dorazio's suggested prior, which is approximately uniform on the probability scale between 0.01 and 0.99. See also Northrup & Gerber 2018
+      b3_migratory ~ normal(0, 4);
+      b3_mass ~ normal(0, 4);
   
-        real sigma_d0_sp = exp(log_sigma_d0_sp);
-        target += log_sigma_d0_sp;
-        sigma_d0_sp ~ normal(0, 2);
-        d0_sp ~ normal(mu_d0, sigma_d0_sp);
+      b3_dietInvert ~ normal(0, 4);
+      b3_dietCarn ~ normal(0, 4);
+      b3_dietFruitNect ~ normal(0, 4);
+      b3_dietGran ~ normal(0, 4);
   
-        real sigma_d0_fam = exp(log_sigma_d0_fam);
-        target += log_sigma_d0_fam;
-        sigma_d0_fam ~ normal(0, 2);
-        d0_fam ~ normal(0, sigma_d0_fam);
+      b3_x_elevMedian_forestPresent ~ normal(0, 4);
+      b3_x_elevMedian_forestSpecialist ~ normal(0, 4);
   
-        mu_d1_pasture ~ normal(0, 2);
+      b4_mountain_barrier ~ normal(0, 4);
+      b4_valley_barrier ~ normal(0, 4);
   
-        real sigma_d1_pasture_sp = exp(log_sigma_d1_pasture_sp);
-        target += log_sigma_d1_pasture_sp;
-        sigma_d1_pasture_sp ~ normal(0, 2);
-        d1_pasture_sp ~ normal(mu_d1_pasture, sigma_d1_pasture_sp);
+      b4_elevMedian ~ normal(0, 4);
+      b4_elevBreadth ~ normal(0, 4);
+      b4_forestPresent ~ normal(0, 4);
+      b4_forestSpecialist ~ normal(0, 4);
+      b4_tfSpecialist ~ normal(0, 4);
+      b4_dryForestPresent ~ normal(0, 4);
+      b4_floodDrySpecialist ~ normal(0, 4);
+      b4_floodSpecialist ~ normal(0, 4);
+      b4_aridPresent ~ normal(0, 4);
   
-        real sigma_d1_pasture_fam = exp(log_sigma_d1_pasture_fam);
-        target += log_sigma_d1_pasture_fam;
-        sigma_d1_pasture_fam ~ normal(0, 2);
-        d1_pasture_fam ~ normal(0, sigma_d1_pasture_fam);
+      b4_migratory ~ normal(0, 4);
+      b4_mass ~ normal(0, 4);
   
-        mu_d2_time ~ normal(0, 2);
+      b4_dietInvert ~ normal(0, 4);
+      b4_dietCarn ~ normal(0, 4);
+      b4_dietFruitNect ~ normal(0, 4);
+      b4_dietGran ~ normal(0, 4);
   
-        real sigma_d2_time_sp = exp(log_sigma_d2_time_sp);
-        target += log_sigma_d2_time_sp;
-        sigma_d2_time_sp ~ normal(0, 2);
-        d2_time_sp ~ normal(mu_d2_time, sigma_d2_time_sp);
+      b4_x_elevMedian_forestPresent ~ normal(0, 4);
+      b4_x_elevMedian_forestSpecialist ~ normal(0, 4);
   
-        d2_obsSM ~ normal(0, 1); // intentionally somewhat informative
-        d2_obsDE ~ normal(0, 1);
-        d2_obsJG ~ normal(0, 1);        
+      mu_b5_distance_to_range ~ normal(0, 4);
+      sigma_b5_distance_to_range_sp ~ normal(0, 3);
+      b5_distance_to_range_sp ~ normal(mu_b5_distance_to_range, sigma_b5_distance_to_range_sp);
   
-        d3_mass ~ normal(0, 2);
-        d3_elevMedian ~ normal(0, 2);
-        d3_migratory ~ normal(0, 2);
-        d3_dietCarn ~ normal(0, 2);
-        d3_x_time_elevMedian ~ normal(0,2);
+  
+    // Detection
+      mu_d0 ~ normal(0,5);
+  
+      real sigma_d0_sp = exp(log_sigma_d0_sp);
+      target += log_sigma_d0_sp;
+      sigma_d0_sp ~ normal(0, 3);
+      d0_sp ~ normal(mu_d0, sigma_d0_sp);
+  
+      real sigma_d0_fam = exp(log_sigma_d0_fam);
+      target += log_sigma_d0_fam;
+      sigma_d0_fam ~ normal(0, 3);
+      d0_fam ~ normal(0, sigma_d0_fam);
+  
+      mu_d1_pasture ~ normal(0, 4);
+  
+      real sigma_d1_pasture_sp = exp(log_sigma_d1_pasture_sp);
+      target += log_sigma_d1_pasture_sp;
+      sigma_d1_pasture_sp ~ normal(0, 3);
+      d1_pasture_sp ~ normal(mu_d1_pasture, sigma_d1_pasture_sp);
+  
+      real sigma_d1_pasture_fam = exp(log_sigma_d1_pasture_fam);
+      target += log_sigma_d1_pasture_fam;
+      sigma_d1_pasture_fam ~ normal(0, 3);
+      d1_pasture_fam ~ normal(0, sigma_d1_pasture_fam);
+  
+      mu_d2_time ~ normal(0, 4);
+  
+      real sigma_d2_time_sp = exp(log_sigma_d2_time_sp);
+      target += log_sigma_d2_time_sp;
+      sigma_d2_time_sp ~ normal(0, 3);
+      d2_time_sp ~ normal(mu_d2_time, sigma_d2_time_sp);
+  
+      d2_obsSM ~ normal(0, 1); // intentionally somewhat informative
+      d2_obsDE ~ normal(0, 1);
+      d2_obsJG ~ normal(0, 1);        
+  
+      d3_mass ~ normal(0, 2);
+      d3_elevMedian ~ normal(0, 2);
+      d3_migratory ~ normal(0, 2);
+      d3_dietCarn ~ normal(0, 2);
+      d3_x_time_elevMedian ~ normal(0,2);
   
   // Likelihood computed via reduce_sum
     target += reduce_sum(
       // partial_sum function
-          partial_sum, 
-    
+        partial_sum, 
       // surveys
-          det_data,
-    
+        det_data,
       // grainsize
-          grainsize,
-    
+        grainsize,
       // variable sizes
-          n_spCl, n_sp, n_fam, 
-  
+        n_spCl, n_sp, n_fam, 
       // parameters: 
         // Occupancy intercepts
           b0_spCl, b0_sp, b0_fam, 
-        
         // Occupancy elevation  
           b1_relev_sp, b1_relev2_sp, 
           b1_lowland, b1_x_lowland_relev, b1_x_lowland_relev2,
-        
         // Occupancy pasture
           b2_pasture_sp, b2_pasture_fam,
-    
         // Occupancy traits
-          b3_eastOnly, b3_westOnly, b3_snsmOnly, b3_notWandes, b3_notEandes, b3_elevMedian, b3_elevBreadth,
+          b3_mountain_barrier, b3_valley_barrier, b3_eastOnly, b3_westOnly, b3_snsmOnly, b3_notEandes, b3_notWandes,
+          b3_elevMedian, b3_elevBreadth,
           b3_forestPresent, b3_forestSpecialist, b3_tfSpecialist, b3_dryForestPresent, b3_floodDrySpecialist,
           b3_floodSpecialist, b3_aridPresent, b3_migratory, b3_mass, b3_dietInvert, b3_dietCarn, b3_dietFruitNect,
-          b3_dietGran, b3_x_elevMedian_forestPresent, b3_x_elevMedian_forestSpecialist, b4_eastOnly, b4_westOnly,
-          b4_snsmOnly, b4_notWandes, b4_notEandes,b4_elevMedian, b4_elevBreadth, b4_forestPresent, b4_forestSpecialist,
+          b3_dietGran, b3_x_elevMedian_forestPresent, b3_x_elevMedian_forestSpecialist, b4_mountain_barrier, b4_valley_barrier,
+          b4_elevMedian, b4_elevBreadth, b4_forestPresent, b4_forestSpecialist,
           b4_tfSpecialist, b4_dryForestPresent, b4_floodDrySpecialist, b4_floodSpecialist, b4_aridPresent, b4_migratory,
           b4_mass, b4_dietInvert, b4_dietCarn, b4_dietFruitNect, b4_dietGran, b4_x_elevMedian_forestPresent,
           b4_x_elevMedian_forestSpecialist,
-          
+        // Occupancy distance-to-range
+          b5_distance_to_range_sp,
         // Detection intercept  
           d0_sp, d0_fam, 
-          
         // Detection pasture
           d1_pasture_sp, d1_pasture_fam, 
-          
         // Detection nuisance
           d2_time_sp, d2_obsSM, d2_obsDE, d2_obsJG, 
-          
         // Detection traits  
           d3_mass, d3_elevMedian, d3_migratory, d3_dietCarn, d3_x_time_elevMedian,
-    
+  
       // Data
         // random effect levels
           id_spCl, id_sp, id_fam, 
-
         // Q and nv
           Q, nv, 
-    
         // covariates
-          relev, relev2, lowland, pasture, eastOnly, westOnly, snsmOnly, notWandes, notEandes,
+          relev, relev2, lowland, pasture, mountain_barrier, valley_barrier, eastOnly, westOnly, snsmOnly, notEandes, notWandes,
           elevMedian, elevBreadth, forestPresent, forestSpecialist, tfSpecialist, dryForestPresent, floodDrySpecialist,
-          floodSpecialist, aridPresent, migratory, mass, dietInvert, dietCarn, dietFruitNect, dietGran, time, obsSM,
-          obsDE, obsJG
-  ); // end reduce_sum call
+          floodSpecialist, aridPresent, migratory, mass, dietInvert, dietCarn, dietFruitNect, dietGran, distance_to_range,
+          time, obsSM, obsDE, obsJG
+    ); // end reduce_sum call
 } // end model block
