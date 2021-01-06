@@ -142,7 +142,7 @@ functions{
     // Elevations
     vector relev,    
     vector relev2, 
-    // Is species lowland (a species trait, but interacts with elevations)
+    // Is species lowland? (a species trait, but interacts with elevations)
     vector lowland,
     
     // Pasture             
