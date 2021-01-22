@@ -1,3 +1,6 @@
+# Produce a map of our sampling points atop the biogeographic regions of Colombia.
+# Still to do: gray-out the parts of Colombia that are not part of our study area
+
 library(sf)
 library(reticulate)
 
