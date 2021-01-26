@@ -4,17 +4,6 @@
 # Sum of detections, based on posterior predictive distribution that ties latent occupancy to data
 
 
-get_data_rep <- function(z_prob_df){
-  Z_sample <- rbinom(nrow(z_prob_df), 1, z_prob_df$Z_prob)
-  D_sample <- rbinom(nrow(z_prob_df), 1, z_prob_df$pdet)
-  data_rep_post <- Z_sample*D_sample
-  data_rep_mixed <- rbinom(nrow(z_prob_df), 1, z_prob_df$psi*z_prob_df$pdet)
-  cond_detmatrix <- matrix(rbinom(length(z_prob_df$theta_matrix), 1, z_prob_df$theta_matrix), ncol = 4)
-  detmatrix <- sweep(cond_detmatrix, MARGIN = 1, Z_sample, `*`)
-  histories <- apply(detmatrix, 1, function(x){paste(x, collapse = "")})
-  return(list(post=data_rep_post, mixed=data_rep_mixed, histories=histories))
-}
-
 
 ##### Mackenzie-Bailey statistics #####
 mb_counts <- function(histories, nv){

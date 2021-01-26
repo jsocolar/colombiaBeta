@@ -167,7 +167,7 @@ points[which(abs(points$g_elev_init - points$ALOS_init) <= 30 & abs(points$g_ele
 
 points$ALOSdiff_init <- abs(points$ele - points$ALOS_init)
 
-# Remove elevation when one point has bad elevation but Felecity's file has the average of the coordinates
+# Remove elevation when one point has bad elevation but Felicity's file has the average of the coordinates
 points$ele[c(429, 431, 435, 437, 439)] <- NA
 
 # Remove points with bad coordinates and points with identical coordinates (in latter case, retain point with

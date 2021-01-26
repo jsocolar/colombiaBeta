@@ -1,20 +1,20 @@
+# This script simulates the posterior occupancy probability for each species-point across Colombia at 2 km resolution
+# for one posterior iteration
+
 library(sf)
 library(reticulate)
 
 `%ni%` <- Negate(`%in%`)
 AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
-
-fit1511_summary <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/fit1511_summary.RDS")
-
-
-
-##### Set up GEE session #####
+##### Get elevation raster across Colombia #####
+# Set up GEE session
 use_condaenv('gee_interface', conda = "auto", required = TRUE) # point reticulate to the conda environment created in GEE_setup.sh
 ee <- import("ee")          # Import the Earth Engine library
 ee$Initialize()             # Trigger the authentication
 np <- import("numpy")       # Import Numpy        needed for converting gee raster to R raster object
 pd <- import("pandas")      # Import Pandas       ditto the above
+# Get elevations for Colombia
 countries <- ee$FeatureCollection('USDOS/LSIB_SIMPLE/2017')
 roi <- countries$filterMetadata('country_na', 'equals', 'Colombia')  
 DEM_full <- ee$Image("JAXA/ALOS/AW3D30/V2_2")
@@ -23,91 +23,140 @@ latlng <- ee$Image$pixelLonLat()$addBands(DEM)
 latlng <- latlng$reduceRegion(reducer = ee$Reducer$toList(),
                               geometry = roi,
                               maxPixels = 10^9,
-                              scale=500)
-
+                              scale=2000)
 # Convert to arrays
 lats <- np$array((ee$Array(latlng$get("latitude"))$getInfo()))
 lngs <- np$array((ee$Array(latlng$get("longitude"))$getInfo()))
 elevs <- np$array((ee$Array(latlng$get("elevation"))$getInfo()))
-
 # Convert to elevation raster
 elevation <- data.frame(x = lngs, y = lats, elevation = elevs)
 raster_elev <- raster::rasterFromXYZ(elevation,crs="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
-
+# Reproject
 raster_elev_AEA <- raster::projectRaster(raster_elev, crs = sp::CRS(AEAstring))
+# Save raster
+raster::writeRaster(raster_elev, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev.grd", overwrite = T)
+raster::writeRaster(raster_elev_AEA, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev_AEA.grd", overwrite = T)
 
-raster::writeRaster(raster_elev, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev.grd")
-raster::writeRaster(raster_elev_AEA, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev_AEA.grd")
-
-###### Rasterize the Ayerbe maps
+##### Rasterize the Ayerbe maps #####
 ayerbe_list_updated <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_list_updated.RDS')
 ayerbe_buffered_ranges_updated <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_buffered_ranges_updated.RDS")
 
+pb <- txtProgressBar(min = 0, max = length(ayerbe_buffered_ranges_updated), initial = 0, style = 3) 
 for(i in 1:length(ayerbe_buffered_ranges_updated)){
-  if(floor(i/10) == i/10){print(i)}
-  ayerbe_raster <- fasterize::fasterize(st_transform(st_sf(st_union(ayerbe_list_updated[[i]])), 4326), raster_elev)
-  raster::writeRaster(ayerbe_raster, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/regular/', names(ayerbe_list_updated)[i], '.grd'))
-  ayerbe_buffer_raster <- fasterize::fasterize(st_transform(st_sf(ayerbe_buffered_ranges_updated[[i]]), 4326), raster_elev)
-  raster::writeRaster(ayerbe_buffer_raster, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/buffered/', names(ayerbe_list_updated)[i], '_buffered.grd'))
+  setTxtProgressBar(pb,i)
+  ayerbe_raster <- fasterize::fasterize(st_sf(st_union(ayerbe_list_updated[[i]])), raster_elev_AEA)
+  raster::writeRaster(ayerbe_raster, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/regular/', names(ayerbe_list_updated)[i], '.grd'), overwrite = T)
+  ayerbe_buffer_raster <- fasterize::fasterize(st_sf(ayerbe_buffered_ranges_updated[[i]]), raster_elev_AEA)
+  raster::writeRaster(ayerbe_buffer_raster, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/buffered/', names(ayerbe_list_updated)[i], '_buffered.grd'), overwrite = T)
 }
 
-
-##### 
+##### Distance-to-range raster for each species #####
+bird_data <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data4_package.RDS")
 birds <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.RDS")
-birds_stan <- birds
-birds_stan$id_spCl <- as.numeric(as.factor(birds$sp_cl))
-birds_stan$id_sp <- as.numeric(as.factor(birds$species))
-birds_stan$id_fam <- as.numeric(as.factor(birds$Family))
-birds_stan$migratory <- as.numeric(!is.na(birds$start1))
-birds_stan$dietInvert <- as.numeric(birds$Diet.5Cat == "Invertebrate")
-birds_stan$dietCarn <- as.numeric(birds$Diet.5Cat == "VertFishScav")
-birds_stan$dietFruitNect <- as.numeric(birds$Diet.5Cat == "FruiNect")
-birds_stan$dietGran <- as.numeric(birds$Diet.5Cat == "PlantSeed")
-traitdata <- birds_stan[!duplicated(birds_stan$species),]
+dtr_mean <- mean(birds$distance_from_range)
+dtr_sd <- sd(birds$distance_from_range)
 
-species_results_prelim <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/species_results_prelim.RDS')
-raster_elev <- raster::raster("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev.grd")
-elev_df <- raster::as.data.frame(raster_elev, xy = T)
+points <- st_as_sf(raster::coordinates(raster_elev_AEA, spatial = T)) # For reasons that I don't understand, it is more than an order of magnitude 
+# faster to get the distances under the AEA projection than under epsg 4326.
+coords <- st_coordinates(points)
+sp_list <- unique(birds$species)
 
-numerator <- denominator <- rep(0, nrow(elev_df))
-#overall <- rep(0, 1614)
-j <- 1
-for(i in 1:1614){
-  print(i)
-  sp <- species_results_prelim$species[i]
-  sp_raster <- raster::raster(paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/buffered/', gsub("_", " ", sp), '_buffered.grd'))
-  sr_df <- raster::as.data.frame(sp_raster)
-  sr_df$layer[is.na(sr_df$layer)] <- 0
-  sp_lower <- traitdata$lower[i]
-  sp_upper <- traitdata$upper[i]
-  sp_breadth <- sp_upper - sp_lower
-  sr_df$layer[(elev_df$elevation < sp_lower - sp_breadth) | (elev_df$elevation > sp_upper + sp_breadth)] <- 0
-  
-  relev <- (((elev_df$elevation - sp_lower)/sp_breadth) - bird_stan_data1_package$means_and_sds$relev_offset)/bird_stan_data1_package$means_and_sds$relev_sd
-  relev2 <- relev^2
-  
-  sp_forest_logit <- species_results_prelim$forest_int[i, j] + 
-    relev*species_results_prelim$elev1_coef[i, j] + 
-    relev2*species_results_prelim$elev2_coef[i, j]
-  
-  sp_pasture_logit <- sp_forest_logit + species_results_prelim$pasture_offset[i, j]
-  
-  sp_forest <- sr_df$layer*boot::inv.logit(sp_forest_logit)
-  sp_forest[is.na(sp_forest)] <- 0
-  sp_pasture <- sr_df$layer*boot::inv.logit(sp_pasture_logit)
-  sp_pasture[is.na(sp_pasture)] <- 0
-  
-  sp_prediction_df <- cbind(elev_df, sp_forest, sp_pasture)
-
-  sp_log_ratio <- log(sp_prediction_df$sp_forest/sp_prediction_df$sp_pasture) * (((sp_prediction_df$sp_forest + sp_prediction_df$sp_pasture)/2) >= .05)
-  sp_exclude <- is.nan(sp_log_ratio) | (((sp_prediction_df$sp_forest + sp_prediction_df$sp_pasture)/2) < .05)
-  sp_log_ratio[sp_exclude] <- 0
-  
-  numerator <- numerator + sp_log_ratio
-  denominator <- denominator + !sp_exclude
- 
-#  overall[i] <- log(sum(sp_prediction_df$sp_forest[!sp_exclude])/sum(sp_prediction_df$sp_pasture[!sp_exclude]))
+pb <- txtProgressBar(min = 0, max = length(sp_list), initial = 0, style = 3) 
+for(i in 1:length(sp_list)){
+  setTxtProgressBar(pb,i)
+  sp <- sp_list[i]
+  ayerbe_polygon <- st_union(ayerbe_list_updated[[gsub("_", " ", sp)]])
+  distances <- as.numeric(st_distance(points, st_cast(ayerbe_polygon, to = "MULTILINESTRING")))*(2*(as.numeric(st_distance(points, ayerbe_polygon))>0) - 1) # The second part gives positive distances for outside-of-range and negative distances for in-range.  Turns out that as.numeric(st_distance(points, ayerbe))>0) is much faster than !st_within(points, ayerbe) 
+  transformed_distances <- boot::inv.logit(4.7*(distances - dtr_mean)/dtr_sd)
+  td_df <- cbind(coords, transformed_distances)
+  ayerbe_dist_raster_i <- raster::rasterFromXYZ(td_df,crs=AEAstring)
+  raster::writeRaster(ayerbe_dist_raster_i, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/transformed_distance/', sp_list[i], '.grd'), overwrite = F)
 }
+
+
+##### Predict occupancy across Colombia
+raster_elev_AEA <- raster::raster("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev_AEA.grd")
+elev_df <- raster::as.data.frame(raster_elev_AEA, xy = T) 
+elev_df$cell_id <- 1:nrow(elev_df)
+names(elev_df)[3] <- "elevation"
+
+source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/bird_analysis_plotting/get_posterior/get_posterior_z.R")
+v5 <- cmdstanr::read_cmdstan_csv("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/v5_first_run/occupancy_v5_threads-202012282018-1-261afe.csv")
+draws <- posterior::as_draws_df(v5$post_warmup_draws[1:2000,,])
+# Long format: 
+bird_data <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data4_package.RDS")
+birds <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.RDS")
+
+z_info <- data.frame(bird_data$data[8:43])
+z_info$point <- birds$point
+z_info$species <- birds$species
+
+iter <- 1
+pc <- get_prediction_components(draws, iter, z_info)
+
+forest_probs <- pasture_probs <- elev_df[!is.na(elev_df$elevation),c("x","y","cell_id")]
+pb <- txtProgressBar(min = 0, max = 1614, initial = 0, style = 3) 
+for(i in 1:1614){
+  setTxtProgressBar(pb,i)
+  sp <- unique(birds$species[bird_data$data$id_sp == i])
+  sp2 <- gsub("_", " ", sp)
+  if(length(sp)!= 1){stop('sp does not have length 1')}
+  sp_df <- elev_df
+  # Load raster of transformed distances and add to sp_df
+  dist_raster <- raster::raster(paste0("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/transformed_distance/", sp, ".grd"))
+  sp_df$transformed_distance <- raster::as.data.frame(dist_raster)
+  # Load raster of buffered range and set out-of-range pixels to zero.
+  buffer_raster <- raster::raster(paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/buffered/', sp2, '_buffered.grd'))
+  buffer_df <- raster::as.data.frame(buffer_raster)
+  buffer_df$layer[is.na(buffer_df$layer)] <- 0
+  sp_df$in_range <- buffer_df$layer
+  # Retain only rows that are in Colombia and in range
+  sp_df <- sp_df[!is.na(sp_df$elevation) & sp_df$in_range == 1, ]
+  # Get elevational min/max
+  sp_lower <- unique(birds$lower[birds$species == sp])
+  sp_upper <- unique(birds$upper[birds$species == sp])
+  sp_breadth <- sp_upper - sp_lower
+  # Remove rows outside of buffered elevation
+  sp_df <- sp_df[(sp_df$elevation > (sp_lower - sp_breadth)) & (sp_df$elevation < (sp_upper + sp_breadth)), ]
+  # Compute relev
+  sp_df$relev <- ((sp_df$elevation - sp_lower)/sp_breadth - bird_data$means_and_sds$relev_offset)/bird_data$means_and_sds$relev_sd
+  sp_df$relev2 <- sp_df$relev^2
+  # Compute occupancy probabilities
+  sp_pc <- pc[i, ]
+  sp_forest_logit <- as.numeric((sp_pc$logit_psi_forest + sp_df$relev * sp_pc$b1_relev_sp + sp_df$relev2 * sp_pc$b1_relev2_sp +
+    sp_df$relev * sp_pc$lowland * sp_pc$b1_x_lowland_relev + sp_df$relev2 * sp_pc$lowland * sp_pc$b1_x_lowland_relev2 +
+    sp_df$transformed_distance * sp_pc$b5_distance_to_range_sp)[,1])
+  sp_pasture_logit <- sp_forest_logit + sp_pc$logit_psi_pasture_offset
+  
+  integrate_forest <- function(k){integrate(function(x){dnorm(x, sp_forest_logit[k], sp_pc$sigma_sp_cl)*boot::inv.logit(x)},
+                                          sp_forest_logit[k]-6*sp_pc$sigma_sp_cl, sp_forest_logit[k]+6*sp_pc$sigma_sp_cl)$value}
+  sp_df$forest_prob <- unlist(lapply(1:nrow(sp_df), integrate_forest))
+  
+  integrate_pasture <- function(k){integrate(function(x){dnorm(x, sp_pasture_logit[k], sp_pc$sigma_sp_cl)*boot::inv.logit(x)},
+                                            sp_pasture_logit[k]-6*sp_pc$sigma_sp_cl, sp_pasture_logit[k]+6*sp_pc$sigma_sp_cl)$value}
+  sp_df$pasture_prob <- unlist(lapply(1:nrow(sp_df), integrate_pasture))
+  
+  forest_probs <- merge(forest_probs, sp_df[,c("cell_id","forest_prob")], by = "cell_id", all = T)
+  forest_probs[,i+3][is.na(forest_probs[,i+3])] <- 0
+  pasture_probs <- merge(pasture_probs, sp_df[,c("cell_id", "pasture_prob")], by = "cell_id", all = T)
+  pasture_probs[,i+3][is.na(pasture_probs[,i+3])] <- 0
+  names(forest_probs)[i + 3] <- names(pasture_probs)[i + 3] <- sp
+}
+
+# saveRDS(forest_probs, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v5_predictions/iteration_1/forest_probs.RDS")
+# saveRDS(pasture_probs, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v5_predictions/iteration_1/pasture_probs.RDS")
+
+
+
+###############################
+
+forest_probs <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v5_predictions/iteration_1/forest_probs.RDS")
+pasture_probs <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v5_predictions/iteration_1/pasture_probs.RDS")
+
+forest_probs <- forest_probs[,1:1617]
+pasture_probs <- pasture_probs[,1:1617]
+
+
 
 sum(!is.nan(overall))
 overall2 <- overall[1:614]

@@ -1,3 +1,5 @@
+# This script implements posterior and mixed predictive checks on the model
+
 v5 <- cmdstanr::read_cmdstan_csv("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/v5_first_run/occupancy_v5_threads-202012282018-1-261afe.csv")
 
 # draws_summary <- parsummarise_draws(v5$post_warmup_draws[1:2000,,], n_cores = 2, n_chunks = 1000)
@@ -13,8 +15,6 @@ z_info <- data.frame(bird_data$data[8:43])
 z_info$point <- birds$point
 z_info$species <- birds$species
 z_info$cl_q_real <- cluster_q(z_info, z_info$Q)[z_info$id_spCl]
-
-
 
 source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/bird_analysis_plotting/get_posterior_z.R")
 source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/bird_analysis_plotting/posterior_predictive_checks/discrepancy_functions.R")
