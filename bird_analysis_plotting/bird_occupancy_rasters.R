@@ -143,8 +143,8 @@ for(i in 1:1614){
   names(forest_probs)[i + 3] <- names(pasture_probs)[i + 3] <- sp
 }
 
-# saveRDS(forest_probs, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v5_predictions/iteration_1/forest_probs.RDS")
-# saveRDS(pasture_probs, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v5_predictions/iteration_1/pasture_probs.RDS")
+saveRDS(forest_probs, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v5_predictions/iteration_1/forest_probs.RDS")
+saveRDS(pasture_probs, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v5_predictions/iteration_1/pasture_probs.RDS")
 
 
 
@@ -153,8 +153,39 @@ for(i in 1:1614){
 forest_probs <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v5_predictions/iteration_1/forest_probs.RDS")
 pasture_probs <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v5_predictions/iteration_1/pasture_probs.RDS")
 
-forest_probs <- forest_probs[,1:1617]
-pasture_probs <- pasture_probs[,1:1617]
+
+cell_logratios <- get_avg_cell_logratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.05)
+colombia_logratio <- get_regional_logratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.05, cell_positions = NULL)
+
+mean(cell_logratios$avg_logratio, na.rm = T)
+weighted.mean(cell_logratios$avg_logratio, w=cell_logratios$n, na.rm=T)
+spatstat::weighted.median(cell_logratios$med_logratio, w=cell_logratios$n, na.rm = T)
+
+cell_logratios_df <- data.frame(x=forest_probs$x, y = forest_probs$y, logratio=cell_logratios$avg_logratio)
+cell_logratios_raster <- raster::rasterFromXYZ(cell_logratios_df)
+raster::plot(cell_logratios_raster)
+
+cell_richness_df <- data.frame(x=forest_probs$x, y=forest_probs$y, richness = cell_logratios$n)
+cell_richness_raster <- raster::rasterFromXYZ(cell_richness_df)
+raster::plot(cell_richness_raster)
+
+
+colombia_logratio_51_100 <- get_regional_logratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.05, cell_positions = which(cell_logratios$n > 50 & cell_logratios$n < 101))
+colombia_logratio_101_200 <- get_regional_logratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.05, cell_positions = which(cell_logratios$n > 100 & cell_logratios$n < 201))
+colombia_logratio_201_300 <- get_regional_logratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.05, cell_positions = which(cell_logratios$n > 200 & cell_logratios$n < 301))
+colombia_logratio_301_max <- get_regional_logratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.05, cell_positions = which(cell_logratios$n > 300))
+
+mean(cell_logratios$avg_logratio[cell_logratios$n > 50 & cell_logratios$n < 101])
+colombia_logratio_51_100
+
+mean(cell_logratios$avg_logratio[cell_logratios$n > 100 & cell_logratios$n < 201])
+colombia_logratio_101_200
+
+mean(cell_logratios$avg_logratio[cell_logratios$n > 200 & cell_logratios$n < 301])
+colombia_logratio_201_300
+
+mean(cell_logratios$avg_logratio[cell_logratios$n > 300])
+colombia_logratio_301_max
 
 
 
