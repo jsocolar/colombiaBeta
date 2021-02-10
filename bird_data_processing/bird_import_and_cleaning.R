@@ -658,7 +658,4 @@ bird_surveys <- list(detection_array = detection_array, species_names = allSpp, 
 saveRDS(bird_surveys, file = paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_', Sys.Date(), '.RDS'))
 saveRDS(bird_surveys, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_current.RDS')
 
-bird_surveys <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_current.RDS')
-
-
 

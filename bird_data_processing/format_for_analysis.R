@@ -55,7 +55,7 @@ for(i in 1:length(species_list)){
     }
   }
 }
-saveRDS(flattened_data, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data.RDS")
+# saveRDS(flattened_data, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data.RDS")
 flattened_data <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data.RDS")
 
 # Column for whether the species is ever detected at the point
@@ -116,7 +116,7 @@ sum(fd$Q == 1 & fd$in_date_range == 0)
 
 # Remove superfluous columns from fd
 flattened_data_full <- fd[, names(fd) %ni% c("birds", "beetles", "habitat", "other", "latin.x", "latin.y")]
-saveRDS(flattened_data_full, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data_full.RDS")
+# saveRDS(flattened_data_full, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data_full.RDS")
 
 flattened_data_full <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data_full.RDS")
 # Look at statistics of species-standardized elevations at species-points with a detection  
@@ -142,8 +142,8 @@ min(nall)
 
 # Subset to include only species-points that are in the date range and in an elevational range of (-1, 2)
 bird_data_trimmed <- flattened_data_full[flattened_data_full$in_date_range == 1 & flattened_data_full$elev_sp_standard > -1 & flattened_data_full$elev_sp_standard < 2, ]
-saveRDS(bird_data_trimmed, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_data_trimmed.RDS")
-
+# saveRDS(bird_data_trimmed, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_data_trimmed.RDS")
+bird_data_trimmed <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_data_trimmed.RDS")
 # Examine statistics of final dataset
 nrow(bird_data_trimmed)
 sum(bird_data_trimmed$Q)
@@ -155,66 +155,55 @@ vscale <- function(x){return(as.vector(scale(x)))}
 
 birds <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_data_trimmed.RDS")
 birds$sp_cl <- paste(birds$species, birds$cluster, sep = "__")
+birds$sp_sr <- paste(birds$species, birds$cluster, sep = "__")
 birds$elev_median <- rowMeans(cbind(birds$lower, birds$upper))
-
-det_data <- as.matrix(birds[,c("v1", "v2", "v3", "v4")])
-det_data[is.na(det_data)] <- -1
-
-obsSM <- matrix(as.numeric(c(birds$obs1 == "SCM", birds$obs2 == "SCM", birds$obs3 == "SCM", birds$obs4 == "SCM")), ncol = 4)
-obsSM[is.na(obsSM)] <- 0
-
-obsDE <- matrix(as.numeric(c(birds$obs1 == "DPE", birds$obs2 == "DPE", birds$obs3 == "DPE", birds$obs4 == "DPE")), ncol = 4)
-obsDE[is.na(obsDE)] <- 0
-
-obsJG <- matrix(as.numeric(c(birds$obs1 == "JJG", birds$obs2 == "JJG", birds$obs3 == "JJG", birds$obs4 == "JJG")), ncol = 4)
-obsJG[is.na(obsJG)] <- 0
-
-time <- matrix((scale(c(birds$hps1, birds$hps2, birds$hps3, birds$hps4))), ncol = 4)
-time[is.na(time)] <- 0  # these zeros correspond to visits that don't actually exist
-time_mean <- mean(c(birds$hps1, birds$hps2, birds$hps3, birds$hps4), na.rm = T)
-time_sd <- sd(c(birds$hps1, birds$hps2, birds$hps3, birds$hps4), na.rm = T)
-
+birds$det_data <- as.matrix(birds[,c("v1", "v2", "v3", "v4")])
+birds$det_data[is.na(birds$det_data)] <- -1
+birds$obsSM <- matrix(as.numeric(c(birds$obs1 == "SCM", birds$obs2 == "SCM", birds$obs3 == "SCM", birds$obs4 == "SCM")), ncol = 4)
+birds$obsSM[is.na(birds$obsSM)] <- 0
+birds$obsDE <- matrix(as.numeric(c(birds$obs1 == "DPE", birds$obs2 == "DPE", birds$obs3 == "DPE", birds$obs4 == "DPE")), ncol = 4)
+birds$obsDE[is.na(birds$obsDE)] <- 0
+birds$obsJG <- matrix(as.numeric(c(birds$obs1 == "JJG", birds$obs2 == "JJG", birds$obs3 == "JJG", birds$obs4 == "JJG")), ncol = 4)
+birds$obsJG[is.na(birds$obsJG)] <- 0
+birds$time <- matrix((scale(c(birds$hps1, birds$hps2, birds$hps3, birds$hps4))), ncol = 4)
+birds$time[is.na(birds$time)] <- 0  # these zeros correspond to visits that don't actually exist
 birds$relev <- (birds$elev_sp_standard -.5)/sd(birds$elev_sp_standard)
 birds$relev2 <- birds$relev^2
-relev_offset <- .5
-relev_sd <- sd(birds$elev_sp_standard)
-
 birds$elev_median_scaled <- vscale(birds$elev_median)
-elev_median_mean <- mean(birds$elev_median)
-elev_median_sd <- sd(birds$elev_median)
-
 birds$elev_breadth_scaled <- vscale(birds$elev_breadth)
-elev_breadth_mean <- mean(birds$elev_breadth)
-elev_breadth_sd <- sd(birds$elev_breadth)
-
 birds$log_mass_scaled <- vscale(log(birds$BodyMass.Value))
-log_mass_mean <- mean(log(birds$BodyMass.Value))
-log_mass_sd <- sd(log(birds$BodyMass.Value))
-
 birds$lowland <- as.numeric(birds$lower == 0)
-
 birds$mountain_limited <- birds$east_only | birds$west_only
 birds$valley_limited <- birds$snsm_only | birds$wandes_absent | birds$eandes_absent
 
-
 #### Add distance-from-range covariate ####
-
 library(sf)
+library(ggplot2)
+source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/GIS_processing/get_mainland.R")
+AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+mainland <- st_transform(mainland, AEAstring)
+mainland_inward <- st_buffer(mainland, -7000)
+
 ayerbe_list_updated <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_list_updated.RDS')
 birds$distance_from_range <- 0
 sp_list <- unique(birds$species)
 for(i in 1:length(sp_list)){  # this takes ~ 5 minutes
+  print(i)
   sp <- sp_list[i]
   ayerbe <- st_union(ayerbe_list_updated[[gsub("_", " ", sp)]])
   points <- st_as_sf(birds[birds$species == sp, c("lon", "lat")], coords = c("lon", "lat"))
   st_crs(points) <- st_crs("WGS84")
   points <- st_transform(points, st_crs(ayerbe))
-  distances <- as.numeric(st_distance(points, st_cast(ayerbe, to = "MULTILINESTRING")))*(2*(as.numeric(st_distance(points, ayerbe))>0) - 1) # The second part gives positive distances for outside-of-range and negative distances for in-range.  Turns out that as.numeric(st_distance(points, ayerbe))>0) is much faster than !st_within(points, ayerbe) 
+  range_linestring_cropped <- range_linestring <- st_cast(ayerbe, "MULTILINESTRING")
+  inside <- as.numeric(as.numeric(st_distance(points, ayerbe)) == 0)
+  distance_inside <- -1 * st_distance(points, range_linestring_cropped)
+  distance_outside <- st_distance(points, range_linestring)
+  distances <- as.numeric(inside * distance_inside + (1 - inside) * distance_outside)
   birds$distance_from_range[birds$species == sp] <- distances
 }
 
 birds[which(birds$distance_from_range > 160000),]
-birds$distance_from_range_scaled <- scale(birds$distance_from_range)
+birds$distance_from_range_scaled <- birds$distance_from_range/sd(birds$distance_from_range)
 
 # Explore good functional form for distance covariate:
 hist(birds$distance_from_range)
@@ -250,9 +239,21 @@ plot(logit_prop ~ dist_trans, data = range_data)
 
 birds$distance_from_range_scaled2 <- boot::inv.logit(birds$distance_from_range_scaled*4.7)
 
+birds$sp_sr <- paste0(birds$species, "__", birds$subregion)
+birds$sp_obs1 <- paste0(birds$species, "__", birds$obs1)
+birds$sp_obs2 <- paste0(birds$species, "__", birds$obs2)
+birds$sp_obs3 <- paste0(birds$species, "__", birds$obs3)
+birds$sp_obs4 <- paste0(birds$species, "__", birds$obs4)
 
-saveRDS(birds, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.RDS")
+sp_obs_columns <- c(birds$sp_obs1, birds$sp_obs2, birds$sp_obs3, birds$sp_obs4)
+sp_obs_columns[grep("__NA", sp_obs_columns)] <- NA
+sp_obs_matrix <- matrix(as.integer(as.factor(sp_obs_columns)), ncol=4)
+sp_obs_matrix[is.na(sp_obs_matrix)] <- 0
+birds$sp_obs_matrix <- sp_obs_matrix
+
+# saveRDS(birds, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.RDS")
 birds <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.RDS")
+ec <- c(-1,1)
 ###########
 bird_stan_data1 <- list(
   # Grainsize for reduce_sum
@@ -388,3 +389,68 @@ bird_stan_data4_package_prelim <- list(data = bird_stan_data4,
                                 means_and_sds = bird_standata4_means_and_sds)
 
 saveRDS(bird_stan_data4_package_prelim, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data4_package_prelim.RDS")
+
+
+#####
+bird_stan_data6 <- list(
+  # Grainsize for reduce_sum
+    grainsize = 1,
+  # Dimensions
+    n_spCl = length(unique(birds$sp_cl)),
+    n_spSr = length(unique(birds$sp_sr)),
+    n_sp = length(unique(birds$species)),
+    n_fam = length(unique(birds$Family)),
+    n_spObs = length(unique(as.vector(birds$sp_obs_matrix[!is.na(as.vector(birds$sp_obs_matrix))]))),
+    n_tot = nrow(birds),
+    n_visit_max = max(birds$nv),
+  # Detection matrix
+    det_data = birds$det_data,
+  # Q and nv
+    Q = birds$Q,
+    nv = birds$nv,
+  # Random effect IDs
+    id_spCl = as.numeric(as.factor(birds$sp_cl)),
+    id_spSr = as.numeric(as.factor(birds$sp_sr)),
+    id_sp = as.numeric(as.factor(birds$species)),
+    id_fam = as.numeric(as.factor(birds$Family)),
+    id_spObs = birds$sp_obs_matrix,
+  # Covariates
+    relev = birds$relev,
+    relev2 = birds$relev2,
+    lowland = ec[birds$lowland+1],
+    pasture = ec[birds$pasture+1],
+    mountain_barrier = ec[birds$mountain_limited+1],
+    valley_barrier = ec[birds$valley_limited+1],
+    elevMedian = birds$elev_median_scaled,
+    elevBreadth = birds$elev_breadth_scaled,
+    forestPresent = ec[birds$forest_present+1],
+    forestSpecialist = ec[birds$forest_specialist+1],
+    tfSpecialist = ec[birds$tf_specialist+1],
+    dryForestPresent = ec[birds$dry_forest_present+1],
+    floodDrySpecialist = ec[birds$flood_dry_specialist+1],
+    aridPresent = ec[birds$arid_present+1],
+    migratory = ec[as.numeric(!is.na(birds$start1))+1],
+    mass = birds$log_mass_scaled,
+    dietInvert = ec[as.numeric(birds$Diet.5Cat == "Invertebrate")+1],
+    dietCarn = ec[as.numeric(birds$Diet.5Cat == "VertFishScav")+1],
+    dietFruitNect = ec[as.numeric(birds$Diet.5Cat == "FruiNect")+1],
+    dietGran = ec[as.numeric(birds$Diet.5Cat == "PlantSeed")+1],
+    distance_to_range = as.vector(birds$distance_from_range_scaled2),
+    time = birds$time,
+    obsSM = matrix(ec[birds$obsSM+1], ncol=4),
+    obsJG = matrix(ec[birds$obsJG+1], ncol=4),
+    obsDE = matrix(ec[birds$obsDE+1], ncol=4)
+)
+
+bird_standata6_means_and_sds <- list(time_mean = mean(c(birds$hps1, birds$hps2, birds$hps3, birds$hps4), na.rm = T), 
+                                     time_sd =  sd(c(birds$hps1, birds$hps2, birds$hps3, birds$hps4), na.rm = T),
+                                     relev_offset = .5, relev_sd = sd(birds$elev_sp_standard),
+                                     elev_median_mean =  mean(birds$elev_median), elev_median_sd = sd(birds$elev_median),
+                                     elev_breadth_mean = mean(birds$elev_breadth), elev_breadth_sd = sd(birds$elev_breadth),
+                                     log_mass_mean = mean(log(birds$BodyMass.Value)), log_mass_sd = sd(log(birds$BodyMass.Value)), 
+                                     distance_to_range_offset = 0, distance_to_range_sd = sd(birds$distance_from_range), 
+                                     distance_to_range_logit_rescale = 4.7)
+bird_stan_data6_package <- list(data = bird_stan_data6,
+                                       means_and_sds = bird_standata6_means_and_sds)
+saveRDS(bird_stan_data6_package, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data6_package.RDS")
+
