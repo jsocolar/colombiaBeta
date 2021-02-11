@@ -2,6 +2,7 @@
 library(reticulate)
 library(gdm)
 library(sf)
+library(gtools)
 
 ##### Raw data GDM ####
 # load bird dataset and restrict to points with a detection
@@ -288,6 +289,7 @@ for(i in 1:100){
 }
 
 saveRDS(Z_rep, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/temporary/v5_Zreps.RDS")
+Z_rep <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/temporary/v5_Zreps.RDS")
 
 forest_gdm_rep <- pasture_gdm_rep <- list()
 for(k in 1:100){ # k indexes the posterior iteration
@@ -375,8 +377,6 @@ for(k in 1:100){ # k indexes the posterior iteration
   forest_gdm_rep[[k]] <- gdm(withweights_f, geo = T)
   pasture_gdm_rep[[k]] <- gdm(withweights_p, geo = T)
 }
-
-
 
 
 pred <- "Geographic"

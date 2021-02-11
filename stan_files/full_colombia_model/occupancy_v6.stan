@@ -5,7 +5,7 @@
 //            Remove range-restriction effects in favor of just the "barrier effects"
 //            Zero-center all random effects
 //            Switch from offset/multiplier to transformed parameters for noncentering 
-//              to avoid "sticky boundaries"
+//              to avoid "sticky boundaries."  See https://discourse.mc-stan.org/t/offset-multiplier-initialization/20712
 //            Better priors that interact as desired with effects coding
 //            IMPORTANT: data structure changes to effects coding for this model!
 //            Removal of offset multiplier soft-constraints (significant reparameterization 
@@ -560,6 +560,9 @@ transformed parameters {
     real<lower=0> sigma_d0_fam = sqrt(sigma_d0_taxonomic^2 * (1-p_d0_taxonomic_sp));
     real<lower=0> sigma_d1_pasture_sp = sqrt(sigma_d1_taxonomic^2 * p_d1_taxonomic_sp);
     real<lower=0> sigma_d1_pasture_fam = sqrt(sigma_d1_taxonomic^2 * (1-p_d1_taxonomic_sp));
+}
+
+model {
   // Manual non-centering to avoid sticky boundaries
     vector[n_sp] b0_sp = b0_sp_raw * sigma_b0_sp;
     vector[n_fam] b0_fam = b0_fam_raw * sigma_b0_fam;
@@ -576,9 +579,6 @@ transformed parameters {
     vector[n_sp] d1_pasture_sp = d1_pasture_sp_raw * sigma_d1_pasture_sp;
     vector[n_fam] d1_pasture_fam = d1_pasture_fam_raw * sigma_d1_pasture_fam;
     vector[n_sp] d2_time_sp = d2_time_sp_raw * sigma_d2_time_sp;
-}
-
-model {
   // Priors and Jacobian adjustments
     // Occupancy
       // Intercepts
