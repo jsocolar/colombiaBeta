@@ -1,6 +1,13 @@
-// THIS VERSION IS DEPRECATED BECAUSE IT APPEARS TO UNDERPERFORM VERSION 6.1
 // This is a Stan model for the full Colombia bird dataset, version 7.0
-// Changes:   Implementing the redundancy trick
+// Changes:   Implementing the redundancy trick for binary covariates
+//                NB: I experimented with implementing the redundancy trick for
+//                continuous covariates as well (some of which have a lot of
+//                redundancy) but this requires providing reduce sum with both
+//                the vectors of indices and the (longish) vectors of unique
+//                values. Profiling the computation without reduce_sum confirms
+//                speedup, but passing everything to reduce_sum appears to cause
+//                a slowdown that more than offsets the gain.
+//            Collecting all integer data into a single matrix for slicing
 
 functions{
     matrix rt_mat(
@@ -21,8 +28,8 @@ functions{
         // Data slice            
           int[,] data_slice,      // slice of data array
         // cutpoints for slicing                       
-          int start,             // the starting row of the detection slice
-          int end,              // the ending row of the detection slice   
+          int start,             // the starting row of the data slice
+          int end,              // the ending row of the data slice   
       // numbers of random effect levels
         int n_spCl,             // number of species-clusters
         int n_spSr,             // number of species-subregions
@@ -195,14 +202,14 @@ functions{
         // Slopes
           // Elevation
             // Linear
-              (mu_b1_relev + b1_relev_sp[data_slice[,9]]) .* relev[start:end] +   // The random coefficient terms are slower than they probably could be.  Right now we multiply n_tot coefficient values by n_tot covariate values, but there's a lot of redundancy here.
+              (mu_b1_relev + b1_relev_sp[data_slice[,9]]) .* relev[start:end] +   
             // Quadratic
               (mu_b1_relev2 + b1_relev2_sp[data_slice[,9]]) .* relev2[start:end] +
             // Lowland
               (b1_lowland*binary_contrasts)[data_slice[,15]] + b1_x_lowland_relev*lowland_x_relev[start:end] +
               b1_x_lowland_relev2*lowland_x_relev2[start:end] +
           // Pasture
-            (mu_b2_pasture + b2_pasture_sp[data_slice[,9]] + b2_pasture_fam[data_slice[,10]]) .* binary_contrasts[data_slice[,16]] +
+            (mu_b2_pasture + b2_pasture_sp[data_slice[,9]] + b2_pasture_fam[data_slice[,10]]) .* binary_contrasts[data_slice[,16]] + // The random coefficient terms are slower than they probably could be.  Right now we multiply n_tot coefficient values by n_tot covariate values, but there's a LOT of redundancy here.
           // Biogeography
             // Barriers
               (b3_mountain_barrier * binary_contrasts)[data_slice[,17]] + (b3_valley_barrier * binary_contrasts)[data_slice[,18]] +
@@ -302,10 +309,7 @@ data {
       int<lower=1> n_visit_max; // maximum number of visits to a point
   // main integer data
     int main_data[n_tot, 54];
-  // Continuous covariates (each with n_tot rows; some of these have redundancy and might be
-  // amenable to an indexing trick, but this requires passing both the vectors of
-  // unique values and the vectors of indices out to reduce_sum as data, and seems
-  // to slow things down despite eliminating a bunch of redundant multiplications)
+  // Continuous covariates
     vector[n_tot] distance_to_range;
     vector[n_tot] relev;
     vector[n_tot] relev2;
