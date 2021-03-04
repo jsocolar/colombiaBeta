@@ -387,20 +387,19 @@ mod_R_6_1 <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/s
 bird_stan_data6_package$data$grainsize <- 1
 mod6_1_samples <- mod_R_6_1$sample(data = bird_stan_data6_package$data, 
                                chains = 1,
-                               threads_per_chain = 2,
+                               threads_per_chain = 1,
                                refresh = 1,
-                               iter_sampling = 1500,
-                               iter_warmup = 1500,
+                               iter_sampling = 5,
+                               iter_warmup = 0,
                                save_warmup = T,
                                step_size = .0015,
                                max_treedepth = 1,
                                output_dir = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs",
-                               adapt_engaged = T)
+                               adapt_engaged = F)
 
 
 mod_R_7 <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/stan_files/full_colombia_model/occupancy_v7.stan",
                          cpp_options = list(stan_threads = TRUE))
-bird_stan_data7_package$data$grainsize <- 1
 mod7_samples <- mod_R_7$sample(data = bird_stan_data7_package$data, 
                                chains = 1,
                                threads_per_chain = 2,
@@ -419,7 +418,7 @@ mod_R_8 <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/sta
 bird_stan_data8_package$data$grainsize <- 1
 mod8_samples <- mod_R_8$sample(data = bird_stan_data8_package$data, 
                                chains = 1,
-                               threads_per_chain = 4,
+                               threads_per_chain = 3,
                                refresh = 1,
                                iter_sampling = 5,
                                iter_warmup = 0,
@@ -429,3 +428,21 @@ mod8_samples <- mod_R_8$sample(data = bird_stan_data8_package$data,
                                output_dir = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs",
                                adapt_engaged = F)
 mod8_samples$profiles()
+
+
+
+
+
+mod_R_9 <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/stan_files/full_colombia_model/occupancy_v9.stan",
+                         cpp_options = list(stan_threads = TRUE))
+mod9_samples <- mod_R_9$sample(data = bird_stan_data9_package$data, 
+                               chains = 1,
+                               threads_per_chain = 3,
+                               refresh = 1,
+                               iter_sampling = 5,
+                               iter_warmup = 0,
+                               save_warmup = T,
+                               step_size = .0015,
+                               max_treedepth = 1,
+                               output_dir = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs",
+                               adapt_engaged = F)

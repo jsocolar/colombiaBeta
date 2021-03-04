@@ -718,11 +718,138 @@ bird_standata8_means_and_sds <- list(time_mean = mean(c(birds$hps1, birds$hps2, 
                                      distance_to_range_logit_rescale = 4.7)
 bird_stan_data8_package <- list(data = bird_stan_data8,
                                 means_and_sds = bird_standata8_means_and_sds)
-saveRDS(bird_stan_data7_package, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data7_package.RDS")
+saveRDS(bird_stan_data8_package, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data8_package.RDS")
 
 
 
+##### Stan data 9 #####
+ec <- c(-1,1)
+
+grt <- function(predictor){
+  return(list(u = unique(predictor), id = match(predictor, unique(predictor))))
+}
+grt_b <- function(predictor){
+  if(sum(predictor != 1 & predictor != -1) != 0){stop('predictor must be effects coded')}
+  predictor[predictor == 1] <- 2
+  predictor[predictor == -1] <- 1
+  return(predictor)
+}
+
+grt_m <- function(predictor){
+  v <- as.vector(predictor)
+  u <- unique(v)
+  out <- matrix(match(v, u), ncol=ncol(predictor))
+  return(out)
+}
 
 
+bird_stan_data9 <- list(
+  # Grainsize for reduce_sum
+  grainsize = 1,
+  # Dimensions
+  # Random effects
+  n_spCl = length(unique(birds$sp_cl)),
+  n_spSr = length(unique(birds$sp_sr)),
+  n_sp = length(unique(birds$species)),
+  n_fam = length(unique(birds$Family)),
+  n_spObs = length(unique(as.vector(birds$sp_obs_matrix[!is.na(as.vector(birds$sp_obs_matrix))]))),
+  # Dataset size
+  n_tot = nrow(birds),
+  n_visit_max = max(birds$nv),
+  # Unique values sizes
+  n_relev = length(unique(birds$relev)),
+  n_relev2 = length(unique(birds$relev2)),
+  n_lowland_x_relev = length(unique(ec[birds$lowland+1] * birds$relev)),
+  n_lowland_x_relev2 = length(unique(ec[birds$lowland+1] * birds$relev2)),
+  n_elevMedian = length(unique(birds$elev_median_scaled)),
+  n_elevBreadth = length(unique(birds$elev_breadth_scaled)),
+  n_mass = length(unique(birds$log_mass_scaled)),
+  n_time = length(unique(as.vector(birds$time))),
+  # skip distance to range because it doesn't compress
+  n_elevMedian_x_forestPresent = length(unique(birds$elev_median_scaled * ec[birds$forest_present + 1])),
+  n_elevMedian_x_forestSpecialist = length(unique(birds$elev_median_scaled * ec[birds$forest_specialist + 1])),
+  n_elevMedian_x_pasture = length(unique(birds$elev_median_scaled * ec[birds$pasture + 1])),
+  n_elevBreadth_x_pasture = length(unique(birds$elev_breadth_scaled * ec[birds$pasture + 1])),
+  n_mass_x_pasture = length(unique(birds$log_mass_scaled * ec[birds$pasture + 1])),
+  n_elevMedian_x_forestPresent_x_pasture = length(unique(birds$elev_median_scaled * ec[birds$forest_present + 1] * ec[birds$pasture + 1])),
+  n_elevMedian_x_forestSpecialist_x_pasture = length(unique(birds$elev_median_scaled * ec[birds$forest_specialist + 1] * ec[birds$pasture + 1])),
+  n_time_x_elev = length(unique(as.vector(sweep(birds$time, MARGIN = 1, birds$elev_median_scaled, FUN = `*`)))),
+  # Integer data matrix
+  integer_data = data.frame(
+    # Detection data
+    det_data = birds$det_data,  # 1-4
+    # Q and nv
+    Q = birds$Q,               # 5
+    nv = birds$nv,             # 6
+    # Random effect IDs
+    id_spCl = as.numeric(as.factor(birds$sp_cl)),     # 7
+    id_spSr = as.numeric(as.factor(birds$sp_sr)),     # 8
+    id_sp = as.numeric(as.factor(birds$species)),     # 9
+    id_fam = as.numeric(as.factor(birds$Family)),     # 10
+    id_spObs = birds$sp_obs_matrix,                   # 11-14
+    # Covariate indices
+    lowland = grt_b(ec[birds$lowland+1]),             # 15
+    pasture = grt_b(ec[birds$pasture+1]),                          # 16
+    mountain_barrier = grt_b(ec[birds$mountain_limited+1]),        # 17
+    valley_barrier = grt_b(ec[birds$valley_limited+1]),            # 18
+    forestPresent = grt_b(ec[birds$forest_present+1]),             # 19
+    forestSpecialist = grt_b(ec[birds$forest_specialist+1]),       # 20
+    tfSpecialist = grt_b(ec[birds$tf_specialist+1]),               # 21
+    dryForestPresent = grt_b(ec[birds$dry_forest_present+1]),      # 22
+    floodDrySpecialist = grt_b(ec[birds$flood_dry_specialist+1]),  # 23
+    aridPresent = grt_b(ec[birds$arid_present+1]),                 # 24
+    migratory = grt_b(ec[as.numeric(!is.na(birds$start1))+1]),     # 25
+    dietInvert = grt_b(ec[as.numeric(birds$Diet.5Cat == "Invertebrate")+1]),    # 26
+    dietCarn = grt_b(ec[as.numeric(birds$Diet.5Cat == "VertFishScav")+1]),      # 27
+    dietFruitNect = grt_b(ec[as.numeric(birds$Diet.5Cat == "FruiNect")+1]),     # 28
+    dietGran = grt_b(ec[as.numeric(birds$Diet.5Cat == "PlantSeed")+1]),         # 29
+    mountainBarrier_x_pasture = grt_b(ec[birds$mountain_limited + 1] * ec[birds$pasture + 1]),        # 30
+    valleyBarrier_x_pasture = grt_b(ec[birds$valley_limited + 1] * ec[birds$pasture + 1]),            # 31
+    forestPresent_x_pasture = grt_b(ec[birds$forest_present + 1] * ec[birds$pasture + 1]),            # 32
+    forestSpecialist_x_pasture = grt_b(ec[birds$forest_specialist + 1] * ec[birds$pasture + 1]),      # 33
+    tfSpecialist_x_pasture = grt_b(ec[birds$tf_specialist + 1] * ec[birds$pasture + 1]),              # 34
+    dryForestPresent_x_pasture = grt_b(ec[birds$dry_forest_present + 1] * ec[birds$pasture + 1]),     # 35
+    floodDrySpecialist_x_pasture = grt_b(ec[birds$flood_dry_specialist + 1] * ec[birds$pasture + 1]), # 36
+    aridPresent_x_pasture = grt_b(ec[birds$arid_present + 1] * ec[birds$pasture + 1]),                # 37
+    migratory_x_pasture = grt_b(ec[as.numeric(!is.na(birds$start1))+1] * ec[birds$pasture + 1]),      # 38
+    dietInvert_x_pasture = grt_b(ec[as.numeric(birds$Diet.5Cat == "Invertebrate")+1] * ec[birds$pasture + 1]),   # 39
+    dietCarn_x_pasture = grt_b(ec[as.numeric(birds$Diet.5Cat == "VertFishScav")+1] * ec[birds$pasture + 1]),     # 40
+    dietFruitNect_x_pasture = grt_b(ec[as.numeric(birds$Diet.5Cat == "FruiNect")+1] * ec[birds$pasture + 1]),    # 41
+    dietGran_x_pasture = grt_b(ec[as.numeric(birds$Diet.5Cat == "PlantSeed")+1] * ec[birds$pasture + 1]),        # 42
+    obsSM = matrix(grt_b(ec[birds$obsSM+1]), ncol=4),   # 43-46
+    obsJG = matrix(grt_b(ec[birds$obsJG+1]), ncol=4),   # 47-50
+    obsDE = matrix(grt_b(ec[birds$obsDE+1]), ncol=4)    # 51-54
+  ),
+  # Continuous distance-to-range (does not compress well)
+  distance_to_range = as.vector(birds$distance_from_range_scaled2),
+  # continuous covariates
+  relev = birds$relev,
+  relev2 = birds$relev2,
+  lowland_x_relev = ec[birds$lowland+1] * birds$relev,
+  lowland_x_relev2 = ec[birds$lowland+1] * birds$relev2,
+  elevMedian = birds$elev_median_scaled,
+  elevBreadth = birds$elev_breadth_scaled,
+  mass = birds$log_mass_scaled,
+  elevMedian_x_forestPresent = birds$elev_median_scaled * ec[birds$forest_present + 1],
+  elevMedian_x_forestSpecialist = birds$elev_median_scaled * ec[birds$forest_specialist + 1],
+  elevMedian_x_pasture = birds$elev_median_scaled * ec[birds$pasture + 1],
+  elevBreadth_x_pasture = birds$elev_breadth_scaled * ec[birds$pasture + 1],
+  mass_x_pasture = birds$log_mass_scaled * ec[birds$pasture + 1],
+  elevMedian_x_forestPresent_x_pasture = birds$elev_median_scaled * ec[birds$forest_present + 1] * ec[birds$pasture + 1],
+  elevMedian_x_forestSpecialist_x_pasture = birds$elev_median_scaled * ec[birds$forest_specialist + 1] * ec[birds$pasture + 1],
+  time = birds$time,
+  time_x_elev = sweep(birds$time, MARGIN = 1, birds$elev_median_scaled, FUN = `*`)
+)
 
+bird_standata9_means_and_sds <- list(time_mean = mean(c(birds$hps1, birds$hps2, birds$hps3, birds$hps4), na.rm = T), 
+                                     time_sd =  sd(c(birds$hps1, birds$hps2, birds$hps3, birds$hps4), na.rm = T),
+                                     relev_offset = .5, relev_sd = sd(birds$elev_sp_standard),
+                                     elev_median_mean =  mean(birds$elev_median), elev_median_sd = sd(birds$elev_median),
+                                     elev_breadth_mean = mean(birds$elev_breadth), elev_breadth_sd = sd(birds$elev_breadth),
+                                     log_mass_mean = mean(log(birds$BodyMass.Value)), log_mass_sd = sd(log(birds$BodyMass.Value)), 
+                                     distance_to_range_offset = 0, distance_to_range_sd = sd(birds$distance_from_range), 
+                                     distance_to_range_logit_rescale = 4.7)
+bird_stan_data9_package <- list(data = bird_stan_data9,
+                                means_and_sds = bird_standata9_means_and_sds)
+saveRDS(bird_stan_data9_package, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data9_package.RDS")
 
