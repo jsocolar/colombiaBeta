@@ -302,9 +302,11 @@ data {
       int<lower=1> n_visit_max; // maximum number of visits to a point
   // main integer data
     int main_data[n_tot, 54];
-  // distance covariate
+  // Continuous covariates (each with n_tot rows; some of these have redundancy and might be
+  // amenable to an indexing trick, but this requires passing both the vectors of
+  // unique values and the vectors of indices out to reduce_sum as data, and seems
+  // to slow things down despite eliminating a bunch of redundant multiplications)
     vector[n_tot] distance_to_range;
-  // unique values
     vector[n_tot] relev;
     vector[n_tot] relev2;
     vector[n_tot] lowland_x_relev;

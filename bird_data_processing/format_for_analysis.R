@@ -634,20 +634,17 @@ bird_stan_data8 <- list(
   n_time_x_elev = length(unique(sweep(birds$time, MARGIN = 1, birds$elev_median_scaled, FUN = `*`))),
   
 
-    det_data = birds$det_data,
-    # Q and nv
-    Q = birds$Q,
-    nv = birds$nv,
-    # Random effect IDs
-    id_spCl = as.numeric(as.factor(birds$sp_cl)),
-    id_spSr = as.numeric(as.factor(birds$sp_sr)),
-    id_sp = as.numeric(as.factor(birds$species)),
-    id_fam = as.numeric(as.factor(birds$Family)),
-    id_spObs = birds$sp_obs_matrix,
+  det_data = birds$det_data,
+  # Q and nv
+  Q = birds$Q,
+  nv = birds$nv,
+  # Random effect IDs
+  id_spCl = as.numeric(as.factor(birds$sp_cl)),
+  id_spSr = as.numeric(as.factor(birds$sp_sr)),
+  id_sp = as.numeric(as.factor(birds$species)),
+  id_fam = as.numeric(as.factor(birds$Family)),
+  id_spObs = birds$sp_obs_matrix,
 
-  
-  
-  
   # Covariates
   relev = birds$relev,
   relev2 = birds$relev2,
