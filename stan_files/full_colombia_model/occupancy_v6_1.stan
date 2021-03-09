@@ -1,4 +1,4 @@
-// This is a Stan model for the full Colombia bird dataset, version 6.0
+// This is a Stan model for the full Colombia bird dataset, version 6.1
 // Changes:   Include spatial effect of subregion, include effect of observer:species
 //            Combined variances for spatial effects and taxonomic effects
 //            Remove effects of floodSpecialist

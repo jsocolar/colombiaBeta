@@ -8,6 +8,8 @@
 bird_surveys <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_current.RDS')
 
 # Get a matrix (actually a dataframe) of the distance from each species range to each sampling point.
+# This is just for checking whether to include a species in analysis, not for creating the distance-
+# to-range covariate.
 point_distances <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/point_distances/point_distances_biogeographic_clip_ayerbe.RDS")
 
 # Get a list of species with ranges overlapping our points
@@ -194,12 +196,16 @@ for(i in 1:length(sp_list)){  # this takes ~ 5 minutes
   points <- st_as_sf(birds[birds$species == sp, c("lon", "lat")], coords = c("lon", "lat"))
   st_crs(points) <- st_crs("WGS84")
   points <- st_transform(points, st_crs(ayerbe))
-  range_linestring_cropped <- range_linestring <- st_cast(ayerbe, "MULTILINESTRING")
-  inside <- as.numeric(as.numeric(st_distance(points, ayerbe)) == 0)
-  distance_inside <- -1 * st_distance(points, range_linestring_cropped)
-  distance_outside <- st_distance(points, range_linestring)
-  distances <- as.numeric(inside * distance_inside + (1 - inside) * distance_outside)
-  birds$distance_from_range[birds$species == sp] <- distances
+  range_linestring <- st_cast(ayerbe, "MULTILINESTRING")
+  range_linestring_cropped <- st_intersection(mainland_inward, range_linestring)
+  if(nrow(range_linestring_cropped) > 0){
+    inside <- as.numeric(as.numeric(st_distance(points, ayerbe)) == 0)
+    distance_inside <- -1 * st_distance(points, range_linestring_cropped)
+    distance_outside <- st_distance(points, range_linestring)
+    distances <- as.numeric(inside * distance_inside + (1 - inside) * distance_outside)
+  }else{
+    birds$distance_from_range[birds$species == sp] <- -2e-06
+  }
 }
 
 birds[which(birds$distance_from_range > 160000),]
@@ -228,16 +234,16 @@ range_data$dist_trans <- boot::inv.logit(range_data$distance_scaled*4)
 plot(logit_prop ~ dist_trans, data = range_data)
 
 fit_qual <- vector()
-for(i in 1:100){
+for(i in 1:400){
   range_data$dist_trans <- boot::inv.logit(range_data$distance_scaled*(1 + i/10))
   fit_qual[i] <- summary(lm(logit_prop ~ dist_trans, data = range_data))$adj.r.squared
 }
 plot(fit_qual)
 1 + which(fit_qual == max(fit_qual))/10
-range_data$dist_trans <- boot::inv.logit(range_data$distance_scaled*4.7)
+range_data$dist_trans <- boot::inv.logit(range_data$distance_scaled*11.3)
 plot(logit_prop ~ dist_trans, data = range_data)
 
-birds$distance_from_range_scaled2 <- boot::inv.logit(birds$distance_from_range_scaled*4.7)
+birds$distance_from_range_scaled2 <- boot::inv.logit(birds$distance_from_range_scaled*11.3)
 
 birds$sp_sr <- paste0(birds$species, "__", birds$subregion)
 birds$sp_obs1 <- paste0(birds$species, "__", birds$obs1)
@@ -384,7 +390,7 @@ bird_standata4_means_and_sds <- list(time_mean = time_mean, time_sd = time_sd,
                                      elev_median_mean = elev_median_mean, elev_median_sd = elev_median_sd,
                                      elev_breadth_mean = elev_breadth_mean, elev_breadth_sd = elev_breadth_sd,
                                      log_mass_mean = log_mass_mean, log_mass_sd = log_mass_sd, distance_to_range_offset = 0,
-                                     distance_to_range_sd = sd(birds$distance_from_range), distance_to_range_logit_rescale = 4.7)
+                                     distance_to_range_sd = sd(birds$distance_from_range), distance_to_range_logit_rescale = 11.3)
 bird_stan_data4_package_prelim <- list(data = bird_stan_data4,
                                 means_and_sds = bird_standata4_means_and_sds)
 
@@ -449,7 +455,7 @@ bird_standata6_means_and_sds <- list(time_mean = mean(c(birds$hps1, birds$hps2, 
                                      elev_breadth_mean = mean(birds$elev_breadth), elev_breadth_sd = sd(birds$elev_breadth),
                                      log_mass_mean = mean(log(birds$BodyMass.Value)), log_mass_sd = sd(log(birds$BodyMass.Value)), 
                                      distance_to_range_offset = 0, distance_to_range_sd = sd(birds$distance_from_range), 
-                                     distance_to_range_logit_rescale = 4.7)
+                                     distance_to_range_logit_rescale = 11.3)
 bird_stan_data6_package <- list(data = bird_stan_data6,
                                        means_and_sds = bird_standata6_means_and_sds)
 saveRDS(bird_stan_data6_package, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data6_package.RDS")
@@ -583,7 +589,7 @@ bird_standata7_means_and_sds <- list(time_mean = mean(c(birds$hps1, birds$hps2, 
                                      elev_breadth_mean = mean(birds$elev_breadth), elev_breadth_sd = sd(birds$elev_breadth),
                                      log_mass_mean = mean(log(birds$BodyMass.Value)), log_mass_sd = sd(log(birds$BodyMass.Value)), 
                                      distance_to_range_offset = 0, distance_to_range_sd = sd(birds$distance_from_range), 
-                                     distance_to_range_logit_rescale = 4.7)
+                                     distance_to_range_logit_rescale = 11.3)
 bird_stan_data7_package <- list(data = bird_stan_data7,
                                 means_and_sds = bird_standata7_means_and_sds)
 saveRDS(bird_stan_data7_package, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data7_package.RDS")
@@ -715,7 +721,7 @@ bird_standata8_means_and_sds <- list(time_mean = mean(c(birds$hps1, birds$hps2, 
                                      elev_breadth_mean = mean(birds$elev_breadth), elev_breadth_sd = sd(birds$elev_breadth),
                                      log_mass_mean = mean(log(birds$BodyMass.Value)), log_mass_sd = sd(log(birds$BodyMass.Value)), 
                                      distance_to_range_offset = 0, distance_to_range_sd = sd(birds$distance_from_range), 
-                                     distance_to_range_logit_rescale = 4.7)
+                                     distance_to_range_logit_rescale = 11.3)
 bird_stan_data8_package <- list(data = bird_stan_data8,
                                 means_and_sds = bird_standata8_means_and_sds)
 saveRDS(bird_stan_data8_package, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data8_package.RDS")
@@ -848,7 +854,7 @@ bird_standata9_means_and_sds <- list(time_mean = mean(c(birds$hps1, birds$hps2, 
                                      elev_breadth_mean = mean(birds$elev_breadth), elev_breadth_sd = sd(birds$elev_breadth),
                                      log_mass_mean = mean(log(birds$BodyMass.Value)), log_mass_sd = sd(log(birds$BodyMass.Value)), 
                                      distance_to_range_offset = 0, distance_to_range_sd = sd(birds$distance_from_range), 
-                                     distance_to_range_logit_rescale = 4.7)
+                                     distance_to_range_logit_rescale = 11.3)
 bird_stan_data9_package <- list(data = bird_stan_data9,
                                 means_and_sds = bird_standata9_means_and_sds)
 saveRDS(bird_stan_data9_package, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data9_package.RDS")

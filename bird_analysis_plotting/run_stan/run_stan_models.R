@@ -387,7 +387,7 @@ mod_R_6_1 <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/s
 bird_stan_data6_package$data$grainsize <- 1
 mod6_1_samples <- mod_R_6_1$sample(data = bird_stan_data6_package$data, 
                                chains = 1,
-                               threads_per_chain = 1,
+                               threads_per_chain = 4,
                                refresh = 1,
                                iter_sampling = 5,
                                iter_warmup = 0,
@@ -418,7 +418,7 @@ mod_R_8 <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/sta
 bird_stan_data8_package$data$grainsize <- 1
 mod8_samples <- mod_R_8$sample(data = bird_stan_data8_package$data, 
                                chains = 1,
-                               threads_per_chain = 3,
+                               threads_per_chain = 2,
                                refresh = 1,
                                iter_sampling = 5,
                                iter_warmup = 0,
@@ -437,7 +437,7 @@ mod_R_9 <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/sta
                          cpp_options = list(stan_threads = TRUE))
 mod9_samples <- mod_R_9$sample(data = bird_stan_data9_package$data, 
                                chains = 1,
-                               threads_per_chain = 3,
+                               threads_per_chain = 4,
                                refresh = 1,
                                iter_sampling = 5,
                                iter_warmup = 0,

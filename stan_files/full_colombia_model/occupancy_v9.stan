@@ -1,6 +1,6 @@
 // This is a Stan model for the full Colombia bird dataset, version 9.0, which is built on 7.0
 // Changes:   switching to slice the occupancy intercept
-//            better naming of data containers; using matrix for all continuous data
+//            better naming of data containers
 
 functions{
     matrix rt_mat(
