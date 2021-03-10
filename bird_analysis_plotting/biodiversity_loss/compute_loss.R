@@ -3,8 +3,10 @@
 
 # A helper function
 avg_logratio <- function(fp_pp_i){
-  fp_i <- fp_pp_i[1:ncol(fp)]
-  pp_i <- fp_pp_i[(ncol(fp)+1):(2*ncol(fp))]
+  n_col <- length(fp_pp_i)/2
+  if(n_col != round(n_col)){stop("dimension error in fp_pp_i: expected even number of columns")}
+  fp_i <- fp_pp_i[1:n_col]
+  pp_i <- fp_pp_i[(n_col+1):(2*n_col)]
   incl <- ((fp_i) >= cutoff_use) | ((pp_i) >= cutoff_use)
   fp_inc <- fp_i[incl]
   pp_inc <- pp_i[incl]
