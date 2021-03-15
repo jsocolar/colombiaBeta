@@ -74,7 +74,7 @@ for(i in 1:length(sp_list)){
 }
 
 
-##### Predict occupancy across Colombia
+##### Predict occupancy across Colombia #####
 raster_elev_AEA <- raster::raster("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev_AEA.grd")
 elev_df <- raster::as.data.frame(raster_elev_AEA, xy = T) 
 elev_df$cell_id <- 1:nrow(elev_df)
