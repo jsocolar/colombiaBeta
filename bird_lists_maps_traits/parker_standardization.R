@@ -1524,7 +1524,7 @@ for(i in 1:nrow(hp2)){
   }
 }
 
-# All cases where BirdLife does not give identical habitat preferences for the split taxa are checked by hand # STILL TO BE DONE
+# All cases where BirdLife does not give identical habitat preferences for the split taxa are checked by hand
 hp2[hp2$HBW == "Psittacara frontatus", c('F7', 'F8')] <- ""
 hp2[hp2$HBW == "Arremon franciscanus", 'F1'] <- ""; hp2[hp2$HBW == "Arremon franciscanus", c('F7', 'N1')] <- "Y"
 hp2[hp2$HBW == "Atlapetes melanopsis", 'N3'] <- "Y"
