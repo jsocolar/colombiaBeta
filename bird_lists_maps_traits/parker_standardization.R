@@ -5,9 +5,6 @@
 # Then we match names in Parker to names in HBW, first by automatically handling exact name matches to either 
 # HBW or Clements (we already have a HBW/Clements lookup table), then by hand.
 
-
-# Status of script: need to finish populating final table with correct data from parker
-
 ##### Script dependencies: nf_species_list.R, birdlife_scraper.R, species_lists.R  #####
 
 library(sf)
