@@ -400,6 +400,7 @@ mod6_1_samples <- mod_R_6_1$sample(data = bird_stan_data6_package$data,
 
 mod_R_7 <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/stan_files/full_colombia_model/occupancy_v7.stan",
                          cpp_options = list(stan_threads = TRUE))
+bird_stan_data7_package <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data7_package.RDS")
 mod7_samples <- mod_R_7$sample(data = bird_stan_data7_package$data, 
                                chains = 1,
                                threads_per_chain = 2,
@@ -432,17 +433,17 @@ mod8_samples$profiles()
 
 
 
-
+bird_stan_data9_package <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data9_package.RDS")
 mod_R_9 <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/stan_files/full_colombia_model/occupancy_v9.stan",
                          cpp_options = list(stan_threads = TRUE))
 mod9_samples <- mod_R_9$sample(data = bird_stan_data9_package$data, 
-                               chains = 1,
-                               threads_per_chain = 4,
+                               chains = 2,
+                               threads_per_chain = 2,
                                refresh = 1,
-                               iter_sampling = 5,
-                               iter_warmup = 0,
+                               iter_sampling = 1500,
+                               iter_warmup = 1500,
                                save_warmup = T,
                                step_size = .0015,
-                               max_treedepth = 1,
+                               max_treedepth = 9,
                                output_dir = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs",
-                               adapt_engaged = F)
+                               adapt_engaged = T)
