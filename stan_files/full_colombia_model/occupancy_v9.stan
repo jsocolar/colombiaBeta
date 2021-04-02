@@ -24,7 +24,7 @@ functions{
           int start,             // the starting row of the data slice
           int end,              // the ending row of the data slice  
       // main data  
-        int[,] integer_data,      // slice of data array
+        int[,] integer_data,      // data array
       // numbers of random effect levels
         int n_spCl,             // number of species-clusters
         int n_spSr,             // number of species-subregions

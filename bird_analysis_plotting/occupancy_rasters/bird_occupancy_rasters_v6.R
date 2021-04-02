@@ -1,5 +1,10 @@
 ##### Predict occupancy across Colombia #####
 
+# Still need to do: assign each cell a subregion value on a 20-km grid and simulate within this and/or
+# integrate over this.
+
+
+
 raster_elev_AEA <- raster::raster("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev_AEA.grd")
 
 elev_df <- raster::as.data.frame(raster_elev_AEA, xy = T) 
