@@ -5,14 +5,14 @@
 // function to form a matrix with the same dimensions as ind, whose elements i,j are given by cov_u[ind[i,j]].
 // This strategy for vectorizing the operation is due to Juho Timonen in Stan Slack post on 3 March 2021.
 functions{
-    matrix rt_mat(
+  matrix rt_mat(
     int r, // number of rows
     int c, // number of columns
     int[,] ind, // indices
     vector cov_u // unique covariate values
   ){
     int a_flat[r*c] = to_array_1d(ind);
-    matrix[r,c] out = to_matrix(cov_u[a_flat], r, c);
+    matrix[r,c] out = to_matrix(cov_u[a_flat], r, c, 0);
     return(out);
   }
   
@@ -163,7 +163,6 @@ functions{
   ){   // End function arguments, begin computation
     // indexing variables
       int len = 1 + end - start;
-      int r0 = start - 1;
     // data slice
       int data_slice[len,54] = integer_data[start:end,];
     // generate binary contrasts vector
@@ -180,8 +179,8 @@ functions{
       vector[len] logit_theta_vector; // vectorizable part of logit_theta
       matrix[len, n_visit_max] logit_theta_matrix;  // visit-specific logit_theta terms
       matrix[len, n_visit_max] obsSM = rt_mat(len, n_visit_max, data_slice[,43:46], d2_obsSM * binary_contrasts);
-      matrix[len, n_visit_max] obsDE = rt_mat(len, n_visit_max, data_slice[,47:50], d2_obsDE * binary_contrasts);
-      matrix[len, n_visit_max] obsJG = rt_mat(len, n_visit_max, data_slice[,51:54], d2_obsJG * binary_contrasts);
+      matrix[len, n_visit_max] obsJG = rt_mat(len, n_visit_max, data_slice[,47:50], d2_obsJG * binary_contrasts);
+      matrix[len, n_visit_max] obsDE = rt_mat(len, n_visit_max, data_slice[,51:54], d2_obsDE * binary_contrasts);
 
     // Computation:
       logit_psi =

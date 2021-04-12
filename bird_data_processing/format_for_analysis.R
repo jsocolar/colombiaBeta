@@ -29,37 +29,68 @@ which(bird_surveys$species_names %ni% species_list)
 
 # Extract detection array and pad with zeros for all never-detected species in species_list
 det_array <- bird_surveys$detection_array[,1:4,]
-det_array_padded <- abind::abind(det_array, array(data = 0, dim = c(848, 4, length(species_list) - dim(det_array)[3])), along = 3)
+det_array_padded <- abind::abind(det_array, array(data = 0, 
+                                                  dim = c(dim(det_array)[1], 
+                                                                    dim(det_array)[2],
+                                                                    length(species_list) - dim(det_array)[3])), 
+                                                  along = 3)
 
 # Species names for det_array_padded
 species_names <- c(bird_surveys$species_names, species_list[species_list %ni% bird_surveys$species_names])
 
 # Create flattened data object, where each species-point gets its own row
-nrow_flat <- sum(point_distances == 0)
+point_distances_include_2 <- point_distances_include[, match(bird_surveys$point_names, names(point_distances_include))]
 
-flattened_data <- as.data.frame(matrix(data = 0, nrow = nrow_flat, ncol = 6))
-names(flattened_data) <- c('species', 'point', 'v1', 'v2', 'v3', 'v4')
+i <- 1
+species <- species_list[i]
+det_array_ind <- which(species_names == species)
 
-counter <- 0
-for(i in 1:length(species_list)){
+
+flattened_data <- data.frame(species = rep(species, length(bird_surveys$point_names)),
+                             point = bird_surveys$point_names,
+                             v1 = 0,
+                             v2 = 0,
+                             v3 = 0,
+                             v4 = 0,
+                             distance = as.numeric(point_distances_include_2[i,]))
+
+
+for(i in 2:length(species_list)){
   print(i)
   species <- species_list[i]
   det_array_ind <- which(species_names == species)
-  for(j in 1:length(bird_surveys$point_names)){
-    point <- bird_surveys$point_names[j]
-    if(point_distances_include[i, which(names(point_distances_include) == point)] == 0){
-      counter <- counter + 1
-      flattened_data$species[counter] <- species
-      flattened_data$point[counter] <- point
-      if(det_array_ind <= dim(det_array)[3]){
-        flattened_data[counter, 3:6] <- det_array[j, , det_array_ind]
-      }
-    }
+  
+  if(det_array_ind <= dim(det_array)[3]){
+    fd_i <- data.frame(species = rep(species, length(bird_surveys$point_names)),
+                                         point = bird_surveys$point_names,
+                                         v1 = det_array[,1,det_array_ind],
+                                         v2 = det_array[,2,det_array_ind],
+                                         v3 = det_array[,3,det_array_ind],
+                                         v4 = det_array[,4,det_array_ind],
+                                         distance = as.numeric(point_distances_include_2[i,]))
+  }else{
+    fd_i <- data.frame(species = rep(species, length(bird_surveys$point_names)),
+                       point = bird_surveys$point_names,
+                       v1 = 0,
+                       v2 = 0,
+                       v3 = 0,
+                       v4 = 0,
+                       distance = as.numeric(point_distances_include_2[i,]))
   }
+  
+  flattened_data <- rbind(flattened_data, fd_i)
 }
-# saveRDS(flattened_data, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data.RDS")
-flattened_data <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data.RDS")
 
+sum(flattened_data$v1 == 1 & flattened_data$distance > 0)
+sum(flattened_data$v2 == 1 & flattened_data$distance > 0)
+sum(flattened_data$v3 == 1 & flattened_data$distance > 0, na.rm = T)
+sum(flattened_data$v4 == 1 & flattened_data$distance > 0, na.rm = T)
+
+flattened_data <- flattened_data[flattened_data$distance == 0, c('species', 'point', 'v1', 'v2', 'v3', 'v4')]
+rownames(flattened_data) <- NULL
+
+saveRDS(flattened_data, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data_current.RDS")
+flattened_data <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/flattened_data_current.RDS")
 # Column for whether the species is ever detected at the point
 flattened_data$Q <- as.numeric(rowSums(flattened_data[,3:6], na.rm = T) > 0)
 
@@ -165,7 +196,7 @@ birds$obsSM <- matrix(as.numeric(c(birds$obs1 == "SCM", birds$obs2 == "SCM", bir
 birds$obsSM[is.na(birds$obsSM)] <- 0
 birds$obsDE <- matrix(as.numeric(c(birds$obs1 == "DPE", birds$obs2 == "DPE", birds$obs3 == "DPE", birds$obs4 == "DPE")), ncol = 4)
 birds$obsDE[is.na(birds$obsDE)] <- 0
-birds$obsJG <- matrix(as.numeric(c(birds$obs1 == "JJG", birds$obs2 == "JJG", birds$obs3 == "JJG", birds$obs4 == "JJG")), ncol = 4)
+birds$obsJG <- matrix(as.numeric(c(birds$obs1 %in% c("JJG", "OC"), birds$obs2 %in% c("JJG", "OC"), birds$obs3 %in% c("JJG", "OC"), birds$obs4 %in% c("JJG", "OC"))), ncol = 4)
 birds$obsJG[is.na(birds$obsJG)] <- 0
 birds$time <- matrix((scale(c(birds$hps1, birds$hps2, birds$hps3, birds$hps4))), ncol = 4)
 birds$time[is.na(birds$time)] <- 0  # these zeros correspond to visits that don't actually exist
@@ -203,6 +234,7 @@ for(i in 1:length(sp_list)){  # this takes ~ 5 minutes
     distance_inside <- -1 * st_distance(points, range_linestring_cropped)
     distance_outside <- st_distance(points, range_linestring)
     distances <- as.numeric(inside * distance_inside + (1 - inside) * distance_outside)
+    birds$distance_from_range[birds$species == sp] <- distances
   }else{
     birds$distance_from_range[birds$species == sp] <- -2e-06
   }

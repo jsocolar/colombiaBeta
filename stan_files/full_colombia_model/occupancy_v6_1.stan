@@ -213,7 +213,6 @@ functions{
   ){   // End function arguments, begin computation
     // indexing variables
       int len = 1 + end - start;
-      int r0 = start - 1;
     // slices of Q and nv
       int Q_slice[len] = Q[start:end];
       int nv_slice[len] = nv[start:end];

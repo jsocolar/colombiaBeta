@@ -438,6 +438,7 @@ mod_R_9 <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/sta
                          cpp_options = list(stan_threads = TRUE))
 mod9_samples <- mod_R_9$sample(data = bird_stan_data9_package$data, 
                                chains = 2,
+                               parallel_chains = 2,
                                threads_per_chain = 2,
                                refresh = 1,
                                iter_sampling = 1500,
@@ -446,4 +447,5 @@ mod9_samples <- mod_R_9$sample(data = bird_stan_data9_package$data,
                                step_size = .0015,
                                max_treedepth = 9,
                                output_dir = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs",
+                               inv_metric = v6_2$inv_metric[[1]],
                                adapt_engaged = T)
