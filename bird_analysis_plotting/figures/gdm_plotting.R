@@ -1,7 +1,7 @@
 library(gdm)
 dev.off()
 birds_raw <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/gdm_outputs/birds/gdms_raw_raup.RDS")
-birds_modeled <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/gdm_outputs/birds/gdms_modeled.RDS")
+birds_modeled <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/gdm_outputs/birds/gdms_modeled_v6.RDS")
 
 ispline_q_extract <- function(model_list, predictor, p_quantile){
   spline_list <- lapply(model_list, isplineExtract)

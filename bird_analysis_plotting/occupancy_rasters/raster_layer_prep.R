@@ -3,6 +3,7 @@
 
 library(sf)
 library(reticulate)
+library(raster)
 
 `%ni%` <- Negate(`%in%`)
 AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
@@ -36,7 +37,7 @@ raster_elev_AEA <- raster::projectRaster(raster_elev, crs = sp::CRS(AEAstring))
 # Crop
 source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/GIS_processing/get_mainland.R")
 mainland <- st_transform(mainland, AEAstring)
-raster_elev_AEA <- crop(raster("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev_AEA.grd"), extent(mainland))
+raster_elev_AEA <- crop(raster_elev_AEA, extent(mainland))
 # Save raster
 raster::writeRaster(raster_elev, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev.grd", overwrite = T)
 raster::writeRaster(raster_elev_AEA, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev_AEA.grd", overwrite = T)
@@ -49,9 +50,9 @@ pb <- txtProgressBar(min = 0, max = length(ayerbe_buffered_ranges_updated), init
 for(i in 1:length(ayerbe_buffered_ranges_updated)){
   setTxtProgressBar(pb,i)
   ayerbe_raster <- fasterize::fasterize(st_sf(st_union(ayerbe_list_updated[[i]])), raster_elev_AEA)
-  raster::writeRaster(ayerbe_raster, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/regular/', names(ayerbe_list_updated)[i], '.grd'), overwrite = T)
+  raster::writeRaster(ayerbe_raster, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/regular/', names(ayerbe_list_updated)[i], '.grd'))
   ayerbe_buffer_raster <- fasterize::fasterize(st_sf(ayerbe_buffered_ranges_updated[[i]]), raster_elev_AEA)
-  raster::writeRaster(ayerbe_buffer_raster, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/buffered/', names(ayerbe_list_updated)[i], '_buffered.grd'), overwrite = T)
+  raster::writeRaster(ayerbe_buffer_raster, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/buffered/', names(ayerbe_list_updated)[i], '_buffered.grd'))
 }
 
 ##### Distance-to-range raster for each species #####
@@ -67,12 +68,19 @@ birds <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.
 dtr_offset <-bird_data$means_and_sds$distance_to_range_offset
 dtr_sd <- bird_data$means_and_sds$distance_to_range_sd
 dtr_rescale <- bird_data$means_and_sds$distance_to_range_logit_rescale
-points <- st_as_sf(raster::coordinates(raster_elev_AEA, spatial = T)) # For reasons that I don't understand, it is more than an order of magnitude 
-# faster to get the distances under the AEA projection than under epsg 4326.
-indices_m <- st_intersects(points, mainland, sparse = F)
-indices_n <- 1 - indices_m
-points_m <- points[indices_m,]
-points_n <- points[indices_n,]
+
+# get all points
+raster_elev_AEA <- raster::raster("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev_AEA.grd")
+pfd <- raster::as.data.frame(raster_elev_AEA, xy=T)
+
+# now keep track of point indices that don't require distances
+mask_raster <- raster::raster("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/mask_raster/mask.grd")
+mdf <- raster::as.data.frame(mask_raster, xy=T)
+all.equal(mdf[,c("x","y")], pfd[,c("x","y")])
+points <- st_as_sf(raster::coordinates(raster_elev_AEA, spatial = T))
+
+indices_include <- is.na(mdf$layer) & st_intersects(points, mainland, sparse = F)
+
 coords <- st_coordinates(points)
 sp_list <- unique(birds$species)
 
@@ -80,6 +88,12 @@ pb <- txtProgressBar(min = 0, max = length(sp_list), initial = 0, style = 3)
 for(i in 1:length(sp_list)){
   setTxtProgressBar(pb,i)
   sp <- sp_list[i]
+  ayerbe_buffer_polygon <- st_union(ayerbe_buffered_ranges_updated[[gsub("_", " ", sp)]])
+  indices_sp <- st_intersects(points, ayerbe_buffer_polygon, sparse = F)
+  indices_m <- which(indices_sp & indices_include)
+  
+  points_m <- points[indices_m,]
+
   ayerbe_polygon <- st_union(ayerbe_list_updated[[gsub("_", " ", sp)]])
   range_linestring <- st_cast(ayerbe_polygon, "MULTILINESTRING")
   range_linestring_cropped <- st_intersection(mainland_inward, range_linestring)  
@@ -98,3 +112,38 @@ for(i in 1:length(sp_list)){
   ayerbe_dist_raster_i <- raster::rasterFromXYZ(td_df,crs=AEAstring)
   raster::writeRaster(ayerbe_dist_raster_i, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/transformed_distance/', sp_list[i], '.grd'), overwrite = T)
 }
+
+
+pb <- txtProgressBar(min = 0, max = length(sp_list), initial = 0, style = 3) 
+for(i in 1:length(sp_list)){
+  setTxtProgressBar(pb,i)
+  sp <- sp_list[i]
+  ayerbe_buffer_polygon <- st_union(ayerbe_buffered_ranges_updated[[gsub("_", " ", sp)]])
+  indices_sp <- st_intersects(points, ayerbe_buffer_polygon, sparse = F)
+  indices_m <- which(indices_sp)
+  
+  points_m <- points[indices_m,]
+  
+  ayerbe_polygon <- st_union(ayerbe_list_updated[[gsub("_", " ", sp)]])
+  range_linestring <- st_cast(ayerbe_polygon, "MULTILINESTRING")
+  range_linestring_cropped <- st_intersection(mainland_inward, range_linestring)  
+  inside <- as.numeric(as.numeric(st_distance(points_m, ayerbe_polygon)) == 0)
+  if(nrow(range_linestring_cropped) > 0){
+    distance_inside <- -1*st_distance(points_m[as.logical(inside),], range_linestring_cropped)
+  }else{
+    distance_inside <- rep(-2e+06, sum(inside))
+  }
+  distance_outside <- st_distance(points_m[!inside,], range_linestring)
+  distances <- rep(NA, nrow(points))
+  distances[indices_m][as.logical(inside)] <- distance_inside
+  distances[indices_m][!inside] <- distance_outside
+  transformed_distances <- boot::inv.logit(dtr_rescale*(distances - dtr_offset)/dtr_sd)
+  td_df <- cbind(coords, transformed_distances)
+  ayerbe_dist_raster_i <- raster::rasterFromXYZ(td_df,crs=AEAstring)
+  raster::writeRaster(ayerbe_dist_raster_i, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/transformed_distance_unmasked/', sp_list[i], '.grd'), overwrite = T)
+}
+
+
+
+
+

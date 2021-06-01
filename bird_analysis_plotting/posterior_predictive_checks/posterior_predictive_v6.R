@@ -32,18 +32,10 @@
 source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/bird_analysis_plotting/get_posterior/get_posterior_z_v6.R")
 source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/bird_analysis_plotting/posterior_predictive_checks/discrepancy_functions.R")
 
-##### Data import #####
-# Run commented code once to load in the cmdstan CSV file, covert to draws_dataframe, and save
-# v6 <- read_cmdstan_csv("/Users/jacobsocolar/Downloads/occupancy_v6_threads-202102151131-1-5f9d48.csv")
-# draws <- posterior::as_draws_df(v6$post_warmup_draws[1:620,,])
-# saveRDS(draws, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/v6_draws/draws.RDS")
-# rm(v6)
-# gc()
-
 # Read in data
 bird_data <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data6_package.RDS")
 birds <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.RDS")
-draws <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/v6_draws/draws.RDS")
+draws <- posterior::as_draws_df(readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/v9_final/draws.RDS"))
 
 # create z_info object for computing posterior Z (see get_posterior_z.R)
 z_info <- data.frame(bird_data$data[8:41])
@@ -61,16 +53,18 @@ bd3_pasture <- bd3[bd3$pasture == 1, ]
 
 ##### Perform posterior predictive checks #####
 n_rep <- 100 # number of posterior iterations to use
+rep_indices <- ceiling((nrow(draws)/n_rep)*(1:n_rep))
+draws <- draws[rep_indices,]
 
 # Create containers for the output
 qsum_rep_include_post <- qsum_rep_resample_margin <- rep(0,n_rep)
 mackenzie_bailey_counts <- matrix(nrow = n_rep, ncol = 16)
-dist_threshold <- c(5e3, 1e4, 2e4, 5e4, 1e5)
+dist_threshold <- threshold <- c(5e3, 1e4, 2e4, 5e4, 1e5)
 jcs_rs <- jcs_forest_rs <- jcs_pasture_rs <-  jcs_p <- rep(list(matrix(nrow=n_rep, ncol=length(species_list))), length(dist_threshold))
-
+gc()
 for(i in 1:n_rep){
   print(i)
-  iter = 6*i
+  iter <- i
   
   # Simulate data replicates
     # including spatial terms
@@ -147,9 +141,6 @@ for(i in 1:n_rep){
 }
 
 ######
-
-
-
 hist(qsum_rep_include_post)
 hist(qsum_rep_resample_margin)
 sum(birds$Q)
@@ -241,6 +232,7 @@ for(k in 1:length(threshold)){
   
   hist(ng, main = paste("all", threshold[k]))
   print(c(threshold[k], sum(ng>.95)))
+  print(c(threshold[k], sum(ng<.05)))
   # hist(ng_forest, main = paste("forest", threshold[k]))
   # hist(ng_pasture, main = paste("pasture", threshold[k]))
   
@@ -256,27 +248,31 @@ for(k in 1:length(threshold)){
 
 
 # sum of q in forest and pasture by species
-forest_q <- pasture_q <- vector()
+all_q <- forest_q <- pasture_q <- vector()
 bd2 <- data.frame(species = z_info$species, id_sp = z_info$id_sp, pasture = birds$pasture,
-                  cl_q_real = cq_real[z_info$id_spCl])
+                  cl_q_real = z_info$cl_q_real)
 bd3 <- bd2[!duplicated(z_info$id_spCl),]
 bd4_forest <- bd3[bd3$pasture == 0, ]
 bd4_pasture <- bd3[bd3$pasture == 1, ]
 for(i in 1:length(species_list)){
   species <- species_list[i]
   
+  # all 
+  bd_sp <- bd3[bd3$species == species, ]
+  all_q[i] <- sum(bd_sp$cl_q_real)
+  
   # forest
-  bd_sp <- bd4_forest[bd4_forest$species == species,]
+  bd_sp <- bd4_forest[bd4_forest$species == species, ]
   forest_q[i] <- sum(bd_sp$cl_q_real)
   
   # pasture
-  bd_sp <- bd4_pasture[bd4_pasture$species == species,]
+  bd_sp <- bd4_pasture[bd4_pasture$species == species, ]
   pasture_q[i] <- sum(bd_sp$cl_q_real)
 }
 
 plot()
 
-plot(ng_forest ~ forest_q[ilist_forest], ylab = "rep_prop_greater", xlab = "n", main = "fitted clusters")
+plot(ng ~ all_q[all_q > 1], ylab = "rep_prop_greater", xlab = "n", main = "fitted clusters")
 points(ng_pasture ~ pasture_q[ilist_pasture], col = "red")
 abline(h = .95)
 abline(h = .05)

@@ -1,6 +1,7 @@
 ##### Script dependencies: coord_processing.R, GEE_setup.sh, bird_import_and_cleaning.R #####
 
 library(reticulate)
+library(sf)
 
 `%ni%` <- Negate(`%in%`)
 

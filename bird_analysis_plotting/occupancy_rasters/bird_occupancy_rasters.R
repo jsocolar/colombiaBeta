@@ -56,13 +56,28 @@ birds <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.
 dtr_mean <- mean(birds$distance_from_range)
 dtr_sd <- sd(birds$distance_from_range)
 
-points <- st_as_sf(raster::coordinates(raster_elev_AEA, spatial = T)) # For reasons that I don't understand, it is more than an order of magnitude 
+points_for_dist <- raster_elev_AEA
+mask_raster <- raster::raster("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/mask_raster/mask.grd")
+points_for_dist[mask_raster == 1] <- NA
+
+pfd <- raster::as.data.frame(points_for_dist, xy=T)
+pfd <- pfd[!is.na(pfd$layer),]
+
+pfd2 <- raster::coordinates(raster_elev_AEA, spatial = T)
+
+all.equal(pfd2@coords[,1], pfd$x)
+all.equal(pfd2@coords[,2], pfd$y)
+
+
+points <- st_as_sf(pfd2[!is.na(pfd$layer), ]) # For reasons that I don't understand, it is more than an order of magnitude 
 # faster to get the distances under the AEA projection than under epsg 4326.
+
+
 coords <- st_coordinates(points)
 sp_list <- unique(birds$species)
 
 pb <- txtProgressBar(min = 0, max = length(sp_list), initial = 0, style = 3) 
-for(i in 1:length(sp_list)){
+for(i in 220:length(sp_list)){
   setTxtProgressBar(pb,i)
   sp <- sp_list[i]
   ayerbe_polygon <- st_union(ayerbe_list_updated[[gsub("_", " ", sp)]])

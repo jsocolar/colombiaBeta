@@ -1,136 +1,114 @@
 library(sf)
 library(reticulate)
+library(raster)
 
 `%ni%` <- Negate(`%in%`)
 AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
-
-##### Set up GEE session #####
+##### Get elevation raster across Colombia #####
+# Set up GEE session
 use_condaenv('gee_interface', conda = "auto", required = TRUE) # point reticulate to the conda environment created in GEE_setup.sh
 ee <- import("ee")          # Import the Earth Engine library
 ee$Initialize()             # Trigger the authentication
 np <- import("numpy")       # Import Numpy        needed for converting gee raster to R raster object
 pd <- import("pandas")      # Import Pandas       ditto the above
+# Get elevations for Colombia
 countries <- ee$FeatureCollection('USDOS/LSIB_SIMPLE/2017')
 roi <- countries$filterMetadata('country_na', 'equals', 'Colombia')  
 DEM_full <- ee$Image("JAXA/ALOS/AW3D30/V2_2")
 DEM <- DEM_full$select(list("AVE_DSM"),list("elevation"))
 latlng <- ee$Image$pixelLonLat()$addBands(DEM)
 latlng <- latlng$reduceRegion(reducer = ee$Reducer$toList(),
-                                geometry = roi,
-                                maxPixels = 10^9,
-                                scale=1000)
-  
+                              geometry = roi,
+                              maxPixels = 10^9,
+                              scale=2000)
 # Convert to arrays
 lats <- np$array((ee$Array(latlng$get("latitude"))$getInfo()))
 lngs <- np$array((ee$Array(latlng$get("longitude"))$getInfo()))
 elevs <- np$array((ee$Array(latlng$get("elevation"))$getInfo()))
-  
 # Convert to elevation raster
 elevation <- data.frame(x = lngs, y = lats, elevation = elevs)
 raster_elev <- raster::rasterFromXYZ(elevation,crs="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
-
+# Reproject
 raster_elev_AEA <- raster::projectRaster(raster_elev, crs = sp::CRS(AEAstring))
-
+# Crop
+source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/GIS_processing/get_mainland.R")
+mainland <- st_transform(mainland, AEAstring)
+raster_elev_AEA <- crop(raster_elev_AEA, extent(mainland))
+# Save raster
 raster::writeRaster(raster_elev, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev.grd", overwrite = T)
 raster::writeRaster(raster_elev_AEA, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev_AEA.grd", overwrite = T)
 
-###### Rasterize the Ayerbe maps
+
+##### Rasterize the Ayerbe maps #####
 ayerbe_list_updated <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_list_updated.RDS')
 ayerbe_buffered_ranges_updated <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_buffered_ranges_updated.RDS")
 
+pb <- txtProgressBar(min = 0, max = length(ayerbe_buffered_ranges_updated), initial = 0, style = 3) 
 for(i in 1:length(ayerbe_buffered_ranges_updated)){
-  if(floor(i/10) == i/10){print(i)}
-  ayerbe_raster <- fasterize::fasterize(st_transform(st_sf(st_union(ayerbe_list_updated[[i]])), 4326), raster_elev)
-  raster::writeRaster(ayerbe_raster, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/regular/', names(ayerbe_list_updated)[i], '.grd'))
-  ayerbe_buffer_raster <- fasterize::fasterize(st_transform(st_sf(ayerbe_buffered_ranges_updated[[i]]), 4326), raster_elev)
-  raster::writeRaster(ayerbe_buffer_raster, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/buffered/', names(ayerbe_list_updated)[i], '_buffered.grd'))
+  setTxtProgressBar(pb,i)
+  ayerbe_raster <- fasterize::fasterize(st_sf(st_union(ayerbe_list_updated[[i]])), raster_elev_AEA)
+  raster::writeRaster(ayerbe_raster, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/regular/', names(ayerbe_list_updated)[i], '.grd'), overwrite = T)
+  ayerbe_buffer_raster <- fasterize::fasterize(st_sf(ayerbe_buffered_ranges_updated[[i]]), raster_elev_AEA)
+  raster::writeRaster(ayerbe_buffer_raster, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/buffered/', names(ayerbe_list_updated)[i], '_buffered.grd'), overwrite = T)
 }
 
-completeness_prop <- raster::as.data.frame(raster_elev, xy = T)
-completeness_prop$recorded_1elev <- completeness_prop$present_1elev <- completeness_prop$recorded_buffer_1elev <- completeness_prop$present_buffer_1elev <- 
-  completeness_prop$recorded_2elev <- completeness_prop$present_2elev <- completeness_prop$recorded_buffer_2elev <- completeness_prop$present_buffer_2elev <- 
-  completeness_prop$fullsp_noelev <- completeness_prop$allsp_noelev <- completeness_prop$recordedsp_noelev <- 0
 
-
+##### Get the completeness proportion #####
 species_names <- gsub(" ", "_", names(ayerbe_list_updated))
 
 birds <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_data_trimmed.RDS")
-traitdata <- birds[!duplicated(birds$species),]
-traitdata$elev2_lower <- traitdata$lower - (traitdata$upper - traitdata$lower)
-traitdata$elev2_upper <- traitdata$upper + (traitdata$upper - traitdata$lower)
-all_species <- traitdata$species
+traits <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/traits.RDS")
+all_species <- unique(birds$species)
 recorded_species <- unique(birds$species[birds$Q == 1])
 elevations <- completeness_prop$elevation
 elevations[is.na(elevations)] <- -99999
+
+completeness_prop <- raster::as.data.frame(raster_elev_AEA, xy = T)
+completeness_prop$recorded_1elev <- completeness_prop$all_1elev <- completeness_prop$full_1elev <- 0
 
 for(i in 1:length(species_names)){
   print(i)
   species <- species_names[i]
   ayerbe_raster <- raster::raster(paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/regular/', gsub("_", " ", species), '.grd'))
-  raster_df <- raster::as.data.frame(ayerbe_raster)
+  raster_df <- raster::as.data.frame(ayerbe_raster, xy = T)
   raster_df$layer[is.na(raster_df$layer)] <- 0
-  completeness_prop$fullsp_noelev <- completeness_prop$fullsp_noelev + raster_df$layer
-  if(species %in% all_species){completeness_prop$allsp_noelev <- completeness_prop$allsp_noelev + raster_df$layer}
-  if(species %in% recorded_species){completeness_prop$recordedsp_noelev <- completeness_prop$recordedsp_noelev + raster_df$layer}
   
+  td <- traits[traits$latin_underscore == species, ]
+  raster_df$layer[(elevations < td$lower) | (td$upper < elevations)] <- 0
   
-  if(species %in% all_species){
-    td <- traitdata[traitdata$species == species, ]
-    raster_df$layer[(elevations < td$elev2_lower) | (td$elev2_upper < elevations)] <- 0
-    completeness_prop$present_2elev <- completeness_prop$present_2elev + raster_df$layer
-    if(species %in% recorded_species){
-      completeness_prop$recorded_2elev <- completeness_prop$recorded_2elev + raster_df$layer
-    }
-    raster_df$layer[(elevations < td$lower) | (td$upper < elevations)] <- 0
-    completeness_prop$present_1elev <- completeness_prop$present_1elev + raster_df$layer
-    if(species %in% recorded_species){
-      completeness_prop$recorded_1elev <- completeness_prop$recorded_1elev + raster_df$layer
-    }
-    
-    ayerbe_raster_buffer <- raster::raster(paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/buffered/', gsub("_", " ", species), '_buffered.grd'))
-    raster_df <- raster::as.data.frame(ayerbe_raster_buffer)
-    raster_df$layer[is.na(raster_df$layer)] <- 0
-    raster_df$layer[(elevations < td$elev2_lower) | (td$elev2_upper < elevations)] <- 0
-    completeness_prop$present_buffer_2elev <- completeness_prop$present_buffer_2elev + raster_df$layer
-    if(species %in% recorded_species){
-      completeness_prop$recorded_buffer_2elev <- completeness_prop$recorded_buffer_2elev + raster_df$layer
-    }
-    raster_df$layer[(elevations < td$lower) | (td$upper < elevations)] <- 0
-    completeness_prop$present_buffer_1elev <- completeness_prop$present_buffer_1elev + raster_df$layer
-    if(species %in% recorded_species){
-      completeness_prop$recorded_buffer_1elev <- completeness_prop$recorded_buffer_1elev + raster_df$layer
-    }
-  }
+  completeness_prop$full_1elev <- completeness_prop$full_1elev + raster_df$layer
+  if(species %in% all_species){completeness_prop$all_1elev <- completeness_prop$all_1elev + raster_df$layer}
+  if(species %in% recorded_species){completeness_prop$recorded_1elev <- completeness_prop$recorded_1elev + raster_df$layer}
 }
 
 saveRDS(completeness_prop, file = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/sample_completeness/completeness_prop.RDS")
 
 completeness_prop <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/sample_completeness/completeness_prop.RDS")
 
-recorded_over_full <- cbind(completeness_prop$x, completeness_prop$y, completeness_prop$recordedsp_noelev/completeness_prop$fullsp_noelev)
+recorded_over_full <- cbind(completeness_prop$x, completeness_prop$y, completeness_prop$recorded_1elev/completeness_prop$full_1elev)
 recorded_over_full_raster <- raster::rasterFromXYZ(recorded_over_full)
 raster::plot(recorded_over_full_raster)
 
-recorded_over_all <- cbind(completeness_prop$x, completeness_prop$y, completeness_prop$recordedsp_noelev/completeness_prop$allsp_noelev)
-recorded_over_all_raster <- raster::rasterFromXYZ(recorded_over_all)
-raster::plot(recorded_over_all_raster)
-
-all_over_full <- cbind(completeness_prop$x, completeness_prop$y, completeness_prop$allsp_noelev/completeness_prop$fullsp_noelev)
-all_over_full_raster <- raster::rasterFromXYZ(all_over_full)
-raster::plot(all_over_full_raster)
-
-
-
-recorded1_over_present1 <- cbind(completeness_prop$x, completeness_prop$y, completeness_prop$recorded_1elev/completeness_prop$present_1elev)
-recorded1_over_present1_raster <- raster::rasterFromXYZ(recorded1_over_present1)
-raster::plot(recorded1_over_present1_raster)
-
 breaks <- seq(0,1,.01)
-col=c(rep("gray90", 63), viridis::viridis(37))
 
-raster::plot(recorded1_over_present1_raster, col=col, breaks = breaks)
+mask_raster <- raster::raster("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/mask_raster/mask.grd")
 
+recorded_over_full_raster2 <- recorded_over_full_raster
+recorded_over_full_raster2[mask_raster == 1] <- NA
+recorded_over_full_raster2[is.na(raster_elev_AEA)] <- NA
+
+raster::plot(recorded_over_full_raster2, col=viridis::viridis(100), breaks = breaks)
+
+richness <- cbind(completeness_prop$x, completeness_prop$y, completeness_prop$full_1elev)
+richness_raster <- raster::rasterFromXYZ(richness)
+raster::plot(richness_raster)
+
+
+################################################
+
+sum(raster::as.data.frame(recorded_over_full_raster2)$layer > .6, na.rm = T)/sum(!is.na(raster::as.data.frame(recorded_over_full_raster2)$layer))
+raster::plot(raster_elev_AEA)
 
 
 recorded2_over_present2 <- cbind(completeness_prop$x, completeness_prop$y, completeness_prop$recorded_2elev/completeness_prop$present_2elev)

@@ -163,29 +163,26 @@ gdms_raw <- list(forest_obs = forest_gdm_obs, pasture_obs = pasture_gdm_obs, for
 saveRDS(gdms_raw, file = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/gdm_outputs/birds/gdms_raw.RDS")
     
 ##### Modeled data GDM #####
-# v5 <- cmdstanr::read_cmdstan_csv("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/v5_first_run/occupancy_v5_threads-202012282018-1-261afe.csv")
-# draws <- posterior::as_draws_df(v5$post_warmup_draws[1:2000,,])
-# saveRDS(draws, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/temporary/v5_draws.RDS")
-draws <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/temporary/v5_draws.RDS")
-    
-bird_data <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data4_package.RDS")
-z_info <- data.frame(bird_data$data[8:43])
+draws <- posterior::as_draws_df(readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/v6_3_draws/draws_version_6_3.RDS"))
+
+bird_data <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data6_package.RDS")
+z_info <- data.frame(bird_data$data[8:41])
 z_info$point <- birds$point
 z_info$species <- birds$species
     
-# source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/bird_analysis_plotting/get_posterior/get_posterior_z_v5.R")
-# source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/bird_analysis_plotting/posterior_predictive_checks/discrepancy_functions.R")
-# Z_rep <- list()
-# for(i in 1:100){
-#   print(i)
-#   iter = 20*i
-#   Z_probs_include <- get_Z_probs(draws, iter, z_info, cluster_effect = "include")
-#   Z_rep[[i]] <- data.frame(point = Z_probs_include$point, species = Z_probs_include$species, 
-#                            Z = rbinom(nrow(Z_probs_include), 1, Z_probs_include$Z_prob))
-# }
-#     
-# saveRDS(Z_rep, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/temporary/v5_Zreps.RDS")
-Z_rep <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/temporary/v5_Zreps.RDS")
+source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/bird_analysis_plotting/get_posterior/get_posterior_z_v6.R")
+source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/bird_analysis_plotting/posterior_predictive_checks/discrepancy_functions.R")
+Z_rep <- list()
+for(i in 1:100){
+  print(i)
+  iter = 5*i
+  Z_probs_include <- get_Z_probs(draws, iter, z_info, spatial_effect = "include")
+  Z_rep[[i]] <- data.frame(point = Z_probs_include$point, species = Z_probs_include$species,
+                           Z = rbinom(nrow(Z_probs_include), 1, Z_probs_include$Z_prob))
+}
+
+saveRDS(Z_rep, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/temporary/v6_Zreps.RDS")
+Z_rep <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/temporary/v6_Zreps.RDS")
     
 forest_gdm_rep <- pasture_gdm_rep <- list()
 for(k in 1:100){ # k indexes the posterior iteration
@@ -275,7 +272,7 @@ for(k in 1:100){ # k indexes the posterior iteration
 }
 
 gdms_modeled <- list(forest_gdm_rep_bb = forest_gdm_rep, pasture_gdm_rep_bb = pasture_gdm_rep)
-saveRDS(gdms_modeled, file = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/gdm_outputs/birds/gdms_modeled.RDS")
+saveRDS(gdms_modeled, file = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/gdm_outputs/birds/gdms_modeled_v6.RDS")
 
 
 

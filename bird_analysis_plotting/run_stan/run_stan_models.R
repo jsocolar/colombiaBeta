@@ -437,6 +437,27 @@ bird_stan_data9_package <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Da
 mod_R_9 <- cmdstan_model("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/stan_files/full_colombia_model/occupancy_v9.stan",
                          cpp_options = list(stan_threads = TRUE))
 mod9_samples <- mod_R_9$sample(data = bird_stan_data9_package$data, 
+                               chains = 1,
+                               parallel_chains = 1,
+                               threads_per_chain = 2,
+                               refresh = 1,
+                               iter_sampling = 1,
+                               iter_warmup = 1,
+                               save_warmup = T,
+                               step_size = .0015,
+                               max_treedepth = 2,
+                               output_dir = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs",
+                              # inv_metric = v6_2$inv_metric[[1]],
+                               adapt_engaged = T)
+
+
+
+
+bird_stan_data9_1_package <- readRDS("/Users/jacob/Dropbox/Work/Colombia/Data/Analysis/Current_data/bird_stan_data9_1_package.RDS")
+mod_R_9 <- cmdstan_model("/Users/jacob/Dropbox/Work/Code/colombiaBeta/stan_files/full_colombia_model/occupancy_v9.stan",
+                         cpp_options = list(stan_threads = TRUE))
+set.seed(123)
+mod9_samples <- mod_R_9$sample(data = bird_stan_data9_1_package$data, 
                                chains = 2,
                                parallel_chains = 2,
                                threads_per_chain = 2,
@@ -446,6 +467,8 @@ mod9_samples <- mod_R_9$sample(data = bird_stan_data9_package$data,
                                save_warmup = T,
                                step_size = .0015,
                                max_treedepth = 9,
-                               output_dir = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs",
-                               inv_metric = v6_2$inv_metric[[1]],
+                               output_dir = "/Users/jacob/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs",
+                               inv_metric = bird_stan_data9_1_package$inv_metric,
                                adapt_engaged = T)
+
+
