@@ -10,14 +10,14 @@ source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/bird_analysis_plottin
 forest_probs_integrated <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v6_predictions/iteration_4000/forest_probs_integrated.RDS")
 pasture_probs_integrated <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v6_predictions/iteration_4000/pasture_probs_integrated.RDS")
 
-forest_probs_semi <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v6_predictions/iteration_4000/forest_probs_semi.RDS")
-pasture_probs_semi <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v6_predictions/iteration_4000/pasture_probs_semi.RDS")
+# forest_probs_semi <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v6_predictions/iteration_4000/forest_probs_semi.RDS")
+# pasture_probs_semi <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v6_predictions/iteration_4000/pasture_probs_semi.RDS")
+# 
+# forest_probs_rep <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v6_predictions/iteration_4000/forest_probs_rep.RDS")
+# pasture_probs_rep <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v6_predictions/iteration_4000/pasture_probs_rep.RDS")
 
-forest_probs_rep <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v6_predictions/iteration_4000/forest_probs_rep.RDS")
-pasture_probs_rep <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/v6_predictions/iteration_4000/pasture_probs_rep.RDS")
-
-forest_probs <- forest_probs_rep[, 1:1618]
-pasture_probs <- pasture_probs_rep[, 1:1618]
+forest_probs <- forest_probs_integrated[, 1:1618]
+pasture_probs <- pasture_probs_integrated[, 1:1618]
 
 forest_probs_points <- sf::st_as_sf(forest_probs [,1:3], coords = c("x", "y"), crs = AEAstring)
 use_points <- !sf::st_intersects(forest_probs_points, llanos_amazon, sparse = F)
@@ -26,20 +26,25 @@ forest_probs <- forest_probs[use_points,]
 pasture_probs <- pasture_probs[use_points,]
 
 # Get pointwise average logratios (average across species) for all points
-cell_logratios <- get_avg_cell_logratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.5)
+cell_ratios <- get_avg_cell_ratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.2)
 # Get regional (Colombia-wide) logratio (average across species)
-colombia_logratio <- get_regional_logratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.5, cell_positions = NULL)
+colombia_ratio <- get_regional_ratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.2, cell_positions = NULL)
 
 ##### Colombia-wide comparison #####
-mean(cell_logratios$med_logratio, na.rm = T)
-colombia_logratio
+mean(cell_ratios$med_logratio, na.rm = T)
+colombia_ratio
+
+mean(exp(cell_ratios$med_logratio), na.rm = T)
+exp(mean(cell_ratios$med_logratio, na.rm = T))
+exp(colombia_ratio$med_logratio)
+
 
 # Map the local averages
-cell_logratios_df <- data.frame(x=forest_probs$x, y = forest_probs$y, logratio=cell_logratios$avg_logratio)
+cell_logratios_df <- data.frame(x=forest_probs$x, y = forest_probs$y, logratio=cell_ratios$avg_logratio)
 cell_logratios_raster <- rasterFromXYZ(cell_logratios_df)
 plot(cell_logratios_raster)
 # Map species richness
-cell_richness_df <- data.frame(x=forest_probs$x, y=forest_probs$y, richness = cell_logratios$n)
+cell_richness_df <- data.frame(x=forest_probs$x, y=forest_probs$y, richness = cell_ratios$n)
 cell_richness_raster <- raster::rasterFromXYZ(cell_richness_df)
 raster::plot(cell_richness_raster)
 
@@ -156,12 +161,12 @@ cell_pointwise_logratios_4 <- cell_logratios_4 <- cell_richness_4 <- cell_pointw
 cell_pointwise_logratios_4_expanded <- cell_logratios_4_expanded <- rep(NA, nrow(points))
 for(i in 1:length(uc_4)){
   print(i)
-  grl <- get_regional_logratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.2, cell_positions = which(cells_4 == uc_4[i]))
+  grl <- get_regional_ratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.2, cell_positions = which(cells_4 == uc_4[i]))
   cell_logratios_4[i] <- grl$med_logratio
   cell_richness_4[i] <- grl$n
   cell_logratios_4_expanded[which(cells_4 == uc_4[i])] <- cell_logratios_4[i]
-  cell_pointwise_logratios_4[i] <- mean(cell_logratios$med_logratio[which(cells_4 == uc_4[i])], na.rm=T)
-  cell_pointwise_richness_4[i] <- mean(cell_logratios$n[cells_4 == uc_4[i] & !is.na(cell_logratios$avg_logratio)])
+  cell_pointwise_logratios_4[i] <- mean(cell_ratios$med_logratio[which(cells_4 == uc_4[i])], na.rm=T)
+  cell_pointwise_richness_4[i] <- mean(cell_ratios$n[cells_4 == uc_4[i] & !is.na(cell_ratios$avg_logratio)])
   
   cell_pointwise_logratios_4_expanded[which(cells_4 == uc_4[i])] <- cell_pointwise_logratios_4[i]
   cell_numbers_4[i] <- sum(cells_4 == uc_4[i])
@@ -174,12 +179,12 @@ cell_pointwise_logratios_7 <- cell_logratios_7 <- cell_richness_7 <- cell_pointw
 cell_pointwise_logratios_7_expanded <- cell_logratios_7_expanded <-  rep(NA, nrow(points))
 for(i in 1:length(uc_7)){
   print(i)
-  grl <- get_regional_logratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.2, cell_positions = which(cells_7 == uc_7[i]))
+  grl <- get_regional_ratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.2, cell_positions = which(cells_7 == uc_7[i]))
   cell_logratios_7[i] <- grl$med_logratio
   cell_richness_7[i] <- grl$n
   cell_logratios_7_expanded[which(cells_7 == uc_7[i])] <- cell_logratios_7[i]
-  cell_pointwise_logratios_7[i] <- mean(cell_logratios$med_logratio[which(cells_7 == uc_7[i])], na.rm=T)
-  cell_pointwise_richness_7[i] <- mean(cell_logratios$n[cells_7 == uc_7[i] & !is.na(cell_logratios$avg_logratio)])
+  cell_pointwise_logratios_7[i] <- mean(cell_ratios$med_logratio[which(cells_7 == uc_7[i])], na.rm=T)
+  cell_pointwise_richness_7[i] <- mean(cell_ratios$n[cells_7 == uc_7[i] & !is.na(cell_ratios$avg_logratio)])
   
   cell_pointwise_logratios_7_expanded[which(cells_7 == uc_7[i])] <- cell_pointwise_logratios_7[i]
   cell_numbers_7[i] <- sum(cells_7 == uc_7[i])
@@ -192,12 +197,12 @@ cell_pointwise_logratios_10 <- cell_logratios_10 <- cell_richness_10 <- cell_poi
 cell_pointwise_logratios_10_expanded <- cell_logratios_10_expanded <-  rep(NA, nrow(points))
 for(i in 1:length(uc_10)){
   print(i)
-  grl <- get_regional_logratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.2, cell_positions = which(cells_10 == uc_10[i]))
+  grl <- get_regional_ratios(forest_probs, pasture_probs, cutoff_type="absolute", cutoff=.2, cell_positions = which(cells_10 == uc_10[i]))
   cell_logratios_10[i] <- grl$med_logratio
   cell_richness_10[i] <- grl$n
   cell_logratios_10_expanded[which(cells_10 == uc_10[i])] <- cell_logratios_10[i]
-  cell_pointwise_logratios_10[i] <- mean(cell_logratios$med_logratio[which(cells_10 == uc_10[i])], na.rm=T)
-  cell_pointwise_richness_10[i] <- mean(cell_logratios$n[cells_10 == uc_10[i] & !is.na(cell_logratios$avg_logratio)])
+  cell_pointwise_logratios_10[i] <- mean(cell_ratios$med_logratio[which(cells_10 == uc_10[i])], na.rm=T)
+  cell_pointwise_richness_10[i] <- mean(cell_ratios$n[cells_10 == uc_10[i] & !is.na(cell_ratios$avg_logratio)])
   
   cell_pointwise_logratios_10_expanded[which(cells_10 == uc_10[i])] <- cell_pointwise_logratios_10[i]
   cell_numbers_10[i] <- sum(cells_10 == uc_10[i])
@@ -284,7 +289,7 @@ f <- (cell_richness_4/cell_pointwise_richness_4)
 # b <- (cell_richness_9/cell_pointwise_richness_9)
 
 
-plot(a ~ b, xlim = c(1, 15), ylim = c(-2,2))
+plot(a ~ b, xlim = c(1, 8), ylim = c(-.5,1.5))
 points(c ~ d, col = "red")
 points(e ~ f, col = "blue")
 # points(4.3, .38, col = "green")

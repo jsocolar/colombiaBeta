@@ -5,7 +5,7 @@
 # Mackenzie-Bailey:
 #   1111 underpredicts
 #   1000 good
-#   0100 good
+#   0100 underpredicts
 #   0010 good
 #   0001 underpredicts
 #   1100 overpredicts
@@ -13,11 +13,11 @@
 #   1001 overpredicts
 #   0110 overpredicts
 #   0101 overpredicts
-#   0011 overpredicts
+#   0011 borderline overpredicts
 #   1110 overpredicts
 #   1101 overpredicts
 #   1011 overpredicts
-#   0111 underpredicts
+#   0111 borderline underpredicts
 #   0000 good
 # Join count statistics of the data: failed
 # gdm effect size estimates
@@ -35,7 +35,7 @@ source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/bird_analysis_plottin
 # Read in data
 bird_data <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data6_package.RDS")
 birds <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.RDS")
-draws <- posterior::as_draws_df(readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/v9_final/draws.RDS"))
+draws <- posterior::as_draws_df(readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/v9_final/draws_thinned_500.RDS"))
 
 # create z_info object for computing posterior Z (see get_posterior_z.R)
 z_info <- data.frame(bird_data$data[8:41])
@@ -48,7 +48,7 @@ species_list <- unique(birds$species)
 bd2 <- data.frame(species = birds$species, id_sp = z_info$id_sp, id_spCl = z_info$id_spCl,
                   lon = birds$lon, lat = birds$lat, pasture = z_info$pasture, cl_q_real = z_info$cl_q_real)
 bd3 <- bd2[!duplicated(bd2$id_spCl),]
-bd3_forest <- bd3[bd3$pasture == 0, ]
+bd3_forest <- bd3[bd3$pasture == -1, ]
 bd3_pasture <- bd3[bd3$pasture == 1, ]
 
 ##### Perform posterior predictive checks #####
@@ -84,7 +84,7 @@ for(i in 1:n_rep){
   # Join count stats--posterior
   cq_include_post <- cluster_q(z_info, data_rep_include$post) # summarize simulated detection at the cluster level
   DRIP <- data_rep_include$post[!duplicated(bd2$id_spCl)] # DRIP = Data Rep Include Post
-  DRIP_forest <- DRIP[bd3$pasture == 0]
+  DRIP_forest <- DRIP[bd3$pasture == -1]
   DRIP_pasture <- DRIP[bd3$pasture == 1]
   for(j in 1:length(species_list)){
     species <- species_list[j]
@@ -103,7 +103,7 @@ for(i in 1:n_rep){
   # Join count stats--mixed
   cq_resample_mixed <- cluster_q(z_info, data_rep_resample$mixed) # summarize simulated detection at the cluster level
   DRRM <- data_rep_resample$mixed[!duplicated(bd2$id_spCl)] # DRRM = Data Rep Resample Mixed
-  DRRM_forest <- DRRM[bd3$pasture == 0]
+  DRRM_forest <- DRRM[bd3$pasture == -1]
   DRRM_pasture <- DRRM[bd3$pasture == 1]
   for(j in 1:length(species_list)){
     species <- species_list[j]
@@ -141,9 +141,9 @@ for(i in 1:n_rep){
 }
 
 ######
+sum(birds$Q)
 hist(qsum_rep_include_post)
 hist(qsum_rep_resample_margin)
-sum(birds$Q)
 mean(qsum_rep_include_post > sum(birds$Q))
 mean(qsum_rep_resample_margin > sum(birds$Q))
 
@@ -166,7 +166,7 @@ bd2 <- data.frame(species = birds$species, id_sp = z_info$id_sp, id_spCl = z_inf
                   lon = birds$lon, lat = birds$lat, pasture = z_info$pasture, cl_q_real = z_info$cl_q_real)
 
 bd3 <- bd2[!duplicated(bd2$id_spCl),]
-bd3_forest <- bd3[bd3$pasture == 0, ]
+bd3_forest <- bd3[bd3$pasture == -1, ]
 bd3_pasture <- bd3[bd3$pasture == 1, ]
 
 for(j in 1:length(species_list)){
@@ -252,7 +252,7 @@ all_q <- forest_q <- pasture_q <- vector()
 bd2 <- data.frame(species = z_info$species, id_sp = z_info$id_sp, pasture = birds$pasture,
                   cl_q_real = z_info$cl_q_real)
 bd3 <- bd2[!duplicated(z_info$id_spCl),]
-bd4_forest <- bd3[bd3$pasture == 0, ]
+bd4_forest <- bd3[bd3$pasture == -1, ]
 bd4_pasture <- bd3[bd3$pasture == 1, ]
 for(i in 1:length(species_list)){
   species <- species_list[i]

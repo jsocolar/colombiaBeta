@@ -4,6 +4,7 @@ library(gdm)
 library(sf)
 library(gtools)
 library(raster)
+library(betapart)
 
 ##### Formating covariates #####
 # load bird dataset and restrict to points with a detection
@@ -163,7 +164,7 @@ gdms_raw <- list(forest_obs = forest_gdm_obs, pasture_obs = pasture_gdm_obs, for
 saveRDS(gdms_raw, file = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/gdm_outputs/birds/gdms_raw.RDS")
     
 ##### Modeled data GDM #####
-draws <- posterior::as_draws_df(readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/v6_3_draws/draws_version_6_3.RDS"))
+draws <- posterior::as_draws_df(readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/v9_final/draws_thinned_500.RDS"))
 
 bird_data <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data6_package.RDS")
 z_info <- data.frame(bird_data$data[8:41])
@@ -357,6 +358,131 @@ saveRDS(gdms_raw_turnover, file = "/Users/jacobsocolar/Dropbox/Work/Colombia/Dat
 
 
 
+#################
+##### Modeled data: Turnover #####
+
+forest_gdm_bb <-  pasture_gdm_bb <- list()
+for(k in 1:100){ # k indexes the posterior iteration
+  print(k)
+  
+  
+  birds3 <- birds[Z_rep[[k]]$Z == 1, ]
+  birds_f <- birds3[birds3$pasture == 0, c("species", "point", "lat", "lon")]
+  birds_p <- birds3[birds3$pasture == 1, c("species", "point", "lat", "lon")]
+  birdpts_f <- birdpts_f_stable[birdpts_f_stable$point %in% birds_f$point,] # exclude points with no detections
+  birdpts_p <- birdpts_p_stable[birdpts_p_stable$point %in% birds_p$point,] # exclude points with no detections
+  # forest
+  points_f <- birdpts_f$point
+  montane_matrix_f <- matrix(data = 0, nrow = length(points_f), ncol = length(points_f))
+  for(i in 1:length(points_f)){
+    for(j in 1:length(points_f)){
+      if(birdpts_f$east[i] != birdpts_f$east[j]){
+        montane_matrix_f[i,j] <- (4100 - max(birdpts_f$elev_ALOS[i], birdpts_f$elev_ALOS[j]))
+      }
+    }
+  }
+  montane_barrier_f <- cbind(points_f, data.frame(montane_matrix_f))
+  names(montane_barrier_f)[1] <- "point"
+  valley_matrix_f <- matrix(data = 0, nrow = length(points_f), ncol = length(points_f))
+  for(i in 1:length(points_f)){
+    for(j in 1:length(points_f)){
+      if(birdpts_f$range[i] != birdpts_f$range[j]){
+        valley_matrix_f[i,j] <- (min(birdpts_f$elev_ALOS[i], birdpts_f$elev_ALOS[j]))
+      }
+    }
+  }
+  valley_barrier_f <- cbind(points_f, data.frame(valley_matrix_f))
+  names(valley_barrier_f)[1] <- "point"
+  # pasture
+  points_p <- birdpts_p$point
+  montane_matrix_p <- matrix(data = 0, nrow = length(points_p), ncol = length(points_p))
+  for(i in 1:length(points_p)){
+    for(j in 1:length(points_p)){
+      if(birdpts_p$east[i] != birdpts_p$east[j]){
+        montane_matrix_p[i,j] <- (4100 - max(birdpts_p$elev_ALOS[i], birdpts_p$elev_ALOS[j]))
+      }
+    }
+  }
+  montane_barrier_p <- cbind(points_p, data.frame(montane_matrix_p))
+  names(montane_barrier_p)[1] <- "point"
+  valley_matrix_p <- matrix(data = 0, nrow = length(points_p), ncol = length(points_p))
+  for(i in 1:length(points_p)){
+    for(j in 1:length(points_p)){
+      if(birdpts_p$range[i] != birdpts_p$range[j]){
+        valley_matrix_p[i,j] <- (min(birdpts_p$elev_ALOS[i], birdpts_p$elev_ALOS[j]))
+      }
+    }
+  }
+  valley_barrier_p <- cbind(points_p, data.frame(valley_matrix_p))
+  names(valley_barrier_p)[1] <- "point"
+  
+  
+  
+  # Format site-pair tables for forest and pasture
+  bird_spp_f <- unique(birds_f$species)
+  birds_matrix_f <- matrix(data=0, nrow=nrow(birdpts_f), ncol = length(bird_spp_f))
+  birds_matrix_f[cbind(match(birds_f$point, birdpts_f$point), match(birds_f$species, bird_spp_f))] <- 1
+  forest_betapart <- beta.pair(birds_matrix_f)
+  bird_format3_f <- cbind(birdpts_f$point, as.matrix(forest_betapart$beta.sim))
+  colnames(bird_format3_f)[1] <- "point"
+  
+  bird_spp_p <- unique(birds_p$species)
+  birds_matrix_p <- matrix(data=0, nrow=nrow(birdpts_p), ncol = length(bird_spp_p))
+  birds_matrix_p[cbind(match(birds_p$point, birdpts_p$point), match(birds_p$species, bird_spp_p))] <- 1
+  pasture_betapart <- beta.pair(birds_matrix_p)
+  bird_format3_p <- cbind(birdpts_p$point, as.matrix(pasture_betapart$beta.sim))
+  colnames(bird_format3_p)[1] <- "point"
+  
+  
+  gdmTab_f <- formatsitepair(bird_format3_f, bioFormat=3, XColumn="lon", YColumn="lat",
+                             sppColumn="species", siteColumn="point", 
+                             predData = birdpts_f[,c("point", "lat", "lon", "elev_ALOS", "precip_ceccherini")],
+                             distPreds = list(montane_barrier_f=montane_barrier_f, valley_barrier_f=valley_barrier_f))
+  gdmTab_p <- formatsitepair(bird_format3_p, bioFormat=3, XColumn="lon", YColumn="lat",
+                             sppColumn="species", siteColumn="point", 
+                             predData = birdpts_p[,c("point", "lat", "lon", "elev_ALOS", "precip_ceccherini")],
+                             distPreds = list(montane_barrier_p=montane_barrier_p, valley_barrier_p=valley_barrier_p))
+  
+  
+  
+  # Fit GDM for forest points
+  #   Observed data
+  forest_gdm_obs <- gdm(gdmTab_f, geo = T)
+  #   bayesian bootstrap resample
+  n1 <- paste0(gdmTab_f$s1.xCoord, "_", gdmTab_f$s1.yCoord)
+  n2 <- paste0(gdmTab_f$s2.xCoord, "_", gdmTab_f$s2.yCoord)
+  s_all <- unique(c(n1,n2))
+  s1 <- match(n1, s_all)
+  s2 <- match(n2, s_all)
+  withweights_f <- gdmTab_f
+
+
+    site_weights_f <- rdirichlet(1, rep(1, length(points_f)))
+    pair_weights_f <- site_weights_f[s1] * site_weights_f[s2]
+    withweights_f$weights <- pair_weights_f
+    forest_gdm_bb[[k]] <- gdm(withweights_f, geo = T)
+  
+  # Fit GDM for pasture points
+  #   Observed data
+  pasture_gdm_obs <- gdm(gdmTab_p, geo = T)
+  #   bayesian bootstrap resample
+  n1 <- paste0(gdmTab_p$s1.xCoord, "_", gdmTab_p$s1.yCoord)
+  n2 <- paste0(gdmTab_p$s2.xCoord, "_", gdmTab_p$s2.yCoord)
+  s_all <- unique(c(n1,n2))
+  s1 <- match(n1, s_all)
+  s2 <- match(n2, s_all)
+  withweights_p <- gdmTab_p
+  
+
+    site_weights_p <- rdirichlet(1, rep(1, length(points_p)))
+    pair_weights_p <- site_weights_p[s1] * site_weights_p[s2]
+    withweights_p$weights <- pair_weights_p
+    pasture_gdm_bb[[k]] <- gdm(withweights_p, geo = T)
+  
+}
+
+gdms_modeled_simpsons <- list(forest_gdm_rep_bb = forest_gdm_bb, pasture_gdm_rep_bb = pasture_gdm_bb)
+saveRDS(gdms_modeled_simpsons, file = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/gdm_outputs/birds/gdms_modeled_simpsons_v6.RDS")
 
 
 
@@ -439,9 +565,6 @@ for(i in 1:100){
 
 gdms_raw_raup <- list(forest_obs = forest_gdm_obs, pasture_obs = pasture_gdm_obs, forest_bb = forest_gdm_bb, pasture_bb = pasture_gdm_bb)
 saveRDS(gdms_raw_raup, file = "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/gdm_outputs/birds/gdms_raw_raup.RDS")
-
-
-
 
 
 #############

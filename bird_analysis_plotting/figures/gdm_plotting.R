@@ -1,7 +1,7 @@
 library(gdm)
 dev.off()
 birds_raw <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/gdm_outputs/birds/gdms_raw_raup.RDS")
-birds_modeled <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/gdm_outputs/birds/gdms_modeled_v6.RDS")
+birds_modeled <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/gdm_outputs/birds/gdms_modeled_simpsons_v6.RDS")
 
 ispline_q_extract <- function(model_list, predictor, p_quantile){
   spline_list <- lapply(model_list, isplineExtract)
@@ -138,6 +138,13 @@ lines(isplineExtract(birds_raw$pasture_obs)$x[,pred], isplineExtract(birds_raw$p
 dev.off()
 
 ##### Modeled data ####
+pdf(file = "/Users/jacobsocolar/Dropbox/Work/Colombia/Writing/Figures/gdm_modeled_simpsons.PDF",
+    width = 6, height = 4)
+par(mfrow=c(2,3))
+par(mar=c(3,2,0.5,0.5))
+
+
+
 # Geographic distance
 pred <- "Geographic"
 ymax <- 1.05*max(max(ispline_q_extract(birds_modeled$forest_gdm_rep_bb, pred, .95)), max(ispline_q_extract(birds_modeled$pasture_gdm_rep_bb, pred, .95)))
@@ -207,6 +214,9 @@ lines(isplineExtract(birds_raw$forest_obs)$x[,pred], ispline_q_extract(birds_mod
 lines(isplineExtract(birds_raw$pasture_obs)$x[,pred], ispline_q_extract(birds_modeled$pasture_gdm_rep_bb, pred, .5),
       type="l", col = "black", lwd=1, lty=2)
 
+# Dummy plot to fill layout screen
+plot(1,1, type='n', axes=F, xlab="", ylab="")
+
 # Mountain barrier
 pred <- "matrix_1"
 ymax <- 1.05*max(max(ispline_q_extract(birds_modeled$forest_gdm_rep_bb, pred, .95)), max(ispline_q_extract(birds_modeled$pasture_gdm_rep_bb, pred, .95)))
@@ -252,4 +262,4 @@ lines(isplineExtract(birds_raw$forest_obs)$x[,pred], ispline_q_extract(birds_mod
       type="l", col = "black", lwd=1)
 lines(isplineExtract(birds_raw$pasture_obs)$x[,pred], ispline_q_extract(birds_modeled$pasture_gdm_rep_bb, pred, .5),
       type="l", col = "black", lwd=1, lty=2)
-
+dev.off()

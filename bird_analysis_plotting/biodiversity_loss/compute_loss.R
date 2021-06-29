@@ -1,8 +1,14 @@
-# Functions to compute the loss of conservation value over all cells (get_avg_cell_logratios)
-# or over an arbitrary collection of cells (get_regional_logratios)
+# Functions to compute the loss of conservation value over all cells (get_avg_cell_ratios)
+# or over an arbitrary collection of cells (get_regional_ratios)
 
-# A helper function
-avg_logratio <- function(fp_pp_i, cutoff_use){
+# A helper function. Given a concatenanted vector of forest and pasture probabilities for all 
+# species at a point, return the following summaries of the forest-divided-by-pasture ratio across 
+# all species with probabilities exceeding `cutoff_use` in either forest or pasture:
+#      the average ratio
+#      the average logratio
+#      the median logratio (from which the median ratio can be recovered by exponentiating)
+#      the number of species meeting the inclusion cutoff
+avg_ratio <- function(fp_pp_i, cutoff_use){
   n_col <- length(fp_pp_i)/2
   if(n_col != round(n_col)){stop("dimension error in fp_pp_i: expected even number of columns")}
   fp_i <- fp_pp_i[1:n_col]
@@ -10,13 +16,20 @@ avg_logratio <- function(fp_pp_i, cutoff_use){
   incl <- ((fp_i) >= cutoff_use) | ((pp_i) >= cutoff_use)
   fp_inc <- fp_i[incl]
   pp_inc <- pp_i[incl]
+  a_r <- mean(fp_inc/pp_inc)
   a_l <- mean(log(fp_inc/pp_inc))
   m_l <- median(log(fp_inc/pp_inc))
   n <- sum(incl)
-  return(list(avg_logratio = a_l, med_logratio = m_l, n = n))
+  return(list(avg_ratio = a_r, avg_logratio = a_l, med_logratio = m_l, n = n))
 }
 
-get_avg_cell_logratios <- function(forest_probs, pasture_probs, cutoff_type, cutoff){
+# A function to take the average biodiversity loss summary across a set of cells.
+# Returns a dataframe with the following summaries computed for each cell:
+#      the average ratio
+#      the average logratio
+#      the median logratio (from which the median ratio can be recovered by exponentiating)
+#      the number of species meeting the inclusion cutoff
+get_avg_cell_ratios <- function(forest_probs, pasture_probs, cutoff_type, cutoff){
   # forest_probs, pasture_probs: a dataframe with columns for cell_id, x, y, and then one column of psi for each species
   # cutoff_type: either "absolute" or "relative"
   # cutoff for including a species in a cell.  
@@ -38,17 +51,23 @@ get_avg_cell_logratios <- function(forest_probs, pasture_probs, cutoff_type, cut
     cutoff_use <- rep(cutoff, ncol(fp))
   }else{stop("cutoff type must be one of 'relative' or 'absolute'")}
   
-  aln <- apply(fp_pp, 1, avg_logratio, cutoff_use = cutoff_use)
+  aln <- apply(fp_pp, 1, avg_ratio, cutoff_use = cutoff_use)
   
   output <- as.data.frame(do.call(rbind, aln))
+  output$avg_ratio <- as.numeric(output$avg_ratio)
   output$avg_logratio <- as.numeric(output$avg_logratio)
   output$med_logratio <- as.numeric(output$med_logratio)
   output$n <- as.integer(output$n)
   return(output)
 }
 
-
-get_regional_logratios <- function(forest_probs, pasture_probs, cutoff_type, cutoff, cell_positions = NULL){
+# A function to compute biodiveristy loss summaries over an entire collection of cells, treated as a region
+# Returns:
+#      the average ratio across species
+#      the average logratio
+#      the median logratio (from which the median ratio can be recovered by exponentiating)
+#      the number of species meeting the inclusion cutoff
+get_regional_ratios <- function(forest_probs, pasture_probs, cutoff_type, cutoff, cell_positions = NULL){
   if(!all.equal(dim(forest_probs), dim(pasture_probs))){stop("forest_probs and pasture_probs have different dimensions")}
   if(cutoff <= 0){stop("cutoff must be greater than zero and less than one")}
   if(cutoff >= 1){stop("cutoff must be greater than zero and less than one")}
@@ -75,9 +94,10 @@ get_regional_logratios <- function(forest_probs, pasture_probs, cutoff_type, cut
   fp_occ <- colSums(fp)[incl]
   pp_occ <- colSums(pp)[incl]
   
+  avg_ratio <- mean(fp_occ/pp_occ)
   avg_logratio <- mean(log(fp_occ/pp_occ))
   med_logratio <- median(log(fp_occ/pp_occ))
-  return(list(avg_logratio=avg_logratio, med_logratio=med_logratio, n = sum(incl)))
+  return(list(avg_ratio = avg_ratio, avg_logratio=avg_logratio, med_logratio=med_logratio, n = sum(incl)))
 }
 
 
