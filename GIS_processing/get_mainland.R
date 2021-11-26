@@ -12,6 +12,8 @@ if(socolar.desktop){
 # conceivably invoke system commands for file management that depend on dir.path.)
 setwd(dir.path)
 
+library(sf)
+
 # read in GADM colombia shapefile
 colombia <- st_read('Data/GIS/colombia_maps/gadm36_COL_shp/gadm36_COL_0.shp')
 

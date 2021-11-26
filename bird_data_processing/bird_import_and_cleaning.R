@@ -478,30 +478,9 @@ allSpp
 
 otherSpp <- unique(c(simonSpp, LlanosSpp, WAndesSpp))
 otherSpp
-#602
+#601
 
 allSpp[gsub("_", " ", allSpp) %ni% colombia_species]
-
-grepphrase <- "Pogono"
-
-allSpp[grep(grepphrase, allSpp)]
-jacobSpp[grep(grepphrase, jacobSpp)]
-simonSpp[grep(grepphrase, simonSpp)]
-WAndesSpp[grep(grepphrase, WAndesSpp)]
-LlanosSpp[grep(grepphrase, LlanosSpp)]
-
-
-##### Additional tools to monitor my portion of the dataset
-for(i in 1:length(jacobSpp)){
-  ti <- agrep(jacobSpp[i], jacobSpp)
-  if(length(ti) > 1){
-    print(jacobSpp[ti])
-  }
-}
-
-jacobSpp[grep("Mecocerculus_s", jacobSpp)]
-
-sum(jacob$Species == "Mecocerculus_stictopterus")
 
 # counting number of point-visits per species
 jacobACF1 <- jacob[, names(jacob) %in% c("Point", "Take", "Species", "Count")]
@@ -524,9 +503,9 @@ sum(v==4)
 sum(v==5)
 
 jacobSpp[which(v<5)]
-# 391
+# 392
 jacobSpp[which(v>=5)]
-# 380
+# 379
 
 
 NonAmazonSpp <- as.character(unique(jacob$Species[1:(min(which(jacob$Point == 'SGP12'))-1)]))

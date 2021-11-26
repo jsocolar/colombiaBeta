@@ -5,17 +5,23 @@ hs3 <- st_read('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/hydrosheds/hy
 hs4 <- st_read('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/hydrosheds/hybas_sa_lev01-06_v1c/hybas_sa_lev04_v1c.shp')
 hs5 <- st_read('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/hydrosheds/hybas_sa_lev01-06_v1c/hybas_sa_lev05_v1c.shp')
 
-amazon_orinoco <- st_make_valid(st_union(hs2[2, ], hs3[4, ]))
-pacific_prelim <- st_make_valid(st_union(hs3[1,], hs3[25,]))
+amazon_orinoco <- st_make_valid(st_union(st_make_valid(hs2[2, ]), st_make_valid(hs3[4, ])))
+pacific_prelim <- st_make_valid(st_union(st_make_valid(hs3[1,]), st_make_valid(hs3[25,])))
 gen_magdalena <- st_make_valid(hs3[2, ])
 cauca <- st_make_valid(hs5[5, ])
 valledupar <- st_make_valid(hs5[8, ])
-magdalena <- st_make_valid(st_difference(gen_magdalena, st_union(cauca, valledupar)))[,c('HYBAS_ID', 'geometry')]
+magdalena <- st_make_valid(st_difference(gen_magdalena, st_make_valid(st_union(cauca, valledupar))))[,c('HYBAS_ID', 'geometry')]
 catatumbo <- st_make_valid(hs5[12, ])
 maracaibo <- st_make_valid(hs3[3, ])
 guajira_valledupar <- st_make_valid(st_union(valledupar, st_difference(maracaibo, catatumbo))[c('HYBAS_ID', 'geometry')])
 
 central <- st_make_valid(st_zm(st_read('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/biogeographic_clips/mountains_clips/centralAndes__cauca__magdalena.kml')))
+st_is_valid(central) # see https://github.com/r-spatial/sf/issues/1771
+sf_use_s2(FALSE)
+central <- st_make_valid(central)
+sf_use_s2(TRUE)
+st_is_valid(central)
+
 sm <- st_make_valid(st_zm(st_read('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/biogeographic_clips/mountains_clips/SNSM__guajira_valledupar.kml')))
 pasto <- st_make_valid(st_zm(st_read('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/biogeographic_clips/mountains_clips/pasto__pacific.kml')))
 tacarcuna <- st_make_valid(st_zm(st_read('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/biogeographic_clips/mountains_clips/tacarcuna__pacific.kml')))

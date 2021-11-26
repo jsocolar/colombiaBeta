@@ -297,7 +297,7 @@ sp_obs_matrix[is.na(sp_obs_matrix)] <- 0
 birds$sp_obs_matrix <- sp_obs_matrix
 
 # saveRDS(birds, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.RDS")
-birds <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.RDS")
+birds <- readRDS("/Users/jacob/Dropbox/Work/Colombia/Data/Analysis/birds.RDS")
 ec <- c(-1,1)
 # ###########
 # bird_stan_data1 <- list(
@@ -912,106 +912,4 @@ bird_stan_data9_1_package$inv_metric <- new_inv
 saveRDS(bird_stan_data9_1_package, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data9_1_package.RDS")
 saveRDS(bird_stan_data9_1_package, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Current_data/bird_stan_data9_1_package.RDS")
 
-
-
-
-wandes_birds <- birds[grepl("wandes", birds$subregion),]
-w_sp_obs_columns <- c(wandes_birds$sp_obs1, wandes_birds$sp_obs2, wandes_birds$sp_obs3, wandes_birds$sp_obs4)
-w_sp_obs_columns[grep("__NA", w_sp_obs_columns)] <- NA
-w_sp_obs_matrix <- matrix(as.integer(as.factor(w_sp_obs_columns)), ncol=4)
-w_sp_obs_matrix[is.na(w_sp_obs_matrix)] <- 0
-wandes_birds$sp_obs_matrix <- w_sp_obs_matrix
-
-
-wandes_bsd9 <- list(
-  # Grainsize for reduce_sum
-  grainsize = 1,
-  # Dimensions
-  # Random effects
-  n_spCl = length(unique(wandes_birds$sp_cl)),
-  n_spSr = length(unique(wandes_birds$sp_sr)),
-  n_sp = length(unique(wandes_birds$species)),
-  n_fam = length(unique(wandes_birds$Family)),
-  n_spObs = length(unique(as.vector(wandes_birds$sp_obs_matrix[!is.na(as.vector(wandes_birds$sp_obs_matrix))]))),
-  # Dataset size
-  n_tot = nrow(wandes_birds),
-  n_visit_max = max(wandes_birds$nv),
-  # Integer data matrix
-  integer_data = data.frame(
-    # Detection data
-    det_data = wandes_birds$det_data,  # 1-4
-    # Q and nv
-    Q = wandes_birds$Q,               # 5
-    nv = wandes_birds$nv,             # 6
-    # Random effect IDs
-    id_spCl = as.numeric(as.factor(wandes_birds$sp_cl)),     # 7
-    id_spSr = as.numeric(as.factor(wandes_birds$sp_sr)),     # 8
-    id_sp = as.numeric(as.factor(wandes_birds$species)),     # 9
-    id_fam = as.numeric(as.factor(wandes_birds$Family)),     # 10
-    id_spObs = wandes_birds$sp_obs_matrix,                   # 11-14
-    # Covariate indices
-    lowland = grt_b(ec[wandes_birds$lowland+1]),             # 15
-    pasture = grt_b(ec[wandes_birds$pasture+1]),                          # 16
-    mountain_barrier = grt_b(ec[wandes_birds$mountain_limited+1]),        # 17
-    valley_barrier = grt_b(ec[wandes_birds$valley_limited+1]),            # 18
-    forestPresent = grt_b(ec[wandes_birds$forest_present+1]),             # 19
-    forestSpecialist = grt_b(ec[wandes_birds$forest_specialist+1]),       # 20
-    tfSpecialist = grt_b(ec[wandes_birds$tf_specialist+1]),               # 21
-    dryForestPresent = grt_b(ec[wandes_birds$dry_forest_present+1]),      # 22
-    floodDrySpecialist = grt_b(ec[wandes_birds$flood_dry_specialist+1]),  # 23
-    aridPresent = grt_b(ec[wandes_birds$arid_present+1]),                 # 24
-    migratory = grt_b(ec[as.numeric(!is.na(wandes_birds$start1))+1]),     # 25
-    dietInvert = grt_b(ec[as.numeric(wandes_birds$Diet.5Cat == "Invertebrate")+1]),    # 26
-    dietCarn = grt_b(ec[as.numeric(wandes_birds$Diet.5Cat == "VertFishScav")+1]),      # 27
-    dietFruitNect = grt_b(ec[as.numeric(wandes_birds$Diet.5Cat == "FruiNect")+1]),     # 28
-    dietGran = grt_b(ec[as.numeric(wandes_birds$Diet.5Cat == "PlantSeed")+1]),         # 29
-    mountainBarrier_x_pasture = grt_b(ec[wandes_birds$mountain_limited + 1] * ec[wandes_birds$pasture + 1]),        # 30
-    valleyBarrier_x_pasture = grt_b(ec[wandes_birds$valley_limited + 1] * ec[wandes_birds$pasture + 1]),            # 31
-    forestPresent_x_pasture = grt_b(ec[wandes_birds$forest_present + 1] * ec[wandes_birds$pasture + 1]),            # 32
-    forestSpecialist_x_pasture = grt_b(ec[wandes_birds$forest_specialist + 1] * ec[wandes_birds$pasture + 1]),      # 33
-    tfSpecialist_x_pasture = grt_b(ec[wandes_birds$tf_specialist + 1] * ec[wandes_birds$pasture + 1]),              # 34
-    dryForestPresent_x_pasture = grt_b(ec[wandes_birds$dry_forest_present + 1] * ec[wandes_birds$pasture + 1]),     # 35
-    floodDrySpecialist_x_pasture = grt_b(ec[wandes_birds$flood_dry_specialist + 1] * ec[wandes_birds$pasture + 1]), # 36
-    aridPresent_x_pasture = grt_b(ec[wandes_birds$arid_present + 1] * ec[wandes_birds$pasture + 1]),                # 37
-    migratory_x_pasture = grt_b(ec[as.numeric(!is.na(wandes_birds$start1))+1] * ec[wandes_birds$pasture + 1]),      # 38
-    dietInvert_x_pasture = grt_b(ec[as.numeric(wandes_birds$Diet.5Cat == "Invertebrate")+1] * ec[wandes_birds$pasture + 1]),   # 39
-    dietCarn_x_pasture = grt_b(ec[as.numeric(wandes_birds$Diet.5Cat == "VertFishScav")+1] * ec[wandes_birds$pasture + 1]),     # 40
-    dietFruitNect_x_pasture = grt_b(ec[as.numeric(wandes_birds$Diet.5Cat == "FruiNect")+1] * ec[wandes_birds$pasture + 1]),    # 41
-    dietGran_x_pasture = grt_b(ec[as.numeric(wandes_birds$Diet.5Cat == "PlantSeed")+1] * ec[wandes_birds$pasture + 1]),        # 42
-    obsSM = matrix(grt_b(ec[wandes_birds$obsSM+1]), ncol=4),   # 43-46
-    obsJG = matrix(grt_b(ec[wandes_birds$obsJG+1]), ncol=4),   # 47-50
-    obsDE = matrix(grt_b(ec[wandes_birds$obsDE+1]), ncol=4)    # 51-54
-  ),
-  # Continuous distance-to-range (does not compress well)
-  distance_to_range = as.vector(wandes_birds$distance_from_range_scaled2),
-  # continuous covariates
-  relev = wandes_birds$relev,
-  relev2 = wandes_birds$relev2,
-  lowland_x_relev = ec[wandes_birds$lowland+1] * wandes_birds$relev,
-  lowland_x_relev2 = ec[wandes_birds$lowland+1] * wandes_birds$relev2,
-  elevMedian = wandes_birds$elev_median_scaled,
-  elevBreadth = wandes_birds$elev_breadth_scaled,
-  mass = wandes_birds$log_mass_scaled,
-  elevMedian_x_forestPresent = wandes_birds$elev_median_scaled * ec[wandes_birds$forest_present + 1],
-  elevMedian_x_forestSpecialist = wandes_birds$elev_median_scaled * ec[wandes_birds$forest_specialist + 1],
-  elevMedian_x_pasture = wandes_birds$elev_median_scaled * ec[wandes_birds$pasture + 1],
-  elevBreadth_x_pasture = wandes_birds$elev_breadth_scaled * ec[wandes_birds$pasture + 1],
-  mass_x_pasture = wandes_birds$log_mass_scaled * ec[wandes_birds$pasture + 1],
-  elevMedian_x_forestPresent_x_pasture = wandes_birds$elev_median_scaled * ec[wandes_birds$forest_present + 1] * ec[wandes_birds$pasture + 1],
-  elevMedian_x_forestSpecialist_x_pasture = wandes_birds$elev_median_scaled * ec[wandes_birds$forest_specialist + 1] * ec[wandes_birds$pasture + 1],
-  time = wandes_birds$time,
-  time_x_elev = sweep(wandes_birds$time, MARGIN = 1, wandes_birds$elev_median_scaled, FUN = `*`)
-)
-
-wandes_bsd9_means_and_sds <- list(time_mean = mean(c(wandes_birds$hps1, wandes_birds$hps2, wandes_birds$hps3, wandes_birds$hps4), na.rm = T), 
-                                     time_sd =  sd(c(wandes_birds$hps1, wandes_birds$hps2, wandes_birds$hps3, wandes_birds$hps4), na.rm = T),
-                                     relev_offset = .5, relev_sd = sd(wandes_birds$elev_sp_standard),
-                                     elev_median_mean =  mean(wandes_birds$elev_median), elev_median_sd = sd(wandes_birds$elev_median),
-                                     elev_breadth_mean = mean(wandes_birds$elev_breadth), elev_breadth_sd = sd(wandes_birds$elev_breadth),
-                                     log_mass_mean = mean(log(wandes_birds$BodyMass.Value)), log_mass_sd = sd(log(wandes_birds$BodyMass.Value)), 
-                                     distance_to_range_offset = 0, distance_to_range_sd = sd(wandes_birds$distance_from_range), 
-                                     distance_to_range_logit_rescale = 11.3)
-wandes_bsd9_package <- list(data = wandes_bsd9,
-                                means_and_sds = wandes_bsd9_means_and_sds)
-saveRDS(wandes_bsd9_package, "/Users/jacobsocolar/Dropbox/Work/Occupancy/biogeographicMSOM/wandes_data/wandes_bsd9_package.RDS")
 

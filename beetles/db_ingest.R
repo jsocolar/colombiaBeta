@@ -83,6 +83,8 @@ View(detections[rel_elev < -1, c("point", "scientificName", "Lower", "Upper", "e
 db_data_final$rel_elev <- (db_data_final$elev_ALOS30m - (db_data_final$Lower - 200))/((db_data_final$Upper + 200) - (db_data_final$Lower - 200)) - 0.5
 db_data_final$rel_elev2 <- db_data_final$rel_elev^2
 
+db_data_final$nest_guild[db_data_final$nest_guild == "Endocoprid"] <- "dweller"
+
 brm(abun ~ rel_elev + rel_elev2 + (1 + rel_elev + rel_elev2 | scientificName), 
     data = db_data_final, family = zero_inflated_negbinomial())
 

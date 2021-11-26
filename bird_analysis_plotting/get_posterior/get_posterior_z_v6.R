@@ -66,7 +66,7 @@ get_Z_probs <- function(draws, iter, z_info, spatial_effect = "include"){
   logit_theta_matrix <- replicate(4, zc$logit_theta_0[z_info$id_sp] + zc$logit_theta_pasture_offset[z_info$id_sp]*z_info$pasture) +
     sweep(as.matrix(z_info[,c("time.1", "time.2", "time.3", "time.4")]), MARGIN = 1, zc$d2_time_sp[z_info$id_sp], `*`) +
     zc$d2_obsSM[1] * as.matrix(z_info[,c("obsSM.1", "obsSM.2", "obsSM.3", "obsSM.4")]) +
-    zc$d2_obsDE[1] * as.matrix(z_info[,c("obsDE.1", "obsDE.2", "obsSM.3", "obsDE.4")]) +
+    zc$d2_obsDE[1] * as.matrix(z_info[,c("obsDE.1", "obsDE.2", "obsDE.3", "obsDE.4")]) +
     zc$d2_obsJG[1] * as.matrix(z_info[,c("obsJG.1", "obsJG.2", "obsJG.3", "obsJG.4")]) +
     sweep(as.matrix(z_info[,c("time.1", "time.2", "time.3", "time.4")]), MARGIN = 1, zc$d3_x_time_elevMedian[1] * z_info$elevMedian, `*`) +
     as.numeric(draws[iter, "sigma_d0_spObs"])*
