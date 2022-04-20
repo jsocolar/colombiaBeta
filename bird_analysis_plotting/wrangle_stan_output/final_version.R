@@ -7,7 +7,7 @@ library(cmdstanr)
 
 stan_csvs <- list.files("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs/Final", full.names = TRUE)
 
-fc_long <- as_cmdstan_fit(stan_csvs, format = "draws_list")
+fc_long <- as_cmdstan_fit(stan_csvs[1], format = "draws_list")
 fmsd <- fc_long$sampler_diagnostics()
 unique(fmsd[,,"divergent__"])
 ebfmi <- apply(fmsd[,,"energy__"], 2, function(x) {
