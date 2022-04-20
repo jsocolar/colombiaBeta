@@ -5,11 +5,9 @@ install.packages("/Users/JacobSocolar/Dropbox/Work/Code/Stan/posterior",
 library(posterior)
 library(cmdstanr)
 
-long_csvs <- c("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs/Final/occupancy_v9-202105070926-1-3fd25b.csv",
-               "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs/Final/occupancy_v9-202105070926-2-3fd25b.csv",
-               "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs/Final/occupancy_v9-202105061701-1-2a4265.csv")
+stan_csvs <- list.files("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/CSVs/Final", full.names = TRUE)
 
-fc_long <- as_cmdstan_fit(long_csvs, format = "draws_list")
+fc_long <- as_cmdstan_fit(stan_csvs, format = "draws_list")
 fmsd <- fc_long$sampler_diagnostics()
 unique(fmsd[,,"divergent__"])
 ebfmi <- apply(fmsd[,,"energy__"], 2, function(x) {
@@ -25,6 +23,8 @@ final_draws <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/
 fdsum <- summarise_draws(final_draws, .cores = 3)
 saveRDS(fdsum, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/v9_final/draws_summary.RDS")
 fdsum <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/v9_final/draws_summary.RDS")
-rollup <- posterior::rollup_summary(fdsum)
 
-rollup$unrolled_vars[rollup$unrolled_vars$variable == "sigma_b0_spSr", ]
+# The below uses Jacob's personal fork of posterior:
+# rollup <- posterior::rollup_summary(fdsum)
+# 
+# rollup$unrolled_vars[rollup$unrolled_vars$variable == "sigma_b0_spSr", ]
