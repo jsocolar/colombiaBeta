@@ -286,6 +286,9 @@ llanos$Species[llanos$Species == "Turdus ignobilis"] <- "Turdus debilis"
 llanos <- llanos[llanos$Species != "Vireo olivaceus", ] # Records are in February and March, when there's no way to separate true olivaceus from resident chivi after the fact
 llanos <- llanos[llanos$Species != "Streptoprocne zonaris", ]
 
+# Remove Myiopagis viridicata, whose ID is questionable
+llanos <- llanos[llanos$Species != "Myiopagis viridicata", ]
+
 llanos1 <- llanos
 llanos2 <- llanos[llanos$HAB != "PALM",]
 llanos <- llanos2[llanos2$Flying. == "N", ]
@@ -436,19 +439,21 @@ jacob <- droplevels(jacob3[jacob3$Species %ni% c("Sono", "Visu"), ])
 jacob_visit_data <- jacob1[!is.na(jacob1$Time), names(jacob1) %in% c("Point", "Take", "Date", "Wind", "Vis", "Sky", "Sun", "Drip", "Time")]
 jacob_visit_data$Obs <- "JBS"
 
-jacob_visit_data$Obs[jacob_visit_data$Point == IGF] # TO DO: CHANGE OBSERVER TO DPE WHERE NECESSARY
+jacob_visit_data[grep("IGF", jacob_visit_data$Point),] # TO DO: CHANGE OBSERVER TO DPE WHERE NECESSARY
+jacob_visit_data$Obs[(jacob_visit_data$point %in% c("IGF10", "IGF11", "IGF12")) & jacob_visit_data$Take == 4] <- "DPE"
+jacob_visit_data$Obs[(jacob_visit_data$point %in% c("IGF10", "IGF11")) & jacob_visit_data$Take == 3] <- "DPE"
 
 table(jacob_visit_data$Point)[table(jacob_visit_data$Point) != 4]
 
 ##### Tools to monitor progress on dataset as it's entered--not part of final analysis #####
-# 237 Llanos spp
-# 319 WAndes spp
-# 248 EAndes spp (Simon+David only)
-# 761 Jacob spp
-## 287 Amazon
-## 559 Jacob outside Amazon
-# 607 other spp (all data except Jacob)
-# 966 total spp
+# 235 Llanos spp
+# 314 WAndes spp
+# 247 EAndes spp (Simon+David only)
+# 771 Jacob spp
+## 294 Amazon
+## 565 Jacob outside Amazon
+# 601 other spp (all data except Jacob)
+# 969 total spp
 ## 807 total spp outside of Amazon
 
 dim(jacob)
@@ -456,7 +461,12 @@ dim(jacob3)[1] - dim(jacob)[1]
 
 jacobSpp <- as.character(unique(jacob$Species)[order(unique(jacob$Species))])
 jacobSpp[gsub("_", " ", jacobSpp) %ni% colombia_species]
+
+LlanosSpp
+WAndesSpp
+simonSpp
 jacobSpp
+
 
 ##### Combining Species Lists #####
 LlanosSpp <- gsub(" ", "_", unique(llanos$Species))
@@ -464,34 +474,13 @@ WAndesSpp <- gsub(" ", "_", unique(wandes$Species))
 
 allSpp <- unique(c(jacobSpp, simonSpp, LlanosSpp, WAndesSpp))
 allSpp
-#966
+#969
 
 otherSpp <- unique(c(simonSpp, LlanosSpp, WAndesSpp))
 otherSpp
-#607
+#601
 
 allSpp[gsub("_", " ", allSpp) %ni% colombia_species]
-
-grepphrase <- "Pogono"
-
-allSpp[grep(grepphrase, allSpp)]
-jacobSpp[grep(grepphrase, jacobSpp)]
-simonSpp[grep(grepphrase, simonSpp)]
-WAndesSpp[grep(grepphrase, WAndesSpp)]
-LlanosSpp[grep(grepphrase, LlanosSpp)]
-
-
-##### Additional tools to monitor my portion of the dataset
-for(i in 1:length(jacobSpp)){
-  ti <- agrep(jacobSpp[i], jacobSpp)
-  if(length(ti) > 1){
-    print(jacobSpp[ti])
-  }
-}
-
-jacobSpp[grep("Mecocerculus_s", jacobSpp)]
-
-sum(jacob$Species == "Mecocerculus_stictopterus")
 
 # counting number of point-visits per species
 jacobACF1 <- jacob[, names(jacob) %in% c("Point", "Take", "Species", "Count")]
@@ -514,9 +503,9 @@ sum(v==4)
 sum(v==5)
 
 jacobSpp[which(v<5)]
-# 385
+# 392
 jacobSpp[which(v>=5)]
-# 376
+# 379
 
 
 NonAmazonSpp <- as.character(unique(jacob$Species[1:(min(which(jacob$Point == 'SGP12'))-1)]))
@@ -525,6 +514,8 @@ NonAmazonSpp
 AllNonAmazon <- unique(c(NonAmazonSpp, simonSpp, LlanosSpp, WAndesSpp))
 AllNonAmazon
 
+AmazonSpp <- as.character(unique(jacob$Species[min(which(jacob$Point == 'SGP12')):nrow(jacob)]))
+AmazonSpp
 ##### Combine datasets #####
 # Organize by site [i], visit[j], species[k]
 jacob4array <- data.frame(point = jacob$Point, visit = jacob$Take, species = jacob$Species, dummy = 1)
@@ -568,9 +559,9 @@ sum(v==5)
 allSpp[which(v<5)]
 # 359
 allSpp[which(v>=5)]
-# 607
+# 610
 allSpp[which(v > 5)]
-# 563
+# 568
 
 combinedPOINTSUMMARY <- doBy::summaryBy(dummy.sum ~ point + species, data = combined_new)
 dim(combinedPOINTSUMMARY)
@@ -590,24 +581,22 @@ sum(v==4)
 sum(v==5)
 
 allSpp[which(v<5)]
-# 413
+# 411
 allSpp[which(v>=5)]
-# 553
+# 558
 allSpp[which(v > 5)]
-# 506
+# 511
 
 
 ##### Organize array for occupancy model #####
-colombia_points <- read.csv('GIS/Points/CO_sampling_points_metafile.csv')
+colombia_points <- readRDS('GIS/Points/all_pts.RDS')
+
 unique(combined$visit)
 allSpp <- as.character(unique(combined$species))[order(as.character(unique(combined$species)))]
 allPts <- as.character(unique(combined$point))[order(as.character(unique(combined$point)))]
 
-allPts[allPts %ni% colombia_points$point_id]
-extra_metafile1 <- colombia_points$point_id[colombia_points$point_id %ni% allPts]
-extra_metafile2 <- extra_metafile1[extra_metafile1 %ni% llanos1$Point[llanos1$HAB == "PALM"]]
-extra_metafile3 <- extra_metafile2[extra_metafile2 %ni% wandes_pts$Point[wandes_pts$Habcode == "Sy"]]
-# lots of points in extra_metafile3 are llanos and wandes points where only beetle data were collected.
+allPts[allPts %ni% colombia_points$point]
+colombia_points$point[colombia_points$point %ni% allPts & colombia_points$birds==1 & colombia_points$habitat %ni% c("PALM", "Sy")]
 
 # The strategy below will be to populate a zero-filled array with ones, and then to go back and fill with NAs
 # for any visit that never occurred.
@@ -629,7 +618,8 @@ sum(detection_array) == nrow(combined)
 # Back-fill the NA's
 for(i in 1:length(allPts)){
   pt <- combined[combined$point == allPts[i], ]
-  if(!isTRUE(all.equal(1:4, unique(pt$visit)[order(unique(pt$visit))]))){print(paste(unique(pt$point), unique(pt$visit), sep = "_"))}
+  if(!isTRUE(all.equal(1:4, unique(pt$visit)[order(unique(pt$visit))]))){
+    print(paste(unique(pt$point), unique(pt$visit), sep = "_"))}
 }
 # All potentially problem points are mine or simon's, plus the 5-visit EXTRA4_3
 
@@ -657,8 +647,5 @@ sum(detection_array, na.rm = T) == nrow(combined) # issue with lack of visit 3 o
 bird_surveys <- list(detection_array = detection_array, species_names = allSpp, point_names = allPts)
 saveRDS(bird_surveys, file = paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_', Sys.Date(), '.RDS'))
 saveRDS(bird_surveys, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_current.RDS')
-
-bird_surveys <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_current.RDS')
-
 
 

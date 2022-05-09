@@ -73,7 +73,7 @@ for(i in 1:nrow(traits)){
   traits$snsm_only[i] <- as.numeric(st_intersects(cps$snsm, map, sparse = F)[1,1] & !st_intersects(not_snsm, map, sparse = F)[1,1])    # Santa Marta endemics (in a Colombian context)
 }
 
-#saveRDS(traits, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/traits_prelim.RDS")
+saveRDS(traits, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/traits_prelim.RDS")
 
 
 

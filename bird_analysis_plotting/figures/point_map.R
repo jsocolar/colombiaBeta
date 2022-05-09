@@ -1,4 +1,8 @@
+# Produce a map of our sampling points atop the biogeographic regions of Colombia.
+# Still to do: gray-out the parts of Colombia that are not part of our study area
+
 library(sf)
+library(raster)
 library(reticulate)
 
 source('/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/GIS_processing/get_mainland.R')
@@ -13,6 +17,8 @@ AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_
 
 # Load point locations
 all_pts <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Points/all_pts.RDS")
+birds <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.RDS")
+all_pts <- all_pts[all_pts$point %in% birds$point,]
 
 ##### Set up GEE session #####
 use_condaenv('gee_interface', conda = "auto", required = TRUE) # point reticulate to the conda environment created in GEE_setup.sh
@@ -83,3 +89,7 @@ for(i in 1:length(regions)){
 }
 # west Andes west; Cauca Valley west; Cauca Valley east; Magdalena Valley west; Magdalena Valley east & north;
 # east Andes east; Tacarcuna foothills; Sierra Nevada de Santa Marta; Guajira/Perijá; Catatumbo; Pasto
+
+points(all_pts$lon, all_pts$lat, pch = 16, col = rgb(0, 0, 0, max = 255, alpha = 15))
+points(all_pts$lon, all_pts$lat, pch = 1, col = rgb(0, 0, 0, max = 255, alpha = 255))
+

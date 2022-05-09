@@ -1,6 +1,7 @@
 ##### Script dependencies: coord_processing.R, GEE_setup.sh, bird_import_and_cleaning.R #####
 
 library(reticulate)
+library(sf)
 
 `%ni%` <- Negate(`%in%`)
 
@@ -302,6 +303,23 @@ all_pts$nv <- 0
 for(i in 1:nrow(all_pts)){
   all_pts$nv[i] <- sum(!is.na(all_pts[i,c("obs1", "obs2", "obs3", "obs4")]))
 }
+
+all_pts$subregion <- NA
+subregions <- st_read("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/subregions/subregions.kml")
+head(subregions)
+
+all_pts_sf <- st_as_sf(all_pts, coords = c("lon", "lat"), 
+                               crs = 4326)
+
+subr <- st_covers(subregions, all_pts_sf, sparse = F)
+pt_in_subr <- colSums(subr)
+
+for(i in 1:nrow(all_pts)){
+  if(pt_in_subr[i] == 0){print(all_pts$point[i])}
+  else{all_pts$subregion[i] <- subregions$Name[which(subr[,i] == 1)]}
+}
+
+all_pts$subregion[all_pts$point %in% c("D13_1", "D13_2")] <- "subregion_llanosWest"
 
 saveRDS(all_pts, file = "GIS/Points/all_pts.RDS")
 

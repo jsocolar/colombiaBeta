@@ -5,9 +5,6 @@
 # Then we match names in Parker to names in HBW, first by automatically handling exact name matches to either 
 # HBW or Clements (we already have a HBW/Clements lookup table), then by hand.
 
-
-# Status of script: need to finish populating final table with correct data from parker
-
 ##### Script dependencies: nf_species_list.R, birdlife_scraper.R, species_lists.R  #####
 
 library(sf)
@@ -1524,7 +1521,7 @@ for(i in 1:nrow(hp2)){
   }
 }
 
-# All cases where BirdLife does not give identical habitat preferences for the split taxa are checked by hand # STILL TO BE DONE
+# All cases where BirdLife does not give identical habitat preferences for the split taxa are checked by hand
 hp2[hp2$HBW == "Psittacara frontatus", c('F7', 'F8')] <- ""
 hp2[hp2$HBW == "Arremon franciscanus", 'F1'] <- ""; hp2[hp2$HBW == "Arremon franciscanus", c('F7', 'N1')] <- "Y"
 hp2[hp2$HBW == "Atlapetes melanopsis", 'N3'] <- "Y"
