@@ -74,10 +74,6 @@ get_regional_ratios <- function(forest_probs, pasture_probs, cutoff_type, cutoff
   
   fp <- forest_probs[, 5:ncol(forest_probs)]
   pp <- pasture_probs[, 5:ncol(pasture_probs)]
-  if(!is.null(cell_positions)){
-    fp <- fp[cell_positions, ]
-    pp <- pp[cell_positions, ]
-  }
   
   if(cutoff_type == "relative"){
     ap <- rbind(fp, pp)
@@ -86,6 +82,11 @@ get_regional_ratios <- function(forest_probs, pasture_probs, cutoff_type, cutoff
   }else if(cutoff_type == "absolute"){
     cutoff_use <- rep(cutoff, ncol(fp))
   }else{stop("cutoff type must be one of 'relative' or 'absolute'")}
+  
+  if(!is.null(cell_positions)){
+    fp <- fp[cell_positions, ]
+    pp <- pp[cell_positions, ]
+  }
   
   fp_max <- apply(fp, 2, max)
   pp_max <- apply(pp, 2, max)
