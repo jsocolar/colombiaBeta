@@ -59,7 +59,7 @@ species_names <- c(sp_sub,
                           (n_species_sample - length(sp_sub))))
 
 # calculate species index
-species_index <- which(species_full %in% species_names)
+species_index <- match(species_names, species_full)
 
 # read and join relev and tdist, and then manage memory
 # note: would be fastest to use pred_info directly, but doing subsetting 
@@ -112,7 +112,7 @@ pasture_probs <- logodds_pasture %>%
     st_set_dimensions(3, values = species_names) %>%
     st_set_dimensions(names = c("x", "y", "species"))
 
-saveRDS(forest_probs, "data/forest_probability_raster_iter1_subset.rds")
-saveRDS(pasture_probs, "data/pasture_probability_raster_iter1_subset.rds")
+#saveRDS(forest_probs, "data/forest_probability_raster_iter1_subset.rds")
+#saveRDS(pasture_probs, "data/pasture_probability_raster_iter1_subset.rds")
 
 print(Sys.time() - start.time)
