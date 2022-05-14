@@ -1,16 +1,12 @@
 # probe occupancy rasters
 
-library(ggplot2)
-# read files ----
-forest_rast_exists <- exists("data/forest_probability_raster_iter1_subset.rds")
-pasture_rast_exists <- exists("data/pasture_probability_raster_iter1_subset.rds")
+rm(list=ls())
+library(ggplot2); library(dplyr); library(stars)
 
-if(!forest_rast_exists | !pasture_rast_exists) {
-    source("bird_analysis_plotting/occupancy_rasters/calculate_point_probabilities_local.R")
-} else {
-    forest_probs <- readRDS("data/forest_probability_raster_iter1_subset.rds")
-    pasture_probs <- readRDS("data/pasture_probability_raster_iter1_subset.rds")
-}
+# calculate occupancies ----
+n_species_sample <- 600
+source("bird_analysis_plotting/occupancy_rasters/calculate_point_probabilities_local.R")
+
 
 both <- c(forest_probs, pasture_probs) %>%
     setNames(c("p_forest", "p_pasture")) %>%
@@ -63,10 +59,6 @@ p4 <- ggplot() +
 p_all <- egg::ggarrange(p1, p2, p3, p4)
 ggsave("plots_summary_300species.png", p_all)
 
-
-plot(both["diff",,,1:10])
-plot(both["p_forest",,,1:10])
-plot(both["p_forest",,,"Vanellus_chilensis"])
-plot(both["p_pasture",,,"Vanellus_chilensis"])
-plot(both["p_abs_diff",,,"Vanellus_chilensis"])
-plot(both["diff",,,"Zonotrichia_capensis"])
+# example code for generating species-level plots of various quantities
+plot(both["p_forest",,,"Vanellus_chilensis"], add.geom = C_border[,1,])
+plot(both["p_pasture",,,"Vanellus_chilensis"], add.geom = C_border[,1,])

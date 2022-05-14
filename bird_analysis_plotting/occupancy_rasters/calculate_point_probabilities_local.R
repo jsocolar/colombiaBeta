@@ -6,8 +6,8 @@
 # Note: To run within 30GB RAM, there are several rm(list = ls()) calls: do not
 # run with unsaved stuff in memory!
 
-rm(list=ls())
-n_species_sample <- 300
+if(!exists("n_species_sample")) n_species_sample <- 200
+
 start.time <- Sys.time()
 library(dplyr); library(stars)
 source("bird_analysis_plotting/get_posterior/get_posterior_z_v6.R")
@@ -97,6 +97,7 @@ for(i in 1:n_species_sample){
 }
 
 forest_probs <- logodds_forest %>%
+    lapply(., function(x) setNames(x, nm = paste0(sample(0:9, 3, T), collapse=""))) %>%
     do.call(c, .) %>%
     merge(.) %>%
     setNames("p") %>%
@@ -105,6 +106,7 @@ forest_probs <- logodds_forest %>%
     st_set_dimensions(names = c("x", "y", "species"))
 
 pasture_probs <- logodds_pasture %>%
+    lapply(., function(x) setNames(x, nm = paste0(sample(0:9, 3, T), collapse=""))) %>%
     do.call(c, .) %>%
     merge(.) %>%
     setNames("p") %>%
