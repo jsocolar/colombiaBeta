@@ -30,7 +30,6 @@ source("bird_analysis_plotting/get_posterior/get_posterior_z_v6.R")
 bird_data <- readRDS("data/bird_stan_data6_package.RDS")
 birds <- readRDS("data/birds.RDS")
 stan_output <- readRDS("data/occupancy_v9_202201080800_summary.rds")
-class(stan_output$draws_200)
 draws <- posterior::as_draws_df(stan_output$draws_200)
 
 z_info <- data.frame(bird_data$data[8:41])
@@ -116,6 +115,6 @@ rm(relev_list)
 
 # concatenate to single stars object
 tdist_stars <- readRDS("outputs/tdist_stars.rds")
-saveRDS(c(tdist_stars, relev_stars), "prediction_info.rds")
+saveRDS(c(tdist_stars, relev_stars), "outputs/prediction_info.rds")
 
 rm(list=ls())
