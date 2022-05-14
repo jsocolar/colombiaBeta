@@ -2,13 +2,30 @@
 # Note: ultimately probably won't bother saving this output, but doing for now
 # Note: this is a version that only works with a subset so can run locally 
 # Can store about 2 species x point rasters locally (20GB RAM), but not 3
+#
+# Note: To run within 30GB RAM, there are several rm(list = ls()) calls: do not
+# run with unsaved stuff in memory!
 
+rm(list=ls())
+n_species_sample <- 300
 start.time <- Sys.time()
 library(dplyr); library(stars)
+source("bird_analysis_plotting/get_posterior/get_posterior_z_v6.R")
 
-# create subset for working with locally 
-if(!exists(n_species_sample)) n_species_sample <- 200
+# read data
+stan_output <- readRDS("data/occupancy_v9_202201080800_summary.rds")
+draws <- posterior::as_draws_df(stan_output$draws_200)
+birds<- readRDS("data/birds.RDS")
+bird_data <- readRDS("data/bird_stan_data6_package.RDS")
+species_full <- unique(readRDS("data/birds.RDS")$species)
 
+# calculate z_info
+z_info <- data.frame(bird_data$data[8:41])
+z_info$point <- birds$point
+z_info$species <- birds$species
+
+# create species subset ----
+# to keep mem size down for working with locally
 pasture_species <- c(Cattle_tyrant = "Machetornis_rixosa", 
                      Rufous_col_sparrow = "Zonotrichia_capensis", 
                      Tropical_kingbird = "Tyrannus_melancholicus", 
@@ -36,29 +53,33 @@ forest_species <- c("Nothocercus_bonapartei",
                     "Crax_daubentoni",
                     "Crax_globulosa",
                     "Crax_rubra")
-sp_sub <- c(pasture_species, forest_species)                      
-sp_sub_full <- c(sp_sub, 
-                 sample(species_names[!(species_names %in% sp_sub)], 
-                        (n_species_sample - length(sp_sub))))
+sp_sub <- c(pasture_species, forest_species)  
+species_names <- c(sp_sub, 
+                   sample(species_full[!(species_full %in% sp_sub)], 
+                          (n_species_sample - length(sp_sub))))
 
 # calculate species index
-species_full <- unique(readRDS("data/birds.RDS")$species)
-species_index <- which(species_full %in% sp_sub_full)
+species_index <- which(species_full %in% species_names)
 
 # read and join relev and tdist, and then manage memory
-relev_stars <- readRDS("outputs/relev_stars.rds")[,,,sp_sub_full]
-tdist_stars <- readRDS("outputs/tdist_stars.rds")[,,,sp_sub_full]
-pred_info <- c(relev_stars, tdist_stars)
-rm(relev_stars, tdist_stars)
+# note: would be fastest to use pred_info directly, but doing subsetting 
+# overflows memory 
+tdist <- readRDS("outputs/tdist_stars.rds")[,,,species_names]
+relev <- readRDS("outputs/relev_stars.rds")[,,,species_names]
+pred_info <- c(tdist, relev)
+rm(tdist, relev)
 
 # get prediction components
 pc <- get_prediction_components(draws, 1, z_info)[species_index,]
 
+# calculate point-level occupancies
 logodds_forest <- vector("list", n_species_sample)
 logodds_pasture <- vector("list", n_species_sample)
-for(i in 1:i){
+for(i in 1:n_species_sample){
+    print(i)
     sp_pc <- pc[i,]
-    pred_info[,,,i] %>%
+    out <- pred_info %>%
+        slice(i, along="species") %>%
         mutate(relev2 = relev * relev, 
                sp_forest_logit = sp_pc$logit_psi_0 - sp_pc$logit_psi_pasture_offset +
                    relev * sp_pc$b1_relev_sp +
@@ -74,8 +95,6 @@ for(i in 1:i){
     logodds_pasture[[i]] <- out %>% 
         dplyr::select(sp_pasture_logit)
 }
-
-species_names <- pred_info$species$values
 
 forest_probs <- logodds_forest %>%
     do.call(c, .) %>%
