@@ -40,12 +40,12 @@ calc_regional_summary <- function(regional_occs, centroids, threshold) {
     pasture_sum_mat <- pasture_sum_mat * p_above_threshold
     
     # calculate ratio/difference
-    rel_diff_mat <- exp(boot::logit(forest_sum_mat) - boot::logit(pasture_sum_mat))
+    rel_diff_mat <- forest_sum_mat/pasture_sum_mat
     abs_diff_mat <- forest_sum_mat - pasture_sum_mat
     
     centroids %>%
         mutate(avg_abs_diff = matrixStats::rowMeans2(abs_diff_mat, na.rm=T),
-               median_abs_diff = matrixStats::rowMeans2(abs_diff_mat, na.rm=T),
+               median_abs_diff = matrixStats::rowMedians(abs_diff_mat, na.rm=T),
                avg_ratio = matrixStats::rowMeans2(rel_diff_mat, na.rm=T),
                avg_logratio = matrixStats::rowMeans2(log(rel_diff_mat), na.rm=T),
                median_logratio = matrixStats::rowMedians(log(rel_diff_mat), na.rm=T))
@@ -68,12 +68,12 @@ calc_point_summary <- function(forest_points, pasture_points, centroids, thresho
     p_above_threshold <- (fp_mat2 > threshold) | (pp_mat2 > threshold)
     
     # calculate ratio
-    rel_diff_mat <- exp(boot::logit(forest_points_mat) - boot::logit(pasture_points_mat))
+    rel_diff_mat <- forest_points_mat/pasture_points_mat
     abs_diff_mat <- forest_points_mat - pasture_points_mat
     
     centroids %>%
         mutate(avg_abs_diff = matrixStats::rowMeans2(abs_diff_mat, na.rm=T),
-               median_abs_diff = matrixStats::rowMeans2(abs_diff_mat, na.rm=T),
+               median_abs_diff = matrixStats::rowMedians(abs_diff_mat, na.rm=T),
                avg_ratio = matrixStats::rowMeans2(rel_diff_mat, na.rm=T),
                avg_logratio = matrixStats::rowMeans2(log(rel_diff_mat), na.rm=T),
                median_logratio = matrixStats::rowMedians(log(rel_diff_mat), na.rm=T))
