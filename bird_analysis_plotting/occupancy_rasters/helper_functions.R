@@ -56,7 +56,7 @@ calc_regional_summary <- function(regional_occs, centroids, threshold) {
 # present at each point, the absolute/relative difference in occupancy between 
 # forest and pasture at that point in space
 # note: works with probabilities, *not* logodds
-calc_point_summary <- function(forest_points, pasture_points, centroids, threshold) {
+calc_point_summary <- function(forest_points, pasture_points, threshold) {
     forest_points_mat <- sf_to_mat(forest_points)
     pasture_points_mat <- sf_to_mat(pasture_points)
     
@@ -71,12 +71,14 @@ calc_point_summary <- function(forest_points, pasture_points, centroids, thresho
     rel_diff_mat <- forest_points_mat/pasture_points_mat
     abs_diff_mat <- forest_points_mat - pasture_points_mat
     
-    centroids %>%
+    forest_points %>%
+        slice(1, along="species") %>%          
         mutate(avg_abs_diff = matrixStats::rowMeans2(abs_diff_mat, na.rm=T),
                median_abs_diff = matrixStats::rowMedians(abs_diff_mat, na.rm=T),
                avg_ratio = matrixStats::rowMeans2(rel_diff_mat, na.rm=T),
                avg_logratio = matrixStats::rowMeans2(log(rel_diff_mat), na.rm=T),
-               median_logratio = matrixStats::rowMedians(log(rel_diff_mat), na.rm=T))
+               median_logratio = matrixStats::rowMedians(log(rel_diff_mat), na.rm=T)) %>%
+        select(avg_abs_diff:median_logratio)
 }
 
 # helper function to extract matrix of species x point occupancies from sf object
