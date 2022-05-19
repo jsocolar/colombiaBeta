@@ -55,30 +55,32 @@ calc_regional_summary <- function(regional_occs, centroids, threshold) {
 # forest at the point level. Note that this is summarising, across the community 
 # present at each point, the absolute/relative difference in occupancy between 
 # forest and pasture at that point in space
+# note: *significantly* faster than using st_apply across x and y
 # note: works with probabilities, *not* logodds
-calc_point_summary <- function(forest_points, pasture_points, threshold) {
-    forest_points_mat <- sf_to_mat(forest_points)
-    pasture_points_mat <- sf_to_mat(pasture_points)
+calc_pt_summary <- function(forest_probs, pasture_probs, 
+                            apply_threshold=TRUE, threshold_value = 0.1) {
+    if(apply_threshold) {
+        above_threshold <- c(forest_probs, pasture_probs) %>%
+            setNames(c("p_forest", "p_pasture")) %>%
+            mutate(above_threshold = ifelse(p_forest > 0.01 | p_pasture > 0.01, 1, NA)) %>%
+            select(above_threshold)
+        forest_probs <- forest_probs * above_threshold
+        pasture_probs <- pasture_probs * above_threshold
+    }
     
-    # do thresholding
-    fp_mat2 <- forest_points_mat
-    fp_mat2[is.na(fp_mat2)] <- 0
-    pp_mat2 <- pasture_points_mat
-    pp_mat2[is.na(pp_mat2)] <- 0
-    p_above_threshold <- (fp_mat2 > threshold) | (pp_mat2 > threshold)
+    fmat <- st_as_sf(forest_probs, na.rm = FALSE) %>%
+        sf_to_mat
+    pmat <- st_as_sf(pasture_probs, na.rm = FALSE) %>%
+        sf_to_mat
     
-    # calculate ratio
-    rel_diff_mat <- forest_points_mat/pasture_points_mat
-    abs_diff_mat <- forest_points_mat - pasture_points_mat
+    rel_diff <- fmat/pmat
     
-    forest_points %>%
-        slice(1, along="species") %>%          
-        mutate(avg_abs_diff = matrixStats::rowMeans2(abs_diff_mat, na.rm=T),
-               median_abs_diff = matrixStats::rowMedians(abs_diff_mat, na.rm=T),
-               avg_ratio = matrixStats::rowMeans2(rel_diff_mat, na.rm=T),
-               avg_logratio = matrixStats::rowMeans2(log(rel_diff_mat), na.rm=T),
-               median_logratio = matrixStats::rowMedians(log(rel_diff_mat), na.rm=T)) %>%
-        select(avg_abs_diff:median_logratio)
+    forest_probs %>% 
+        slice(1, along="species") %>%
+        mutate(avg_ratio = matrixStats::rowMeans2(rel_diff, na.rm=T),
+               avg_logratio = matrixStats::rowMeans2(log(rel_diff), na.rm=T),
+               median_logratio = matrixStats::rowMedians(log(rel_diff), na.rm=T)) %>%
+        select(-1) # note: need to remove attribute here, rather than start
 }
 
 # helper function to extract matrix of species x point occupancies from sf object
