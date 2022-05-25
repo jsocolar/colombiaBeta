@@ -1,97 +1,15 @@
 # functions
-require(stars); require(dplyr)
 
-# calculate sum & max occupancies across square regions centered on each 
-# centroid. Computing the max allows for exclusion of regions that are out of 
-# range (i.e. have very low occupancies due to being peripheral to a species'
-# range)
-calc_regional_occupancies <- function(forest_probs, pasture_probs, centroids, grid_size) {
-    # note grid_size supplied as a resolution, so divide to get a diameter
-    polys_buff <- st_buffer(centroids, grid_size/2, endCapStyle = "SQUARE")
-    forest_sum <- aggregate(forest_probs, polys_buff, FUN = sum, use_gdal = T)
-    pasture_sum <- aggregate(pasture_probs, polys_buff, FUN = sum, use_gdal = T)
-    
-    forest_max <- aggregate(forest_probs, polys_buff, FUN = max, use_gdal = T)
-    pasture_max <- aggregate(pasture_probs, polys_buff, FUN = max, use_gdal = T)
-    
-    list(forest_sum = st_as_sf(forest_sum), 
-         forest_max = st_as_sf(forest_max), 
-         pasture_sum = st_as_sf(pasture_sum), 
-         pasture_max = st_as_sf(pasture_max))
-}
-
-# calculate summary measures of the difference between pasture and forest for 
-# supplied regions. Note that this is summarising, across the community present 
-# in a region, the absolute/relative difference between expected number of 
-# points occupied in forest and pasture 
-# note: works with probabilities, *not* logodds
-calc_regional_summary <- function(regional_occs, centroids, 
-                                  apply_threshold = TRUE, threshold_value = 0.1) {
-    # do thresholding
-    forest_max_mat <- sf_to_mat(regional_occs$forest_max)
-    forest_max_mat[is.na(forest_max_mat)] <- 0
-    pasture_max_mat <- sf_to_mat(regional_occs$pasture_max)
-    pasture_max_mat[is.na(pasture_max_mat)] <- 0
-    p_above_threshold <- (forest_max_mat > threshold) | (pasture_max_mat > threshold)
-    
-    forest_sum_mat <- sf_to_mat(regional_occs$forest_sum) 
-    forest_sum_mat <- forest_sum_mat * p_above_threshold
-    
-    pasture_sum_mat <- sf_to_mat(regional_occs$pasture_sum) 
-    pasture_sum_mat <- pasture_sum_mat * p_above_threshold
-    
-    # calculate ratio/difference
-    rel_diff_mat <- forest_sum_mat/pasture_sum_mat
-    abs_diff_mat <- forest_sum_mat - pasture_sum_mat
-    
-    centroids %>%
-        mutate(avg_abs_diff = matrixStats::rowMeans2(abs_diff_mat, na.rm=T),
-               median_abs_diff = matrixStats::rowMedians(abs_diff_mat, na.rm=T),
-               avg_ratio = matrixStats::rowMeans2(rel_diff_mat, na.rm=T),
-               avg_logratio = matrixStats::rowMeans2(log(rel_diff_mat), na.rm=T),
-               median_logratio = matrixStats::rowMedians(log(rel_diff_mat), na.rm=T))
-}
-
-# calculate summary measures of the difference in occupancy between pasture and 
-# forest at the point level. Note that this is summarising, across the community 
-# present at each point, the absolute/relative difference in occupancy between 
-# forest and pasture at that point in space
-# note:
-#   (1) *significantly* faster than using st_apply across x and y
-#   (2) works with probabilities, *not* logodds
-calc_pt_summary <- function(forest_probs, pasture_probs, 
-                            apply_threshold=TRUE, threshold_value = 0.1) {
-    if(apply_threshold) {
-        above_threshold <- c(forest_probs, pasture_probs) %>%
-            setNames(c("p_forest", "p_pasture")) %>%
-            mutate(above_threshold = ifelse(p_forest > 0.01 | p_pasture > 0.01, 1, NA)) %>%
-            select(above_threshold)
-        forest_probs <- forest_probs * above_threshold
-        pasture_probs <- pasture_probs * above_threshold
-    }
-    
-    fmat <- st_as_sf(forest_probs, na.rm = FALSE) %>%
-        sf_to_mat
-    pmat <- st_as_sf(pasture_probs, na.rm = FALSE) %>%
-        sf_to_mat
-    
-    rel_diff <- fmat/pmat
-    
-    forest_probs %>% 
-        slice(1, along="species") %>%
-        mutate(avg_ratio = matrixStats::rowMeans2(rel_diff, na.rm=T),
-               avg_logratio = matrixStats::rowMeans2(log(rel_diff), na.rm=T),
-               median_logratio = matrixStats::rowMedians(log(rel_diff), na.rm=T)) %>%
-        select(-1) # note: need to remove attribute here, rather than start
-}
-
-# helper function to extract matrix of species x point occupancies from sf object
+# sf species x point occupancies to matrix ----
+# note: probably redundant- remove at a later point
 sf_to_mat <- function(x) {
     as_tibble(x) %>%
         dplyr::select(-geometry) %>%
         as.matrix
 }
 
+# tidy dt after thresholding ----
+# note: probably redundant- remove at a later point
 classify_thresh <- function(DT, threshold=0.1) {
     for (i in names(DT)) {
         DT[is.infinite(get(i)), (i):=NA]
@@ -100,6 +18,7 @@ classify_thresh <- function(DT, threshold=0.1) {
     }
 }
 
+# trim NAs from edge of stars ----
 trim_stars <- function(x) {
     n_attr <- length(x)
     dim1_list <- c()
@@ -124,6 +43,8 @@ trim_stars <- function(x) {
     return(x)
 }
 
+# fns to swap cell ids and xy positions ----
+# rewrite for arbitrary dims (e.g. if change resolution at a later point)?
 cell_to_y_pos <- function(id_cell) {
     ceiling(id_cell/679)
     
@@ -139,69 +60,41 @@ xy_to_cell <- function(id_x, id_y) {
     (id_x-1) * 679 + id_y
 }
 
-calc_regional_summ_v3 <- function(forest_probs, pasture_probs, 
-                                  d = c(0, 2, 5, 10, 12, 20), point_spacing=5, 
+# calculate regional ratios ----
+calc_regional_summ_v5 <- function(pred_info,
+                                  d = c(0, 2, 5, 10), point_spacing=5, 
                                   threshold = .1) {
     # note: 
     # - point spacing is expressed in terms of every nth cell to use as a cell
     # for generating regions from
     # - d is expressed in terms of number of cells to buffer around focal cell
-    # cell_res <- 2
+    start.time <- Sys.time()
     # d = c(0, 2, 5, 10, 12, 20)
-    # point_spacing=5
+    # point_spacing=10
     # threshold = .1
     
-    start.time <- Sys.time()
-    
     # extract indexing in the stars object 
-    col_index_stars <- forest_probs %>%
-        slice(1, along="species") %>%
-        mutate(id_cell = 1:n(), id_x=NA, id_y = NA) %>%
-        select(id_cell, id_x, id_y)
-    
-    xy_dim <- dim(col_index_stars)
-    col_index_stars[["id_x"]] <- matrix(rep(1:xy_dim[2], each=xy_dim[1]), 
-                                        nrow=xy_dim[2], ncol=xy_dim[1])
-    col_index_stars[["id_y"]] <- matrix(rep(1:xy_dim[1], xy_dim[2]), 
-                                        nrow=xy_dim[2], ncol=xy_dim[1])
-    
-    col_index_sf <- st_as_sf(col_index_stars, as_points = TRUE)
-    col_index_dt <- as.data.table(col_index_sf)
-    
-    # manage memory
-    rm(col_index_sf, col_index_stars)
+    # xyinfo <- readRDS("outputs/xy_info_lookup.rds")
+    xy_dim <- c(679, 925) #dim(col_index_stars)
     
     # store x and y ids
-    x_ids <- seq(1:max(col_index_dt$id_x))
-    y_ids <- seq(1:max(col_index_dt$id_y))
-    
-    # convert sf object to dt and append cell indexing, then remove all-NA rows
-    forest_sf <- st_as_sf(forest_probs, na.rm=F, as_points = T)
-    forest_dt <- as.data.table(forest_sf)
-    rm(forest_sf)
-    forest_dt[,id_cell := col_index_dt$id_cell]
-    forest_dt <- forest_dt[rowSums(!is.na(forest_dt[,..species_names])) > 0, ]
-    
-    pasture_sf <- st_as_sf(pasture_probs, na.rm=F, as_points=T)
-    pasture_dt <- as.data.table(pasture_sf)
-    rm(pasture_sf)
-    pasture_dt[,id_cell := col_index_dt$id_cell]
-    pasture_dt <- pasture_dt[forest_dt[,"id_cell"], on="id_cell"]
-    
-    # update col_index_dt to only have rows with at least one occupied cell
-    col_index_dt <- col_index_dt[forest_dt, on="id_cell", .(id_cell, id_x, id_y)]
+    x_ids <- seq(1:679)
+    y_ids <- seq(1:925)
     
     # specify spacing grid 
-    dt_grid <- expand.grid(id_x = as.integer(seq(1, max(col_index_dt$id_x), point_spacing)), 
-                           id_y = as.integer(seq(1, max(col_index_dt$id_y), point_spacing))) %>%
+    dt_grid <- expand.grid(id_x = as.integer(seq(1, xy_dim[2], point_spacing)), 
+                           id_y = as.integer(seq(1, xy_dim[1], point_spacing))) %>%
         as.data.table
     
     # join in focal cells (i.e. cells to buffer from)
     # joining on x and y position
-    dt_focal_cells <- col_index_dt[dt_grid, on = c("id_x", "id_y")]
-    # remove cells without data (id_cell inherit from col_index_dt, which has 
-    # all-NA cells removed )
-    dt_focal_cells <- dt_focal_cells[!is.na(id_cell),]
+    dt_grid[,id_cell := xy_to_cell(id_x, id_y)]
+    
+    # get cells that contain values
+    nonNA_cells <- unique(pred_info[,id_cell])
+    
+    # note: pred_info only contains cells with some data
+    dt_focal_cells <- dt_grid[id_cell %in% nonNA_cells, ]
     
     # iteratively specify offsets and calculate summary across region
     print(Sys.time() - start.time)
@@ -209,151 +102,11 @@ calc_regional_summ_v3 <- function(forest_probs, pasture_probs,
     out_list <- vector("list", length(d))
     for(i in 1:length(d)) {
         d_i <- d[i]
-        
-        # specify offsets
-        dt_offsets <- as.data.table(expand.grid(id_x_offset = -d_i:d_i, 
-                                                id_y_offset = -d_i:d_i, 
-                                                id_cell = dt_focal_cells$id_cell))
-        
-        # join based on id_cell to generate dt with cell x and y coordinates,
-        # plus the buffer offsets
-        # dt_full is the full set of cells that need forest and pasture probs
-        # appending
-        # update x and y coordinates with the offsets
-        dt_offsets[dt_focal_cells, on="id_cell", `:=`(id_x_offset = id_x + id_x_offset, 
-                                                      id_y_offset = id_y + id_y_offset)]
-        setnames(dt_offsets, "id_x_offset", "id_x")
-        setnames(dt_offsets, "id_y_offset", "id_y")
-        setnames(dt_offsets, "id_cell", "id_focal_cell")
-        
-        # join with col_index_dt to identify NA cells in buffer region and
-        # remove
-        dt_offsets <- col_index_dt[dt_offsets, on=c("id_x", "id_y")]
-        dt_offsets <- dt_offsets[!is.na(id_cell),]
-        
-        # merge in forest & pasture
-        forest_matched <- forest_dt[dt_offsets, on = "id_cell"]
-        pasture_matched <- pasture_dt[dt_offsets, on = "id_cell"]
-        
-        # summarise
-        forest_summ <- forest_matched[,lapply(.SD, sum, na.rm=T), by="id_focal_cell", .SDcols=species_names]
-        forest_max <- suppressWarnings(
-            forest_matched[,lapply(.SD, max, na.rm=T), by="id_focal_cell", .SDcols=species_names]
-        )
-        
-        pasture_summ <- pasture_matched[,lapply(.SD, sum, na.rm=T), by="id_focal_cell", .SDcols=species_names]
-        pasture_max <- suppressWarnings(
-            pasture_matched[,lapply(.SD, max, na.rm=T), by="id_focal_cell", .SDcols=species_names]
-        )
-        
-        # update pasture_max & forest_max     
-        classify_thresh(pasture_max, threshold); classify_thresh(forest_max, threshold)
-        above_threshold <- copy(pasture_max == 1 | forest_max == 1)
-        above_threshold[above_threshold == FALSE] <- NA
-        
-        # calculate relative diffs
-        pasture_summ <- pasture_summ * above_threshold
-        forest_summ <- forest_summ * above_threshold
-        rel_diff_mat <- as.matrix(forest_summ/pasture_summ)
-        rel_diff_mat <- rel_diff_mat[,!colnames(rel_diff_mat) %in% c("id_focal_cell", "n_cell")]
-        
-        out_dt <- forest_summ[,c("id_focal_cell")]
-        setnames(out_dt, "id_focal_cell", "id_cell")
-        out_dt[, `:=`(avg_ratio = matrixStats::rowMeans2(rel_diff_mat, na.rm=T),
-                      avg_logratio = matrixStats::rowMeans2(log(rel_diff_mat), na.rm=T),
-                      median_logratio = matrixStats::rowMedians(log(rel_diff_mat), na.rm=T))]
-        
-        # bind geometry info back in
-        out_dt <- forest_dt[out_dt, on="id_cell", 
-                            .(avg_ratio, avg_logratio, median_logratio, geometry)]
-        print(Sys.time() - start.time)
-        
-        out_list[[i]] <- out_dt %>%
-            st_as_sf %>%
-            st_rasterize(., dx = 2*point_spacing*1e3, dy=2*point_spacing*1e3)
-    }
-    if(length(d) == 1) {
-        return(out_list[[1]])
-    } else {
-        do.call(c, c(out_list, list(along="region_size"))) %>%
-            st_set_dimensions(., 3, values=(2*d + 1))
-    }
-}
-
-calc_regional_summ_v4 <- function(forest_probs, pasture_probs, 
-                                  d = c(0, 2, 5, 10, 12, 20), point_spacing=5, 
-                                  threshold = .1) {
-    # note: 
-    # - point spacing is expressed in terms of every nth cell to use as a cell
-    # for generating regions from
-    # - d is expressed in terms of number of cells to buffer around focal cell
-    start.time <- Sys.time()
-    
-    # extract indexing in the stars object 
-    col_index_stars <- forest_probs %>%
-        slice(1, along="species") %>%
-        mutate(id_cell = 1:n(), id_x=NA, id_y = NA) %>%
-        select(id_cell, id_x, id_y)
-    
-    xy_dim <- dim(col_index_stars)
-    col_index_stars[["id_x"]] <- matrix(rep(1:xy_dim[2], each=xy_dim[1]), 
-                                        nrow=xy_dim[2], ncol=xy_dim[1])
-    col_index_stars[["id_y"]] <- matrix(rep(1:xy_dim[1], xy_dim[2]), 
-                                        nrow=xy_dim[2], ncol=xy_dim[1])
-    
-    col_index_sf <- st_as_sf(col_index_stars, as_points = TRUE)
-    col_index_dt <- as.data.table(col_index_sf)
-    
-    # manage memory
-    rm(col_index_sf, col_index_stars)
-    
-    # store x and y ids
-    x_ids <- seq(1:max(col_index_dt$id_x))
-    y_ids <- seq(1:max(col_index_dt$id_y))
-    
-    # convert sf object to dt and append cell indexing, then remove all-NA rows
-    forest_sf <- st_as_sf(forest_probs, na.rm=F, as_points = T)
-    forest_dt <- as.data.table(forest_sf)
-    # manage memory
-    rm(forest_sf)
-    # add cell ids
-    forest_dt[,id_cell := col_index_dt$id_cell]
-    forest_dt <- forest_dt[rowSums(!is.na(forest_dt[,..species_names])) > 0, ]
-    
-    pasture_sf <- st_as_sf(pasture_probs, na.rm=F, as_points=T)
-    pasture_dt <- as.data.table(pasture_sf)
-    # manage memory
-    rm(pasture_sf)
-    # add cell ids
-    pasture_dt[,id_cell := col_index_dt$id_cell]
-    pasture_dt <- pasture_dt[forest_dt[,"id_cell"], on="id_cell"]
-    
-    # update col_index_dt to only have rows with at least one occupied cell
-    col_index_dt <- col_index_dt[forest_dt, on="id_cell", .(id_cell, id_x, id_y)]
-    
-    # specify spacing grid 
-    dt_grid <- expand.grid(id_x = as.integer(seq(1, max(col_index_dt$id_x), point_spacing)), 
-                           id_y = as.integer(seq(1, max(col_index_dt$id_y), point_spacing))) %>%
-        as.data.table
-    
-    # join in focal cells (i.e. cells to buffer from)
-    # joining on x and y position
-    dt_focal_cells <- col_index_dt[dt_grid, on = c("id_x", "id_y")]
-    # remove cells without data (id_cell inherit from col_index_dt, which has 
-    # all-NA cells removed )
-    dt_focal_cells <- dt_focal_cells[!is.na(id_cell),]
-    
-    # iteratively specify offsets and calculate summary across region
-    print(Sys.time() - start.time)
-    start.time <- Sys.time()
-    out_list <- vector("list", length(d))
-    for(i in 1:length(d)) {
-        d_i <- d[i]
-        
+        # d_i <- 2
         # run in chunks if memory requirements become large
         # approx. mem requirements for forest_matched and pasture_matched 
         # (largest objects in pipeline, by a margin)
-        rmem <- (nrow(dt_focal_cells) * (d_i*2 + 1)^2) * 8 * (5 + length(species_names)) * 2
+        rmem <- (nrow(dt_focal_cells) * (d_i*2 + 1)^2) * 8 * (5 + 1614) * 2
         n_blocks <- ceiling(rmem/1e9/20)
         v <- dt_focal_cells$id_cell
         
@@ -363,9 +116,8 @@ calc_regional_summ_v4 <- function(forest_probs, pasture_probs,
             chunked_index <- list(v)
         }
         out_chunk_list <- vector("list", n_blocks)
-        
         for(j in 1:n_blocks) {
-            
+            # j <- 1
             # specify offsets
             dt_offsets <- as.data.table(expand.grid(id_x_offset = -d_i:d_i, 
                                                     id_y_offset = -d_i:d_i, 
@@ -383,67 +135,65 @@ calc_regional_summ_v4 <- function(forest_probs, pasture_probs,
             setnames(dt_offsets, "id_y_offset", "id_y")
             setnames(dt_offsets, "id_cell", "id_focal_cell")
             
-            # join with col_index_dt to identify NA cells in buffer region and
-            # remove
-            dt_offsets <- col_index_dt[dt_offsets, on=c("id_x", "id_y")]
-            dt_offsets <- dt_offsets[!is.na(id_cell),]
+            # exchange x and y for cell info (for merge below)
+            dt_offsets[,id_cell := xy_to_cell(id_x, id_y)]
+            dt_offsets[,`:=`(id_x = NULL, id_y = NULL)]
+            
+            # remove any NA cells in buffer region
+            dt_offsets <- dt_offsets[id_cell %in% nonNA_cells,]
+            
+            # calculate number of cells in each regional buffer
+            n_cell <- dt_offsets[,list(n_cell = length(unique(id_cell))), by="id_focal_cell"]
+            
+            # note: could briefly save a bit of memory here (~4GB) by overwriting
+            # base pred_info, but not obviously worth it for the additional 
+            # complications it introduces (e.g. read times)
+            # also, important to compute n_cell before thresholding
+            # pred_info_local <- pred_info[p_forest > threshold | p_pasture > threshold, ]
             
             # merge in forest & pasture
-            forest_matched <- forest_dt[dt_offsets, on = "id_cell"]
-            pasture_matched <- pasture_dt[dt_offsets, on = "id_cell"]
+            dt_offsets <- pred_info[dt_offsets, on = "id_cell", allow.cartesian=TRUE]
             
-            # summarise
-            forest_summ <- forest_matched[,lapply(.SD, sum, na.rm=T), by="id_focal_cell", .SDcols=species_names]
-            forest_max <- suppressWarnings(
-                forest_matched[,lapply(.SD, max, na.rm=T), by="id_focal_cell", .SDcols=species_names]
-            )
+            dt_max <- dt_offsets[,list(max_forest = max(p_forest, na.rm=T), 
+                                       max_pasture = max(p_pasture, na.rm=T)), 
+                                 by=c("id_focal_cell", "species")]
+            dt_max <- dt_max[max_forest > threshold | max_pasture > threshold,]
             
-            pasture_summ <- pasture_matched[,lapply(.SD, sum, na.rm=T), by="id_focal_cell", .SDcols=species_names]
-            pasture_max <- suppressWarnings(
-                pasture_matched[,lapply(.SD, max, na.rm=T), by="id_focal_cell", .SDcols=species_names]
-            )
+            # remove species not in region (i.e. not above threshold)
+            dt_offsets <- dt_offsets[dt_max[,.(id_focal_cell, species)], 
+                                     on = c("id_focal_cell", "species")]
             
-            # update pasture_max & forest_max     
-            classify_thresh(pasture_max, threshold); classify_thresh(forest_max, threshold)
-            above_threshold <- copy(pasture_max == 1 | forest_max == 1)
-            above_threshold[above_threshold == FALSE] <- NA
+            # calculate beta
+            SR_summ <- dt_offsets[,list(sr_pt = .N), by = c("id_cell", "id_focal_cell")]
+            SR_summ2 <- SR_summ[,list(mean_sr_pt = mean(sr_pt)), by="id_focal_cell"]
             
-            # calculate relative diffs
-            pasture_summ <- pasture_summ * above_threshold
-            forest_summ <- forest_summ * above_threshold
-            rel_diff_mat <- as.matrix(forest_summ/pasture_summ)
-            rel_diff_mat <- rel_diff_mat[,!colnames(rel_diff_mat) %in% c("id_focal_cell", "n_cell")]
+            SR_gamma <- dt_offsets[,list(sr_region = length(unique(species))), 
+                                   by = c("id_focal_cell")]
             
-            out_dt <- forest_summ[,c("id_focal_cell")]
-            setnames(out_dt, "id_focal_cell", "id_cell")
-            out_dt[, `:=`(avg_ratio = matrixStats::rowMeans2(rel_diff_mat, na.rm=T),
-                          avg_logratio = matrixStats::rowMeans2(log(rel_diff_mat), na.rm=T),
-                          median_logratio = matrixStats::rowMedians(log(rel_diff_mat), na.rm=T))]
+            SR_tot <- SR_gamma[SR_summ2, on="id_focal_cell"]
+            SR_tot[, beta := 1 - mean_sr_pt/sr_region]
             
-            # bind geometry info back in
-            out_dt <- forest_dt[out_dt, on="id_cell", 
-                                .(avg_ratio, avg_logratio, median_logratio, geometry)]
+            # manage memory
+            dt_offsets[,id_cell := NULL]
+            rm(dt_max)
             
-            out_chunk_list[[j]] <- out_dt
+            # summarise log ratios
+            dt_summ <- dt_offsets[, list(
+                median_log_ratio = median(sum(p_forest)/sum(p_pasture), na.rm = T)
+            ), by=c("id_focal_cell")]
+            
+            out_chunk_list[[j]] <- dt_summ[n_cell, on = "id_focal_cell"][SR_tot, on="id_focal_cell"]
         }
         
         print(Sys.time() - start.time)
         
-        out_list[[i]] <- rbindlist(out_chunk_list) %>%
-            st_as_sf %>%
-            st_rasterize(., dx = 2*point_spacing*1e3, dy=2*point_spacing*1e3)
+        out_list[[i]] <- rbindlist(out_chunk_list)
     }
-    
-    # return
-    if(length(d) == 1) {
-        return(out_list[[1]])
-    } else {
-        do.call(c, c(out_list, list(along="region_size"))) %>%
-            st_set_dimensions(., 3, values=(2*d + 1))
-    }
+    out_list
 }
 
-## memory efficient removal of rows 
+# memory efficient row removal ----
+# note: not currently used
 remove_rows <- function(dt, threshold) {
     cols <- names(dt)
     above_threshold <- dt$p_forest > threshold | dt$p_pasture > threshold
@@ -456,7 +206,3 @@ remove_rows <- function(dt, threshold) {
     }
     return(dt_subset)
 }
-
-
-
-
