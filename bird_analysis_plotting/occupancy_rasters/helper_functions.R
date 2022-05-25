@@ -124,6 +124,21 @@ trim_stars <- function(x) {
     return(x)
 }
 
+cell_to_y_pos <- function(id_cell) {
+    ceiling(id_cell/679)
+    
+}
+
+cell_to_x_pos <- function(id_cell) {
+    x <- id_cell %% 679
+    x[x==0] <- 679
+    x
+}
+
+xy_to_cell <- function(id_x, id_y) {
+    (id_x-1) * 679 + id_y
+}
+
 calc_regional_summ_v3 <- function(forest_probs, pasture_probs, 
                                   d = c(0, 2, 5, 10, 12, 20), point_spacing=5, 
                                   threshold = .1) {
@@ -426,6 +441,20 @@ calc_regional_summ_v4 <- function(forest_probs, pasture_probs,
         do.call(c, c(out_list, list(along="region_size"))) %>%
             st_set_dimensions(., 3, values=(2*d + 1))
     }
+}
+
+## memory efficient removal of rows 
+remove_rows <- function(dt, threshold) {
+    cols <- names(dt)
+    above_threshold <- dt$p_forest > threshold | dt$p_pasture > threshold
+    dt_subset = data.table(temp_name = dt[[cols[1]]][above_threshold])
+    setnames(dt_subset, "temp_name", cols[1])
+    for (i in 1:length(cols)){
+        col <- cols[1]
+        dt_subset[, (col) := dt[[col]][above_threshold]]
+        dt[, (col) := NULL] #delete
+    }
+    return(dt_subset)
 }
 
 
