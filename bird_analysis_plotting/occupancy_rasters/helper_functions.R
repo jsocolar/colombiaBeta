@@ -45,50 +45,46 @@ trim_stars <- function(x) {
 
 # fns to swap cell ids and xy positions ----
 # rewrite for arbitrary dims (e.g. if change resolution at a later point)?
-cell_to_y_pos <- function(id_cell) {
-    ceiling(id_cell/679)
+cell_to_y_pos <- function(id_cell, xy_dim = c(924, 679)) {
+    ceiling(id_cell/xy_dim[2])
     
 }
 
-cell_to_x_pos <- function(id_cell) {
-    x <- id_cell %% 679
-    x[x==0] <- 679
+cell_to_x_pos <- function(id_cell, xy_dim = c(924, 679)) {
+    x <- id_cell %% xy_dim[2]
+    x[x==0] <- xy_dim[2]
     x
 }
 
-xy_to_cell <- function(id_x, id_y) {
-    (id_x-1) * 679 + id_y
+xy_to_cell <- function(id_x, id_y, xy_dim = c(924, 679)) {
+    (id_y - 1) * xy_dim[2] + id_x
 }
 
 # calculate regional ratios ----
-calc_regional_summ_v5 <- function(pred_info,
-                                  d = c(0, 2, 5, 10), point_spacing=5, 
-                                  threshold = .1) {
+calc_regional_summ_v7 <- function(pred_info, d = c(2, 5, 10, 15), 
+                                  point_spacing=5, 
+                                  threshold = .1, 
+                                  xy_lookup = xy_lookup) {
     # note: 
     # - point spacing is expressed in terms of every nth cell to use as a cell
     # for generating regions from
     # - d is expressed in terms of number of cells to buffer around focal cell
-    start.time <- Sys.time()
-    # d = c(0, 2, 5, 10, 12, 20)
-    # point_spacing=10
-    # threshold = .1
     
-    # extract indexing in the stars object 
-    # xyinfo <- readRDS("outputs/xy_info_lookup.rds")
-    xy_dim <- c(679, 925) #dim(col_index_stars)
+    calc_OR <- function(p_forest, p_pasture) p_forest - p_pasture
+    calc_RR <- function(p_forest, p_pasture) log(p_forest/p_pasture)
     
     # store x and y ids
-    x_ids <- seq(1:679)
-    y_ids <- seq(1:925)
+    x_ids <- seq(1:xy_dim[1])
+    y_ids <- seq(1:xy_dim[2])
     
     # specify spacing grid 
-    dt_grid <- expand.grid(id_x = as.integer(seq(1, xy_dim[2], point_spacing)), 
-                           id_y = as.integer(seq(1, xy_dim[1], point_spacing))) %>%
+    dt_grid <- expand.grid(id_x = as.integer(seq(1, xy_dim[1], point_spacing)), 
+                           id_y = as.integer(seq(1, xy_dim[2], point_spacing))) %>%
         as.data.table
     
     # join in focal cells (i.e. cells to buffer from)
     # joining on x and y position
-    dt_grid[,id_cell := xy_to_cell(id_x, id_y)]
+    dt_grid[xy_lookup, on=c("id_x", "id_y"), id_cell := id_cell]
     
     # get cells that contain values
     nonNA_cells <- unique(pred_info[,id_cell])
@@ -97,17 +93,16 @@ calc_regional_summ_v5 <- function(pred_info,
     dt_focal_cells <- dt_grid[id_cell %in% nonNA_cells, ]
     
     # iteratively specify offsets and calculate summary across region
-    print(Sys.time() - start.time)
     start.time <- Sys.time()
     out_list <- vector("list", length(d))
     for(i in 1:length(d)) {
         d_i <- d[i]
-        # d_i <- 2
+        
         # run in chunks if memory requirements become large
-        # approx. mem requirements for forest_matched and pasture_matched 
-        # (largest objects in pipeline, by a margin)
+        # note: calculation now out of date, but seems to prevent running out 
+        # of RAM on my device. Can relax on HPC. 
         rmem <- (nrow(dt_focal_cells) * (d_i*2 + 1)^2) * 8 * (5 + 1614) * 2
-        n_blocks <- ceiling(rmem/1e9/20)
+        n_blocks <- ceiling(rmem/1e9/10)
         v <- dt_focal_cells$id_cell
         
         if(n_blocks > 1) {
@@ -116,6 +111,7 @@ calc_regional_summ_v5 <- function(pred_info,
             chunked_index <- list(v)
         }
         out_chunk_list <- vector("list", n_blocks)
+        print(n_blocks)
         for(j in 1:n_blocks) {
             # j <- 1
             # specify offsets
@@ -125,9 +121,6 @@ calc_regional_summ_v5 <- function(pred_info,
             
             # join based on id_cell to generate dt with cell x and y coordinates,
             # plus the buffer offsets
-            # dt_full is the full set of cells that need forest and pasture probs
-            # appending
-            # update x and y coordinates with the offsets
             dt_offsets[dt_focal_cells, on="id_cell", `:=`(id_x_offset = id_x + id_x_offset, 
                                                           id_y_offset = id_y + id_y_offset)]
             
@@ -136,53 +129,77 @@ calc_regional_summ_v5 <- function(pred_info,
             setnames(dt_offsets, "id_cell", "id_focal_cell")
             
             # exchange x and y for cell info (for merge below)
-            dt_offsets[,id_cell := xy_to_cell(id_x, id_y)]
+            dt_offsets[xy_lookup, on=c("id_x", "id_y"), id_cell := id_cell]
             dt_offsets[,`:=`(id_x = NULL, id_y = NULL)]
             
             # remove any NA cells in buffer region
             dt_offsets <- dt_offsets[id_cell %in% nonNA_cells,]
             
-            # calculate number of cells in each regional buffer
+            # calculate number of nonNA cells in each regional buffer
             n_cell <- dt_offsets[,list(n_cell = length(unique(id_cell))), by="id_focal_cell"]
             
-            # note: could briefly save a bit of memory here (~4GB) by overwriting
-            # base pred_info, but not obviously worth it for the additional 
-            # complications it introduces (e.g. read times)
-            # also, important to compute n_cell before thresholding
-            # pred_info_local <- pred_info[p_forest > threshold | p_pasture > threshold, ]
+            # note: code is somewhat unwieldy from here on out. We need to join the
+            # species-level forest and pasture probs, and rel_diffs, into the 
+            # dt_offsets dt
+            dt_offsets <- pred_info[dt_offsets, on = "id_cell", allow.cartesian=T]
             
-            # merge in forest & pasture
-            dt_offsets <- pred_info[dt_offsets, on = "id_cell", allow.cartesian=TRUE]
+            # ..then compute the max prob for each species x region
+            dt_max <- dt_offsets[, list(
+                max_prob = max(c(max(p_forest, na.rm=T), max(p_pasture, na.rm=T)))
+            ), by=c("id_focal_cell", "species")]
             
-            dt_max <- dt_offsets[,list(max_forest = max(p_forest, na.rm=T), 
-                                       max_pasture = max(p_pasture, na.rm=T)), 
-                                 by=c("id_focal_cell", "species")]
-            dt_max <- dt_max[max_forest > threshold | max_pasture > threshold,]
-            
-            # remove species not in region (i.e. not above threshold)
-            dt_offsets <- dt_offsets[dt_max[,.(id_focal_cell, species)], 
-                                     on = c("id_focal_cell", "species")]
-            
-            # calculate beta
-            SR_summ <- dt_offsets[,list(sr_pt = .N), by = c("id_cell", "id_focal_cell")]
-            SR_summ2 <- SR_summ[,list(mean_sr_pt = mean(sr_pt)), by="id_focal_cell"]
-            
-            SR_gamma <- dt_offsets[,list(sr_region = length(unique(species))), 
-                                   by = c("id_focal_cell")]
-            
-            SR_tot <- SR_gamma[SR_summ2, on="id_focal_cell"]
-            SR_tot[, beta := 1 - mean_sr_pt/sr_region]
+            # ..trim lookup df to only species that exceed the threshold
+            dt_max <- dt_max[max_prob > threshold,]
             
             # manage memory
-            dt_offsets[,id_cell := NULL]
+            dt_max[,max_prob := NULL]
+            
+            # ..remove species not in region (i.e. not above threshold)
+            SR_summ <- dt_offsets[dt_max, on = c("id_focal_cell", "species")
+            ][, list(sr_pt = .N), by = c("id_cell", "id_focal_cell")]
+            
+            SR_summ2 <- SR_summ[,list(mean_sr_pt = mean(sr_pt)), by="id_focal_cell"]
+            
+            # calculate beta
+            SR_gamma <- dt_offsets[dt_max, on = c("id_focal_cell", "species")
+            ][, list(sr_region = length(unique(species))), 
+              by = "id_focal_cell"]
+            
+            SR_tot <- SR_gamma[SR_summ2, on="id_focal_cell"]
+            SR_tot[, beta := sr_region/mean_sr_pt]
+            
+            # manage memory
             rm(dt_max)
             
             # summarise log ratios
+            ## 1.2: calculate the log-ratio across cells within each species x region
             dt_summ <- dt_offsets[, list(
-                median_log_ratio = median(sum(p_forest)/sum(p_pasture), na.rm = T)
+                log_ratio = mean(calc_OR(p_forest, p_pasture))
+            ), by=c("id_focal_cell", "species")]
+            
+            ## 1.2: calculate the median log-ratio across species within each region
+            dt_summ <- dt_summ[, list(
+                median_log_ratio = median(log_ratio, na.rm=T)
             ), by=c("id_focal_cell")]
             
-            out_chunk_list[[j]] <- dt_summ[n_cell, on = "id_focal_cell"][SR_tot, on="id_focal_cell"]
+            ## 2.1: calculate the median-sensitivity species on each point
+            ## note: have to calculate medians here rather than on pred_info
+            ## as need to threshold first
+            dt_summ_pt <- dt_offsets[
+                , list(log_ratio = median(calc_OR(p_forest, p_pasture), na.rm=T)), 
+                by=c("id_focal_cell", "id_cell")]
+            
+            ## 2.2: average across cells within a region
+            dt_summ_pt <- dt_summ_pt[, list(mean_pt_log_ratio = mean(log_ratio, na.rm=T)), 
+                                     by=c("id_focal_cell")]
+            
+            # join together n_cell, sr, and loss sensitivity dts
+            out_chunk_list[[j]] <- dt_summ[n_cell, on = "id_focal_cell"
+            ][SR_tot, on="id_focal_cell"
+            ][dt_summ_pt, on = "id_focal_cell"]
+            
+            # manage memory
+            rm(dt_offsets)
         }
         
         print(Sys.time() - start.time)
