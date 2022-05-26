@@ -21,7 +21,7 @@ rm(bird_data, birds, stan_output); gc()
 
 # read in prediction info 
 pred_info <- readRDS("outputs/prediction_info_dt.rds")
-pred_info <- pred_info[complete.cases(pred_info),]
+pred_info <- pred_info[complete.cases(pred_info),] 
 
 # function to calculate probs
 # note: running via function requires just one join, so 2x speed
@@ -41,7 +41,9 @@ make_preds <- function(tdist, relev, logit_psi_0, logit_psi_pasture_offset,
 }
 
 # loop over draw ids, saving point preds and summary each time
-draw_ids <- 10:50
+draw_ids <- 1:100
+logit_f_dt <- data.table(draw = draw_ids)
+logit_p_dt <- data.table(draw = draw_ids)
 for(i in draw_ids) {
     start.time <- Sys.time()
     
@@ -61,6 +63,10 @@ for(i in draw_ids) {
                              b1_x_lowland_relev = b1_x_lowland_relev, 
                              b1_x_lowland_relev2 = b1_x_lowland_relev2, 
                              b5_distance_to_range_sp = b5_distance_to_range_sp)]
+    f_range <- boot::logit(range(pred_info$p_forest))
+    p_range <- boot::logit(range(pred_info$p_pasture))
+    logit_f_dt[draw_ids[i],`:=`(lwr = f_quant[1], upr = f_quant[2])]
+    logit_p_dt[draw_ids[i],`:=`(lwr = p_quant[1], upr = p_quant[2])]
     
     # save
     saveRDS(pred_info[,.(id_cell, species, p_forest, p_pasture)], 
@@ -87,3 +93,6 @@ for(i in draw_ids) {
     print(Sys.time() - start.time)
 }
 
+# save linear predictor min/max
+saveRDS(list(logit_f_range = logit_f_dt, 
+             logit_p_range = logit_p_dt), "outputs/linear_predictor_range.rds")
