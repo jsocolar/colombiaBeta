@@ -61,19 +61,21 @@ xy_to_cell <- function(id_x, id_y, xy_dim = c(924, 679)) {
 }
 
 # calculate regional ratios ----
-calc_regional_summ_v7 <- function(pred_info, d = c(2, 5, 10, 15), 
+calc_regional_summ_v7 <- function(pred_info, buffer = c(2, 5, 10, 15), 
                                   point_spacing=5, 
                                   threshold = .1, 
                                   xy_lookup = xy_lookup) {
     # note: 
-    # - point spacing is expressed in terms of every nth cell to use as a cell
-    # for generating regions from
-    # - d is expressed in terms of number of cells to buffer around focal cell
+    # - point spacing is expressed in terms of every nth cell to buffer from to 
+    # generate regions (1 would be at a 2km resolution)
+    # - buffer is expressed in terms of number of cells to buffer around focal 
+    # cell (2 is equivalent to a 10x10km region, i.e. 25 points)
     
-    #calc_OR <- function(p_forest, p_pasture) (p_forest/(1-p_forest))/(p_pasture/(1 - p_pasture))
-    #calc_RR <- function(p_forest, p_pasture) p_forest/p_pasture
+    # calc_OR <- function(p_forest, p_pasture) (p_forest/(1-p_forest))/(p_pasture/(1 - p_pasture))
+    # calc_RR <- function(p_forest, p_pasture) p_forest/p_pasture
     
     # store x and y ids
+    xy_dim <- c(max(xy_lookup$id_x), max(xy_lookup$id_y))
     x_ids <- seq(1:xy_dim[1])
     y_ids <- seq(1:xy_dim[2])
     
@@ -94,15 +96,15 @@ calc_regional_summ_v7 <- function(pred_info, d = c(2, 5, 10, 15),
     
     # iteratively specify offsets and calculate summary across region
     start.time <- Sys.time()
-    out_list <- vector("list", length(d))
-    for(i in 1:length(d)) {
-        print(paste0("d:", i))
-        d_i <- d[i]
+    out_list <- vector("list", length(buffer))
+    for(i in 1:length(buffer)) {
+        print(paste0("buffer:", buffer[i]))
+        buffer_i <- buffer[i]
         
         # run in chunks if memory requirements become large
         # note: calculation now out of date, but seems to prevent running out 
         # of RAM on my device. Can relax on HPC. 
-        rmem <- (nrow(dt_focal_cells) * (d_i*2 + 1)^2) * 8 * (5 + 1614) * 2
+        rmem <- (nrow(dt_focal_cells) * (buffer_i*2 + 1)^2) * 8 * (5 + 1614) * 2
         n_blocks <- ceiling(rmem/1e9/10)
         v <- dt_focal_cells$id_cell
         
@@ -114,8 +116,8 @@ calc_regional_summ_v7 <- function(pred_info, d = c(2, 5, 10, 15),
         out_chunk_list <- vector("list", n_blocks)
         for(j in 1:n_blocks) {
             # specify offsets
-            dt_offsets <- as.data.table(expand.grid(id_x_offset = -d_i:d_i, 
-                                                    id_y_offset = -d_i:d_i, 
+            dt_offsets <- as.data.table(expand.grid(id_x_offset = -buffer_i:buffer_i, 
+                                                    id_y_offset = -buffer_i:buffer_i, 
                                                     id_cell = chunked_index[[j]]))
             
             # join based on id_cell to generate dt with cell x and y coordinates,
@@ -201,7 +203,7 @@ calc_regional_summ_v7 <- function(pred_info, d = c(2, 5, 10, 15),
             ][dt_summ_pt, on = "id_focal_cell"]
             
             # manage memory
-            rm(dt_offsets)
+            rm(dt_offsets); gc()
         }
         
         print(Sys.time() - start.time)
