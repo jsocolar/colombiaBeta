@@ -70,8 +70,8 @@ calc_regional_summ_v7 <- function(pred_info, d = c(2, 5, 10, 15),
     # for generating regions from
     # - d is expressed in terms of number of cells to buffer around focal cell
     
-    calc_OR <- function(p_forest, p_pasture) p_forest - p_pasture
-    calc_RR <- function(p_forest, p_pasture) log(p_forest/p_pasture)
+    #calc_OR <- function(p_forest, p_pasture) (p_forest/(1-p_forest))/(p_pasture/(1 - p_pasture))
+    #calc_RR <- function(p_forest, p_pasture) p_forest/p_pasture
     
     # store x and y ids
     x_ids <- seq(1:xy_dim[1])
@@ -96,6 +96,7 @@ calc_regional_summ_v7 <- function(pred_info, d = c(2, 5, 10, 15),
     start.time <- Sys.time()
     out_list <- vector("list", length(d))
     for(i in 1:length(d)) {
+        print(paste0("d:", i))
         d_i <- d[i]
         
         # run in chunks if memory requirements become large
@@ -111,9 +112,7 @@ calc_regional_summ_v7 <- function(pred_info, d = c(2, 5, 10, 15),
             chunked_index <- list(v)
         }
         out_chunk_list <- vector("list", n_blocks)
-        print(n_blocks)
         for(j in 1:n_blocks) {
-            # j <- 1
             # specify offsets
             dt_offsets <- as.data.table(expand.grid(id_x_offset = -d_i:d_i, 
                                                     id_y_offset = -d_i:d_i, 
@@ -171,25 +170,28 @@ calc_regional_summ_v7 <- function(pred_info, d = c(2, 5, 10, 15),
             # manage memory
             rm(dt_max)
             
-            # summarise log ratios
-            ## 1.2: calculate the log-ratio across cells within each species x region
+            # summarise log ratios, by (1) region, and (2) points (within regions)
+            ## 1: calculate the number of occupied points within a region for 
+            ## forest and pasture
             dt_summ <- dt_offsets[, list(
-                log_ratio = mean(calc_OR(p_forest, p_pasture))
+                sum_forest = sum(p_forest), 
+                sum_pasture = sum(p_pasture)
             ), by=c("id_focal_cell", "species")]
             
-            ## 1.2: calculate the median log-ratio across species within each region
+            ## .. calculate the median log-ratio across species within each region
             dt_summ <- dt_summ[, list(
-                median_log_ratio = median(log_ratio, na.rm=T)
+                median_log_ratio = median(log(sum_forest/sum_pasture), na.rm=T)
             ), by=c("id_focal_cell")]
             
-            ## 2.1: calculate the median-sensitivity species on each point
-            ## note: have to calculate medians here rather than on pred_info
+            ## 2: calculate the median-sensitivity species on each point
+            ## note: have to calculate medians here rather than at the outset 
             ## as need to threshold first
             dt_summ_pt <- dt_offsets[
-                , list(log_ratio = median(calc_OR(p_forest, p_pasture), na.rm=T)), 
+                , list(log_ratio = median(log(p_forest/p_pasture), na.rm=T)), 
                 by=c("id_focal_cell", "id_cell")]
             
-            ## 2.2: average across cells within a region
+            ## .. calculate the average (mean) sensitivity across points within a 
+            # region
             dt_summ_pt <- dt_summ_pt[, list(mean_pt_log_ratio = mean(log_ratio, na.rm=T)), 
                                      by=c("id_focal_cell")]
             
