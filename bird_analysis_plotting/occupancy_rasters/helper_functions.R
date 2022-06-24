@@ -1,21 +1,58 @@
 # functions
-
-# sf species x point occupancies to matrix ----
-# note: probably redundant- remove at a later point
-sf_to_mat <- function(x) {
-    as_tibble(x) %>%
-        dplyr::select(-geometry) %>%
-        as.matrix
+# funs 
+extract_stars_indexing <- function(stars_object) {
+    # drop 3rd dimension, if exists
+    if(length(dim(stars_object )) != 2) stars_object <- stars_object[,,,1]
+    
+    col_index_stars <- stars_object %>%
+        mutate(id_cell = 1:n(), id_x=NA, id_y = NA) %>%
+        select(id_cell, id_x, id_y)
+    
+    xy_dim <- dim(col_index_stars)
+    col_index_stars[["id_x"]] <- matrix(rep(1:xy_dim[2], each=xy_dim[1]), 
+                                        nrow=xy_dim[2], ncol=xy_dim[1])
+    col_index_stars[["id_y"]] <- matrix(rep(1:xy_dim[1], xy_dim[2]), 
+                                        nrow=xy_dim[2], ncol=xy_dim[1])
+    
+    col_index_sf <- st_as_sf(col_index_stars, as_points = TRUE)
+    as.data.table(col_index_sf)
 }
 
-# tidy dt after thresholding ----
-# note: probably redundant- remove at a later point
-classify_thresh <- function(DT, threshold=0.1) {
-    for (i in names(DT)) {
-        DT[is.infinite(get(i)), (i):=NA]
-        DT[get(i) < threshold, (i):=0]
-        DT[get(i) >= threshold, (i):=1]
-    }
+# 
+calculate_grid <- function(xy_dim, point_spacing, nonNA_cells, xy_lookup) {
+    # specify spacing grid (each cell is a 'focal cell' to buffer from)
+    dt_grid <- expand.grid(id_x = as.integer(seq(1, xy_dim[1], point_spacing)), 
+                           id_y = as.integer(seq(1, xy_dim[2], point_spacing))) %>%
+        as.data.table
+    
+    # append cell id from each cell's x and y position via join with xy_lookup
+    dt_grid[xy_lookup, on=c("id_x", "id_y"), id_cell := id_cell]
+    
+    # trim dt_grid to nonNA_cells via inner join
+    nonNA_cells[dt_grid, on="id_cell", nomatch=0]
+}
+
+calculate_offsets <- function(id_cells, dt_focal_cells, buffer,nonNA_cells, 
+                              xy_lookup) {
+    dt_offsets <- as.data.table(expand.grid(id_x_offset = -buffer:buffer, 
+                                            id_y_offset = -buffer:buffer, 
+                                            id_cell = id_cells))
+    
+    # join based on id_cell to generate dt with cell x and y coordinates,
+    # plus the buffer offsets
+    dt_offsets[dt_focal_cells, on="id_cell", `:=`(id_x_offset = id_x + id_x_offset, 
+                                                  id_y_offset = id_y + id_y_offset)]
+    
+    setnames(dt_offsets, "id_x_offset", "id_x")
+    setnames(dt_offsets, "id_y_offset", "id_y")
+    setnames(dt_offsets, "id_cell", "id_focal_cell")
+    
+    # exchange x and y for cell info (for merge below)
+    dt_offsets[xy_lookup, on=c("id_x", "id_y"), id_cell := id_cell]
+    dt_offsets[,`:=`(id_x = NULL, id_y = NULL)]
+    
+    # remove any NA cells in buffer region and return
+    dt_offsets[nonNA_cells, on="id_cell", nomatch=0]
 }
 
 # trim NAs from edge of stars ----
@@ -46,7 +83,7 @@ trim_stars <- function(x) {
 # fns to swap cell ids and xy positions ----
 # rewrite for arbitrary dims (e.g. if change resolution at a later point)?
 cell_to_y_pos <- function(id_cell, xy_dim = c(924, 679)) {
-    ceiling(id_cell/xy_dim[2])
+    -ceiling(id_cell/xy_dim[2])
     
 }
 
@@ -70,7 +107,9 @@ calc_regional_summ_v7 <- function(pred_info, buffer = c(2, 5, 10, 15),
     # generate regions (1 would be at a 2km resolution)
     # - buffer is expressed in terms of number of cells to buffer around focal 
     # cell (2 is equivalent to a 10x10km region, i.e. 25 points)
-    
+    # point_spacing = 20 
+    # threshold = .5
+    # buffer = 6
     # calc_OR <- function(p_forest, p_pasture) (p_forest/(1-p_forest))/(p_pasture/(1 - p_pasture))
     # calc_RR <- function(p_forest, p_pasture) p_forest/p_pasture
     
@@ -98,6 +137,8 @@ calc_regional_summ_v7 <- function(pred_info, buffer = c(2, 5, 10, 15),
     start.time <- Sys.time()
     out_list <- vector("list", length(buffer))
     for(i in 1:length(buffer)) {
+        # i <- 1
+        # buffer <- 2
         print(paste0("buffer:", buffer[i]))
         buffer_i <- buffer[i]
         
@@ -115,6 +156,8 @@ calc_regional_summ_v7 <- function(pred_info, buffer = c(2, 5, 10, 15),
         }
         out_chunk_list <- vector("list", n_blocks)
         for(j in 1:n_blocks) {
+            
+            #j <- 1
             # specify offsets
             dt_offsets <- as.data.table(expand.grid(id_x_offset = -buffer_i:buffer_i, 
                                                     id_y_offset = -buffer_i:buffer_i, 
@@ -154,6 +197,10 @@ calc_regional_summ_v7 <- function(pred_info, buffer = c(2, 5, 10, 15),
             
             # manage memory
             dt_max[,max_prob := NULL]
+            # test <- dt_offsets[dt_max, on = c("id_focal_cell", "species")
+            # ]
+            # t2 <- test[,max(max(p_forest), max(p_pasture)), by=c("species", "id_focal_cell")]
+            # range(t2$V1)
             
             # ..remove species not in region (i.e. not above threshold)
             SR_summ <- dt_offsets[dt_max, on = c("id_focal_cell", "species")
@@ -188,7 +235,7 @@ calc_regional_summ_v7 <- function(pred_info, buffer = c(2, 5, 10, 15),
             ## 2: calculate the median-sensitivity species on each point
             ## note: have to calculate medians here rather than at the outset 
             ## as need to threshold first
-            dt_summ_pt <- dt_offsets[
+            dt_summ_pt <- dt_offsets[p_forest > threshold | p_pasture > threshold
                 , list(log_ratio = median(log(p_forest/p_pasture), na.rm=T)), 
                 by=c("id_focal_cell", "id_cell")]
             
@@ -213,6 +260,7 @@ calc_regional_summ_v7 <- function(pred_info, buffer = c(2, 5, 10, 15),
     out_list
 }
 
+# redundant functions ----
 # memory efficient row removal ----
 # note: not currently used
 remove_rows <- function(dt, threshold) {
@@ -227,3 +275,22 @@ remove_rows <- function(dt, threshold) {
     }
     return(dt_subset)
 }
+
+# sf species x point occupancies to matrix ----
+# note: probably redundant- remove at a later point
+sf_to_mat <- function(x) {
+    as_tibble(x) %>%
+        dplyr::select(-geometry) %>%
+        as.matrix
+}
+
+# tidy dt after thresholding ----
+# note: probably redundant- remove at a later point
+classify_thresh <- function(DT, threshold=0.1) {
+    for (i in names(DT)) {
+        DT[is.infinite(get(i)), (i):=NA]
+        DT[get(i) < threshold, (i):=0]
+        DT[get(i) >= threshold, (i):=1]
+    }
+}
+
