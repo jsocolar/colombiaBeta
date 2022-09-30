@@ -29,7 +29,12 @@ pred_dt[, distance_bin := (boot::logit(tdist) * 14.9) %>%
 pred_dt <- xy_info[pred_dt, on = "id_cell"]
 pred_dt[, tdist := NULL]
 sr_lookup <- unique(pred_dt[,c("species", "id_subregion")])
-cl_lookup <- unique(pred_dt[,c("species", "id_cell")])
+# cl_lookup now redundant
+#cl_lookup <- unique(pred_dt[,c("species", "id_cell")])
+
+# columns to sum N across posteriors (division at end)
+pred_dt[,`:=`(N_forest_update = 0,
+              N_pasture_update = 0)]
 
 # extract
 for(i in seq_len(10)) {
@@ -45,8 +50,7 @@ for(i in seq_len(10)) {
     
     mos <- coefs$mos[,i]      
     sr_lookup[,sr_effects := rnorm(.N) * coefs$sd_subregion[i]]
-    cl_lookup[,cl_effects := rnorm(.N) * coefs$sd_cluster[i]]
-    
+
     pred_dt[species_terms, `:=`(logit_psi_pasture_partial = lpo_forest + 
                                     mos[distance_bin] + 
                                     relev * relev_term + relev^2 * relev2_term, 
@@ -60,25 +64,41 @@ for(i in seq_len(10)) {
                             logit_psi_forest_partial = logit_psi_forest_partial +
                                 sr_effects), on = c("species", "id_subregion")]
     
-    pred_dt[cl_lookup, `:=`(logit_psi_pasture_partial = logit_psi_pasture_partial +
-                                cl_effects,
-                            logit_psi_forest_partial = logit_psi_forest_partial +
-                                cl_effects), on = c("species", "id_cell")]
+    pred_dt[,`:=`(N_forest = 0,
+                  N_pasture = 0)]
     
-    pred_dt[, `:=`(logit_psi_pasture_partial = boot::inv.logit(logit_psi_pasture_partial),
-                   logit_psi_forest_partial = boot::inv.logit(logit_psi_forest_partial))]
-    
-    setnames(pred_dt, "logit_psi_pasture_partial", "p_pasture")
-    setnames(pred_dt, "logit_psi_forest_partial", "p_forest")
+    for(cluster in seq_len(16)) {
+        print(paste0("cluster_", cluster))
+        pred_dt[, `:=`(
+            N_forest = N_forest + 
+                boot::inv.logit(logit_psi_forest_partial + rnorm(.N) * coefs$sd_cluster[i]),
+            N_pasture = N_pasture + 
+                boot::inv.logit(logit_psi_pasture_partial + rnorm(.N) * coefs$sd_cluster[i])
+            )]   
+    }
     
     # save posterior (only save 2 cols for space- change this later for 
     # safety/redundancy)
     print("saving")
-    saveRDS(pred_dt[,c("p_pasture", "p_forest")], 
+    saveRDS(pred_dt[,"N_forest"], 
             paste0("outputs/predicted_occupancy_dts/posterior_pasture_", i, ".rds"), 
             compress = FALSE)
     
-    # remove new cols
-    pred_dt[,`:=`(p_forest = NULL, p_pasture = NULL)]
-    gc()
+    saveRDS(pred_dt[,"N_pasture"], 
+            paste0("outputs/predicted_occupancy_dts/posterior_forest_", i, ".rds"), 
+            compress = FALSE)
+    
+    # update sum
+    pred_dt[,`:=`(N_forest_update = N_forest_update + N_forest, 
+                  N_pasture_update = N_pasture_update + N_pasture)]
 }
+
+pred_dt[,`:=`(N_forest_update = N_forest_update/10, 
+              N_pasture_update = N_pasture_update/10)]
+
+saveRDS(pred_dt[,c("N_forest_update", "N_pasture_update")], 
+        "outputs/predicted_occupancy_dts/averaged_posterior_10.rds", 
+        compress = FALSE)
+
+
+
