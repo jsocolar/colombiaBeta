@@ -71,26 +71,31 @@ for(i in seq_len(10)) {
         print(paste0("cluster_", cluster))
         pred_dt[, `:=`(
             N_forest = N_forest + 
-                boot::inv.logit(logit_psi_forest_partial + rnorm(.N) * coefs$sd_cluster[i]),
+                boot::inv.logit(logit_psi_forest_partial + rnorm(.N) * coefs$sd_cluster[i])*3,
             N_pasture = N_pasture + 
-                boot::inv.logit(logit_psi_pasture_partial + rnorm(.N) * coefs$sd_cluster[i])
+                boot::inv.logit(logit_psi_pasture_partial + rnorm(.N) * coefs$sd_cluster[i])*3
             )]   
     }
     
     # save posterior (only save 2 cols for space- change this later for 
     # safety/redundancy)
     print("saving")
-    saveRDS(pred_dt[,"N_forest"], 
+    saveRDS(pred_dt[,"N_pasture"], 
             paste0("outputs/predicted_occupancy_dts/posterior_pasture_", i, ".rds"), 
             compress = FALSE)
     
-    saveRDS(pred_dt[,"N_pasture"], 
+    saveRDS(pred_dt[,"N_forest"], 
             paste0("outputs/predicted_occupancy_dts/posterior_forest_", i, ".rds"), 
             compress = FALSE)
     
     # update sum
     pred_dt[,`:=`(N_forest_update = N_forest_update + N_forest, 
                   N_pasture_update = N_pasture_update + N_pasture)]
+    
+    
+    pred_dt[,`:=`(N_forest = NULL, 
+                  N_pasture = NULL)]
+    gc()
 }
 
 pred_dt[,`:=`(N_forest_update = N_forest_update/10, 
@@ -99,6 +104,3 @@ pred_dt[,`:=`(N_forest_update = N_forest_update/10,
 saveRDS(pred_dt[,c("N_forest_update", "N_pasture_update")], 
         "outputs/predicted_occupancy_dts/averaged_posterior_10.rds", 
         compress = FALSE)
-
-
-
