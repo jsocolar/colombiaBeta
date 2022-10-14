@@ -29,8 +29,6 @@ pred_dt[, distance_bin := (boot::logit(tdist) * 14.9) %>%
 pred_dt <- xy_info[pred_dt, on = "id_cell"]
 pred_dt[, tdist := NULL]
 sr_lookup <- unique(pred_dt[,c("species", "id_subregion")])
-# cl_lookup now redundant
-#cl_lookup <- unique(pred_dt[,c("species", "id_cell")])
 
 # columns to sum N across posteriors (division at end)
 pred_dt[,`:=`(N_forest_update = 0,
@@ -51,10 +49,10 @@ for(i in seq_len(10)) {
     mos <- coefs$mos[,i]      
     sr_lookup[,sr_effects := rnorm(.N) * coefs$sd_subregion[i]]
 
-    pred_dt[species_terms, `:=`(logit_psi_pasture_partial = lpo_forest + 
+    pred_dt[species_terms, `:=`(logit_psi_pasture_partial = lpo_pasture + 
                                     mos[distance_bin] + 
                                     relev * relev_term + relev^2 * relev2_term, 
-                                logit_psi_forest_partial = lpo_pasture + 
+                                logit_psi_forest_partial = lpo_forest + 
                                     mos[distance_bin] + 
                                     relev * relev_term + relev^2 * relev2_term),
             on = "species"]
