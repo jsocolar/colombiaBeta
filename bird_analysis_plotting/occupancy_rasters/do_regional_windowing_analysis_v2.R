@@ -118,7 +118,8 @@ for(i in split_vec) {
         in_region == TRUE & (p_forest > threshold | p_pasture > threshold), 
         list(
             point_richness_forest = sum(p_forest),
-            point_lose_prop = mean(p_forest > p_pasture)
+            point_lose_prop = mean(p_forest > p_pasture),
+            point_median_logratio = median(log(p_forest/p_pasture))
         ), by = c("id_cell", "id_region")]
     
     # calculate regional summaries
@@ -131,9 +132,15 @@ for(i in split_vec) {
     sr_lose_prop <- species_means[, list(sr_lose_prop_regional = 
                                              mean(mean_forest > mean_pasture)), by = "id_region"]
     
+    sr_median_logratio <- species_means[, list(sr_median_logratio_regional = 
+                                             median(log(mean_forest/mean_pasture))), by = "id_region"]
+    
     # calculate the average cell-level summary
     sr_avg_loseprop <- point_summary[, list(
         sr_lose_prop_local = mean(point_lose_prop)), by = "id_region"]
+    
+    sr_avg_median_logratio <- point_summary[, list(
+        sr_lose_prop_local = mean(point_median_logratio)), by = "id_region"]
     
     mean_point_richness_forest <- point_summary[, list(
         point_richness_forest = mean(point_richness_forest)
