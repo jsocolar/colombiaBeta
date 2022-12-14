@@ -1,7 +1,6 @@
-remotes::install_github("jsocolar/flocker")
+# extract linear predictor for non-spatially varying component of model
 
-library(flocker)
-library("dplyr"); library("brms")
+library(flocker); library(dplyr); library(brms)
 library(data.table)
 
 # Assemble dataframe to predict the spatially constant parts of the response
@@ -155,8 +154,8 @@ compute_coefs <- function(uc1, fm3, iter = NULL){
     # format and return list
     rownames(relev_term) <- rownames(relev2_term) <- uc$species[uc_index]
     list(species = uc$species[uc_index],
-         lpo_pasture = lpo[1:(nrow(lpo)/2),],
-         lpo_forest = lpo[(nrow(lpo)/2 + 1):nrow(lpo),],
+         lpo_forest = lpo[1:(nrow(lpo)/2),],
+         lpo_pasture = lpo[(nrow(lpo)/2 + 1):nrow(lpo),],
          relev_term = relev_term,
          relev2_term = relev2_term, 
          mos = mos,
