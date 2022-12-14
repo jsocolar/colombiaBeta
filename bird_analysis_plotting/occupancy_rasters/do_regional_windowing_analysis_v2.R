@@ -166,10 +166,11 @@ ggplot(dt_all, aes(beta, lose_prop_regional - lose_prop_local)) +
     stat_smooth()
 ggsave("figures/beta_figure_post1_thresh10.png")
 
-# ggplot(dt_all, aes(beta, median_logratio_regional - median_logratio_local)) +
-#     geom_point(alpha = .2) + 
-#     stat_smooth()
-# ggsave("figures/beta_figure_post1_thresh10.png")
+ggplot(dt_all, aes(beta, median_logratio_regional - median_logratio_local)) +
+    geom_point(alpha = .2) + 
+    stat_smooth()
+
+# ggsave("figures/beta_figure_post1_thresh10_logratio.png")
 
 
 ggplot(dt_all, aes(beta, sr_lose_prop_regional - sr_lose_prop_local)) +
