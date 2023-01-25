@@ -1,7 +1,6 @@
-remotes::install_github("jsocolar/flocker")
+# extract linear predictor for non-spatially varying component of model
 
-library(flocker)
-library("dplyr"); library("brms")
+library(flocker); library(dplyr); library(brms)
 library(data.table)
 
 # Assemble dataframe to predict the spatially constant parts of the response
