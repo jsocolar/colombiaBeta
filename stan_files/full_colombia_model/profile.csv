@@ -1,2 +1,0 @@
-name,thread_id,total_time,forward_time,reverse_time,chain_stack,no_chain_stack,autodiff_calls,no_autodiff_calls
-rt,0x10cf965c0,0.0297407,0.0297374,3.292e-06,19,38,19,1
