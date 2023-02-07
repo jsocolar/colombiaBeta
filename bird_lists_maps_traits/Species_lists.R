@@ -1,37 +1,18 @@
-##### Script dependencies: none #####
-
-
-library(sf)
-library(magrittr)
-
-`%ni%` <- Negate(`%in%`)
-
-##### For collaborative projects--figure out what machine we're on and automatically set the working directory ####
-socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
-socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
-if(socolar.desktop){
-  dir.path <- "/Users/JacobSocolar/Dropbox/Work/Colombia"
-}else if(socolar.laptop){
-  dir.path <- "/Users/jacob/Dropbox/Work/Colombia"
-}# else if(){dir.path <- }
-# Edit the above for whatever computer(s) you use.  Just make absolutely sure that the if condition is something that definitely
-# wouldn't possibly evaluate as true on anybody else's system, and that none of the preceding conditions could possibly evaluate
-# to TRUE on your system!  (This isn't just about making sure that we get the right working directories; in some cases we might
-# conceivably invoke system commands for file management that depend on dir.path.)
-setwd(dir.path)
-############################
-
-
-AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-'%ni%' <- Negate('%in%')
-
-# This script is the workhorse that I used to get a unified species list based on Birdlife + Donegan, using HBW Taxonomy
+# Script to clean taxonomy 
+# This script is the workhorse that I used to get a unified species list based on 
+# Birdlife + Donegan, using HBW Taxonomy.
 # Parts of the process were conducted manually using saved files.
 # Annotations in this script explain the full process, including the manual parts
 
+# housekeeping ----
+library(sf); library(magrittr)
+`%ni%` <- Negate(`%in%`)
+AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+'%ni%' <- Negate('%in%')
+
 ##### Basic Colombia map #####
 # read in GADM colombia shapefile
-colombia <- st_read('Data/GIS/colombia_maps/gadm36_COL_shp/gadm36_COL_0.shp')
+colombia <- st_read('inputs/GIS/colombia_maps/gadm36_COL_shp/gadm36_COL_0.shp')
 
 # File consists of many disjoint polygons, representing the mainland and numerous islands. Figure out which is the mainland
 # and extract it.
@@ -54,12 +35,12 @@ b_mainland <- st_buffer(mainland, dist = 100000)
 plot(b_mainland)
 
 ##### Birdlife maps #####
-botw <- "Data/GIS/birdlife_maps/BOTW/BOTW.gdb"
+botw <- "private_inputs/GIS/birdlife_maps/BOTW/BOTW.gdb"
 st_layers(botw)
 orig_range_maps <- st_read(dsn=botw,layer="All_Species")
 recast_range_maps <- st_cast(orig_range_maps, to = "MULTIPOLYGON")
-save(recast_range_maps, file = "Data/GIS/birdlife_maps/recast_range_maps.Rdata")
-load("Data/GIS/birdlife_maps/recast_range_maps.Rdata")
+save(recast_range_maps, file = "private_outputs/GIS/birdlife_maps/recast_range_maps.Rdata")
+load("private_outputs/GIS/birdlife_maps/recast_range_maps.Rdata")
 
 birdlife.species <- unique(recast_range_maps$SCINAME)
 nsp <- length(birdlife.species)
@@ -72,14 +53,14 @@ b_mainland_latlon <- st_transform(b_mainland, st_crs(recast_range_maps))
 colombia_overlaps <- st_intersects(recast_range_maps, b_mainland_latlon)
 # "although coordinates are longitude/latitude, st_intersects assumes that they are planar"
 # I think the above is equivalent to checking for intersections on a Mercator projection.  It won't be a problem here.
-save(colombia_overlaps, file = "Data/Birds/species_list_creation/HBW_colombia_overlaps.Rdata")
-load("Data/Birds/species_list_creation/HBW_colombia_overlaps.Rdata")
+save(colombia_overlaps, file = "private_outputs/Birds/species_list_creation/HBW_colombia_overlaps.Rdata")
+load("private_outputs/Birds/species_list_creation/HBW_colombia_overlaps.Rdata")
 # Get the list of species
 colombia_species <- unique(recast_range_maps$SCINAME[unlist(lapply(colombia_overlaps, FUN = function(i){return(length(i) != 0)}))])
-save(colombia_species, file = "Data/Birds/species_list_creation/colombia_species.Rdata")
+save(colombia_species, file = "private_outputs/Birds/species_list_creation/colombia_species.Rdata")
 
 
-load("Data/Birds/species_list_creation/colombia_species.Rdata")
+load("private_outputs/Birds/species_list_creation/colombia_species.Rdata")
 
 # Read in the HBW/eBird taxonomic interconversion that Marshall Iliff prepared
 taxonomy <- read.csv("Data/Birds/species_list_creation/HBW_eBird_taxonomy.csv", stringsAsFactors = F)
