@@ -1,10 +1,11 @@
-# This script generates a list (HBW taxonomy) of species whose birdlife ranges (2019) overlap neotropical forest terrestrial ecoregions
+# This script generates a list (HBW taxonomy) of species whose birdlife ranges 
+# (2019) overlap neotropical forest terrestrial ecoregions
 
 ##### Script dependencies: species_lists.R #####
 
+# housekeeping ----
 library(sf)
 `%ni%` <- Negate(`%in%`)
-setwd("/Users/jacobsocolar/Dropbox/Work/Colombia")
 
 ###### Get mainland neotropical forest polygon #####
 # Continents shapefile:

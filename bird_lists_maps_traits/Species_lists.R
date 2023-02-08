@@ -1,38 +1,31 @@
-##### Script dependencies: none #####
-
-
-library(sf)
-library(magrittr)
-
-`%ni%` <- Negate(`%in%`)
-
-##### For collaborative projects--figure out what machine we're on and automatically set the working directory ####
-socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
-socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
-if(socolar.desktop){
-  dir.path <- "/Users/JacobSocolar/Dropbox/Work/Colombia"
-}else if(socolar.laptop){
-  dir.path <- "/Users/jacob/Dropbox/Work/Colombia"
-}# else if(){dir.path <- }
-# Edit the above for whatever computer(s) you use.  Just make absolutely sure that the if condition is something that definitely
-# wouldn't possibly evaluate as true on anybody else's system, and that none of the preceding conditions could possibly evaluate
-# to TRUE on your system!  (This isn't just about making sure that we get the right working directories; in some cases we might
-# conceivably invoke system commands for file management that depend on dir.path.)
-setwd(dir.path)
-############################
-
-
-AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-'%ni%' <- Negate('%in%')
-
-# This script is the workhorse that I used to get a unified species list based on Birdlife + Donegan, using HBW Taxonomy
+# Script to clean taxonomy 
+# This script is the workhorse that I used to get a unified species list based on 
+# Birdlife + Donegan, using HBW Taxonomy.
 # Parts of the process were conducted manually using saved files.
 # Annotations in this script explain the full process, including the manual parts
 
+# housekeeping ----
+library(sf); library(magrittr)
+`%ni%` <- Negate(`%in%`)
+AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+'%ni%' <- Negate('%in%')
+
+# data ----
+# colombia map
+colombia <- st_read('inputs/GIS/colombia_maps/gadm36_COL_shp/gadm36_COL_0.shp')
+
+# pulido phylogeny
+pulido <- ape::read.tree(file = "inputs/Birds/phylogeny/Pulido_phylogeny/JETZ TREES/All_birds_MaxCladeCredTree.txt")
+
+# Elton traits (download if doesn't exist)
+if(!exists("inputs/Birds/traits/elton.txt")) {
+    download.file("https://ndownloader.figshare.com/files/5631081",
+                  destfile = 'inputs/Birds/traits/elton.txt')
+}
+traits <- read.delim('inputs/Birds/traits/elton.txt', header=T, stringsAsFactors = F)
+
 ##### Basic Colombia map #####
 # read in GADM colombia shapefile
-colombia <- st_read('Data/GIS/colombia_maps/gadm36_COL_shp/gadm36_COL_0.shp')
-
 # File consists of many disjoint polygons, representing the mainland and numerous islands. Figure out which is the mainland
 # and extract it.
 npoly <- length(colombia$geometry[[1]])
@@ -54,12 +47,12 @@ b_mainland <- st_buffer(mainland, dist = 100000)
 plot(b_mainland)
 
 ##### Birdlife maps #####
-botw <- "Data/GIS/birdlife_maps/BOTW/BOTW.gdb"
+botw <- "private_inputs/GIS/birdlife_maps/BOTW/BOTW.gdb"
 st_layers(botw)
 orig_range_maps <- st_read(dsn=botw,layer="All_Species")
 recast_range_maps <- st_cast(orig_range_maps, to = "MULTIPOLYGON")
-save(recast_range_maps, file = "Data/GIS/birdlife_maps/recast_range_maps.Rdata")
-load("Data/GIS/birdlife_maps/recast_range_maps.Rdata")
+save(recast_range_maps, file = "private_outputs/GIS/birdlife_maps/recast_range_maps.Rdata")
+load("private_outputs/GIS/birdlife_maps/recast_range_maps.Rdata")
 
 birdlife.species <- unique(recast_range_maps$SCINAME)
 nsp <- length(birdlife.species)
@@ -72,14 +65,12 @@ b_mainland_latlon <- st_transform(b_mainland, st_crs(recast_range_maps))
 colombia_overlaps <- st_intersects(recast_range_maps, b_mainland_latlon)
 # "although coordinates are longitude/latitude, st_intersects assumes that they are planar"
 # I think the above is equivalent to checking for intersections on a Mercator projection.  It won't be a problem here.
-save(colombia_overlaps, file = "Data/Birds/species_list_creation/HBW_colombia_overlaps.Rdata")
-load("Data/Birds/species_list_creation/HBW_colombia_overlaps.Rdata")
+save(colombia_overlaps, file = "private_outputs/Birds/species_list_creation/HBW_colombia_overlaps.Rdata")
+load("private_outputs/Birds/species_list_creation/HBW_colombia_overlaps.Rdata")
 # Get the list of species
 colombia_species <- unique(recast_range_maps$SCINAME[unlist(lapply(colombia_overlaps, FUN = function(i){return(length(i) != 0)}))])
-save(colombia_species, file = "Data/Birds/species_list_creation/colombia_species.Rdata")
-
-
-load("Data/Birds/species_list_creation/colombia_species.Rdata")
+save(colombia_species, file = "private_outputs/Birds/species_list_creation/colombia_species.Rdata")
+load("private_outputs/Birds/species_list_creation/colombia_species.Rdata")
 
 # Read in the HBW/eBird taxonomic interconversion that Marshall Iliff prepared
 taxonomy <- read.csv("Data/Birds/species_list_creation/HBW_eBird_taxonomy.csv", stringsAsFactors = F)
@@ -118,7 +109,7 @@ species_to_check <- csp2$HBW_LATIN[csp2$HBW_LATIN %ni% elevation_dataset$Scienti
 # These species either do not occur in the Donegan checklist (despite being mapped within 100 km of Colombia
 # by BirdLife, or are species with taxonomic or nomenclatural variation between HBW and Donegan)
 
-write.csv(species_to_check, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/species_to_check.csv')
+write.csv(species_to_check, file = 'outputs/Birds/species_list_creation/species_to_check.csv')
 # This is an initial save of the species to check, which is the basis for a manually edited file, saved as 
 # "species_to_check_checked.csv".  
 # Each species was hand-checked against BirdLife maps and various taxonomic sources to assign it to one of four categories:
@@ -143,7 +134,7 @@ elevation_species <- elevation_dataset$Scientific[is.na(elevation_dataset$coasta
 s2c2 <- elevation_species[(elevation_species %ni% csp2$HBW_LATIN) & (elevation_species %ni% csp2$CLEM_SCI_2019[csp2$HBW.Clem == 'sp-sp'])]
 # Get species absent from HBW that don't correspond to species-species synonymy in Marshall's file
 
-changes <- read.csv('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/species_to_check_checked.csv', stringsAsFactors = F)
+changes <- read.csv('outputs/Birds/species_list_creation/species_to_check_checked.csv', stringsAsFactors = F)
 s2c2[(s2c2 %ni% changes$synonym) & (s2c2 %ni% changes$clean.split.lump) & (s2c2 %ni% changes$messy.split.lump)]
 # Check for extra Donegan species that aren't accounted for in species_to_check_checked.csv
 # All changes accounted for! (This is because changes not accounted for were added manually to species_to_check_checked.csv)
@@ -279,9 +270,7 @@ initial_species_list$HBW[is.na(initial_species_list$Donegan)]
 initial_species_list$HBW[is.na(initial_species_list$eBird)]
 
 
-
 # Now match to Pulido tree names
-pulido <- ape::read.tree(file = "Data/Birds/phylogeny/Pulido_phylogeny/JETZ TREES/All_birds_MaxCladeCredTree.txt")
 pulido.spp <- gsub("_", " ", pulido$tip.label)
 
 initial_species_list$HBW[(initial_species_list$HBW %ni% pulido.spp) &
@@ -518,14 +507,8 @@ initial_species_list$Pulido[initial_species_list$Pulido %ni% pulido.spp]
 initial_species_list[duplicated(initial_species_list$Pulido), ]
 
 
-
-##### Import Eltontraits data
-#download.file("https://ndownloader.figshare.com/files/5631081",
-#              destfile = 'Data/Birds/traits/elton.txt')
-traits <- read.delim('Data/Birds/traits/elton.txt', header=T, stringsAsFactors = F)
-
+##### Eltontraits data 
 initial_species_list$Pulido[initial_species_list$Pulido %ni% traits$Scientific]
-
 
 initial_species_list$eltontraits <- NA
 for(i in 1:nrow(initial_species_list)){
@@ -574,5 +557,4 @@ initial_species_list <- initial_species_list[-which(initial_species_list$HBW == 
 initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Tachornis squamata"), ]
 initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Panyptila cayennensis"), ]
 
-write.csv(initial_species_list, file = "Data/Birds/species_list_creation/initial_species_list.csv", row.names = F)
-
+write.csv(initial_species_list, file = "outputs/Birds/species_list_creation/initial_species_list.csv", row.names = F)
