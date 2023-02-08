@@ -10,10 +10,22 @@ library(sf); library(magrittr)
 AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 '%ni%' <- Negate('%in%')
 
-##### Basic Colombia map #####
-# read in GADM colombia shapefile
+# data ----
+# colombia map
 colombia <- st_read('inputs/GIS/colombia_maps/gadm36_COL_shp/gadm36_COL_0.shp')
 
+# pulido phylogeny
+pulido <- ape::read.tree(file = "inputs/Birds/phylogeny/Pulido_phylogeny/JETZ TREES/All_birds_MaxCladeCredTree.txt")
+
+# Elton traits (download if doesn't exist)
+if(!exists("inputs/Birds/traits/elton.txt")) {
+    download.file("https://ndownloader.figshare.com/files/5631081",
+                  destfile = 'inputs/Birds/traits/elton.txt')
+}
+traits <- read.delim('inputs/Birds/traits/elton.txt', header=T, stringsAsFactors = F)
+
+##### Basic Colombia map #####
+# read in GADM colombia shapefile
 # File consists of many disjoint polygons, representing the mainland and numerous islands. Figure out which is the mainland
 # and extract it.
 npoly <- length(colombia$geometry[[1]])
@@ -58,8 +70,6 @@ load("private_outputs/Birds/species_list_creation/HBW_colombia_overlaps.Rdata")
 # Get the list of species
 colombia_species <- unique(recast_range_maps$SCINAME[unlist(lapply(colombia_overlaps, FUN = function(i){return(length(i) != 0)}))])
 save(colombia_species, file = "private_outputs/Birds/species_list_creation/colombia_species.Rdata")
-
-
 load("private_outputs/Birds/species_list_creation/colombia_species.Rdata")
 
 # Read in the HBW/eBird taxonomic interconversion that Marshall Iliff prepared
@@ -99,7 +109,7 @@ species_to_check <- csp2$HBW_LATIN[csp2$HBW_LATIN %ni% elevation_dataset$Scienti
 # These species either do not occur in the Donegan checklist (despite being mapped within 100 km of Colombia
 # by BirdLife, or are species with taxonomic or nomenclatural variation between HBW and Donegan)
 
-write.csv(species_to_check, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/species_to_check.csv')
+write.csv(species_to_check, file = 'outputs/Birds/species_list_creation/species_to_check.csv')
 # This is an initial save of the species to check, which is the basis for a manually edited file, saved as 
 # "species_to_check_checked.csv".  
 # Each species was hand-checked against BirdLife maps and various taxonomic sources to assign it to one of four categories:
@@ -124,7 +134,7 @@ elevation_species <- elevation_dataset$Scientific[is.na(elevation_dataset$coasta
 s2c2 <- elevation_species[(elevation_species %ni% csp2$HBW_LATIN) & (elevation_species %ni% csp2$CLEM_SCI_2019[csp2$HBW.Clem == 'sp-sp'])]
 # Get species absent from HBW that don't correspond to species-species synonymy in Marshall's file
 
-changes <- read.csv('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/species_to_check_checked.csv', stringsAsFactors = F)
+changes <- read.csv('outputs/Birds/species_list_creation/species_to_check_checked.csv', stringsAsFactors = F)
 s2c2[(s2c2 %ni% changes$synonym) & (s2c2 %ni% changes$clean.split.lump) & (s2c2 %ni% changes$messy.split.lump)]
 # Check for extra Donegan species that aren't accounted for in species_to_check_checked.csv
 # All changes accounted for! (This is because changes not accounted for were added manually to species_to_check_checked.csv)
@@ -260,9 +270,7 @@ initial_species_list$HBW[is.na(initial_species_list$Donegan)]
 initial_species_list$HBW[is.na(initial_species_list$eBird)]
 
 
-
 # Now match to Pulido tree names
-pulido <- ape::read.tree(file = "Data/Birds/phylogeny/Pulido_phylogeny/JETZ TREES/All_birds_MaxCladeCredTree.txt")
 pulido.spp <- gsub("_", " ", pulido$tip.label)
 
 initial_species_list$HBW[(initial_species_list$HBW %ni% pulido.spp) &
@@ -499,14 +507,8 @@ initial_species_list$Pulido[initial_species_list$Pulido %ni% pulido.spp]
 initial_species_list[duplicated(initial_species_list$Pulido), ]
 
 
-
-##### Import Eltontraits data
-#download.file("https://ndownloader.figshare.com/files/5631081",
-#              destfile = 'Data/Birds/traits/elton.txt')
-traits <- read.delim('Data/Birds/traits/elton.txt', header=T, stringsAsFactors = F)
-
+##### Eltontraits data 
 initial_species_list$Pulido[initial_species_list$Pulido %ni% traits$Scientific]
-
 
 initial_species_list$eltontraits <- NA
 for(i in 1:nrow(initial_species_list)){
@@ -555,5 +557,4 @@ initial_species_list <- initial_species_list[-which(initial_species_list$HBW == 
 initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Tachornis squamata"), ]
 initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Panyptila cayennensis"), ]
 
-write.csv(initial_species_list, file = "Data/Birds/species_list_creation/initial_species_list.csv", row.names = F)
-
+write.csv(initial_species_list, file = "outputs/Birds/species_list_creation/initial_species_list.csv", row.names = F)
