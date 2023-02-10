@@ -122,30 +122,32 @@ The above inputs are called by `hydrosheds_extraction.R` which is sourced inside
 
 Load and pre-process Ayerbe maps. Inputs:
 
--   /Users/JacobSocolar/Dropbox/Work/Colombia/Data/GIS/colombia_maps/gadm36_COL_shp/gadm36_COL_0.shp, colombia shapefile
+-   inputs/gadm36_COL_shp/gadm36_COL_0.shp, colombia shapefile
 
--   multiple shapefiles in /Users/jacobsocolar/Google Drive/Simon_data/data/rangemaps_Quinones, the Ayerbe maps.
+-   multiple shapefiles in inputs/rangemaps_Quinones, the Ayerbe maps.
 
--   multiple files in /Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_updates/ayerbe_mask, handmade masks for splits of species lumped by Ayerbe
+-   multiple files in inputs/ayerbe_updates/ayerbe_mask, handmade masks for splits of species lumped by Ayerbe
 
--   multiple files in /Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_updates/ayerbe_missing, handmade range maps for a handful of species missing from Ayerbe
+-   multiple files in inputs/ayerbe_updates/ayerbe_missing, handmade range maps for a handful of species missing from Ayerbe
+
+-   **NOTE: currently can't run file without initial_species_lists.csv**
 
 ```{r}
-source('/Users/jacob/Dropbox/simon_stuff/new_repo/colombiaBeta/bird_lists_maps_traits/ayerbe_maps.R')
+source('code/bird_lists_maps_traits/ayerbe_maps.R')
 ```
 
 Create geographically buffered Ayerbe maps. Inputs:
 
--   /Users/JacobSocolar/Dropbox/Work/Colombia/Data/GIS/colombia_maps/gadm36_COL_shp/gadm36_COL_0.shp, Colombia shapefile
+-   inputs/gadm36_COL_shp/gadm36_COL_0.shp, Colombia shapefile
 
--   /Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_updates/ayerbe_missing2/Troglodytes_ochraceus/Troglodytes_ochraceus.kml, one more random update
+-   inputs/ayerbe_updates/ayerbe_missing2/Troglodytes_ochraceus/Troglodytes_ochraceus.kml, one more random update
 
--   multiple files in /Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/rufula_updates/, to deal with Grallaria rufula split
+-   inputs/rufula_updates/, to deal with Grallaria rufula split
 
--   multiple files in /Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_map_updates for bespoke range map updates
+-   multiple files in inputs/ayerbe_map_updates for bespoke range map updates
 
 ```{r}
-source("/Users/jacob/Dropbox/simon_stuff/new_repo/colombiaBeta/bird_lists_maps_traits/combined_bird_maps.R")
+source("code/bird_lists_maps_traits/combined_bird_maps.R")
 ```
 
 ## Species traits
