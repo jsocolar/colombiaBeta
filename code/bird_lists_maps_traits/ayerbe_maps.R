@@ -2,13 +2,17 @@
 
 ###### Script dependencies: Species_lists.R #####
 
+# housekeeping ----
 library(sf)
+
 `%ni%` <- Negate(`%in%`)
-AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 
+    +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
 ##### Get colombia mainland shapefile #####
-colombia <- st_read('/Users/JacobSocolar/Dropbox/Work/Colombia/Data/GIS/colombia_maps/gadm36_COL_shp/gadm36_COL_0.shp')
-# file consists of many disjoint polygons, representing the mainland and numerous islands. Figure out which is the mainland and extract it.
+colombia <- st_read('inputs/gadm36_COL_shp/gadm36_COL_0.shp')
+# file consists of many disjoint polygons, representing the mainland and numerous 
+# islands. Figure out which is the mainland and extract it.
 npoly <- length(colombia$geometry[[1]])
 size <- rep(0,npoly)
 for(i in 1:npoly){
@@ -24,24 +28,35 @@ m2 <- st_simplify(mainland, dTolerance = 10000)
 
 
 ##### Read Ayerbe shapefiles provided by Humboldt, and bind to sf frame #####
-ayerbe_files <- list.files('/Users/jacobsocolar/Google Drive/Simon_data/data/rangemaps_Quinones')
+ayerbe_files <- list.files('inputs/rangemaps_Quinones')
 ayerbe_shpfiles <- ayerbe_files[grep('.shp$', ayerbe_files)]
-initial_map_list <- list()
-for(i in 1:length(ayerbe_shpfiles)){
-  initial_map_list[[i]] <- st_make_valid(st_read(paste0('/Users/jacobsocolar/Google Drive/Simon_data/data/rangemaps_Quinones/', ayerbe_shpfiles[i])))
+
+ayerbe_sf_fname <- 'outputs/initial_ayerbe_map_sf.RDS'
+if(!exists(ayerbe_sf_fname)) {
+    initial_map_list <- list()
+    for(i in 1:length(ayerbe_shpfiles)){
+        initial_map_list[[i]] <- st_make_valid(
+            st_read(paste0('inputs/rangemaps_Quinones/', ayerbe_shpfiles[i]))
+        )
+    }
+    initial_map_sf <- do.call(rbind, initial_map_list)
+    rm(initial_map_list)
+    names(initial_map_sf)[1] <- 'Species'
+    # At least one entry contains some kind of crazy whitespace character that 
+    # gets printed as " " in the R console but which does not match " " for the 
+    # purposes of string matching
+    initial_map_sf$Species <- gsub('[[:space:]]', ' ', initial_map_sf$Species) 
+    saveRDS(initial_map_sf, file = ayerbe_sf_fname)   
 }
-initial_map_sf <- do.call(rbind, initial_map_list)
-rm(initial_map_list)
-names(initial_map_sf)[1] <- 'Species'
-initial_map_sf$Species <- gsub('[[:space:]]', ' ', initial_map_sf$Species) # At least one entry contains some kind of crazy whitespace character that gets printed as " " in the R console but which does not match " " for the purposes of string matching
-saveRDS(initial_map_sf, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/initial_map_sf.RDS')
 
 ##### Standardize taxonomy to HBW species list #####
-initial_map_sf <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/initial_map_sf.RDS')
-initial_species_list <- read.csv("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/initial_species_list.csv")
+initial_map_sf <- readRDS(ayerbe_sf_fname)
+# ?? directory issue
+initial_species_list <- read.csv("inputs/initial_species_list.csv")
 initial_species_list$HBW_underscore <- gsub(" ", "_", initial_species_list$HBW)
 
-# One-to-one (from a Colombian perspective) synonymy that is resolved by HBW/eBird/EltonTraits lookup
+# One-to-one (from a Colombian perspective) synonymy that is resolved by 
+# HBW/eBird/EltonTraits lookup
 for(i in 1:nrow(initial_map_sf)){
   if((initial_map_sf$Species[i] %ni% initial_species_list$HBW) &             #  if the Ayerbe name is missing from HBW    
         (sum(initial_species_list$eBird == initial_map_sf$Species[i]) == 1)){  # but is present exactly once in the eBird synonymy
@@ -167,12 +182,13 @@ initial_species_list$HBW[initial_species_list$HBW %ni% initial_map_sf$Species]
 
 
 ##### Splits #####
-# Splits are handled by creating masking polygons that cover up superflous parts of the parent taxon's range.  These polygons were
-# drawn by hand in Google Earth with the relevant Ayerbe maps simultaneously imported.
+# Splits are handled by creating masking polygons that cover up superflous parts 
+# of the parent taxon's range.  These polygons were drawn by hand in Google Earth 
+# with the relevant Ayerbe maps simultaneously imported.
 
 # Get dataframe giving the HBW species, the file path for the masking polygons, and the Ayerbe species to which the mask must be applied
-mask_update <- data.frame(new_species = list.files('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_updates/ayerbe_mask'),
-                          path = list.files('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_updates/ayerbe_mask', full.names = T),
+mask_update <- data.frame(new_species = list.files('inputs/ayerbe_updates/ayerbe_mask'),
+                          path = list.files('inputs/ayerbe_updates/ayerbe_mask', full.names = T),
                           old_species = NA)
 for(i in 1:nrow(mask_update)){
   nf <- list.files(mask_update$path[i])
@@ -200,8 +216,8 @@ for(i in 1:nrow(mask_update)){
 ayerbe_splits <- do.call(rbind, new_map_list)
 
 ##### Missing species #####
-missing_species <- data.frame(species = list.files('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_updates/ayerbe_missing'),
-                              path = list.files('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_updates/ayerbe_missing', full.names = T))
+missing_species <- data.frame(species = list.files('ayerbe_updates/ayerbe_missing'),
+                              path = list.files('ayerbe_updates/ayerbe_missing', full.names = T))
 missing_map_list <- list()
 counter <- 0
 for(i in 1:nrow(missing_species)){
@@ -233,14 +249,19 @@ for(i in 1:nrow(missing_species)){
 }
 
 ayerbe_missing_prelim <- do.call(rbind, missing_map_list)
-ayerbe_missing <- st_intersection(ayerbe_missing_prelim, st_transform(mainland, st_crs(ayerbe_missing_prelim))) # Crop to mainland, as hand-drawn ranges were not clipped to colomiban border
+# Crop to mainland, as hand-drawn ranges were not clipped to Colombian border
+ayerbe_missing <- st_intersection(ayerbe_missing_prelim, 
+                                  st_transform(mainland, st_crs(ayerbe_missing_prelim))
+                                  ) 
 
 ##### Combine for complete Ayerbe map set #####
-# note that there is no map, and no line in the sf frame, for Vireo olivaceus or Troglodytes ochraceus
-ayerbe_maps_prelim <- initial_map_sf[initial_map_sf$Species %ni% mask_update$old_species, ]
+# note that there is no map, and no line in the sf frame, for Vireo olivaceus or 
+# Troglodytes ochraceus
+ayerbe_maps_prelim <- initial_map_sf[initial_map_sf$Species %ni% 
+                                         mask_update$old_species, ]
 ayerbe_maps_prelim2 <- rbind(ayerbe_maps_prelim, ayerbe_splits)
 ayerbe_maps <- st_transform(rbind(ayerbe_maps_prelim2, ayerbe_missing), AEAstring)
 ayerbe_maps[ayerbe_]
 initial_species_list$HBW[initial_species_list$HBW %ni% ayerbe_maps$Species]
 
-saveRDS(ayerbe_maps, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_maps.RDS')
+saveRDS(ayerbe_maps, file = 'outputs/ayerbe_maps/ayerbe_maps.RDS')
