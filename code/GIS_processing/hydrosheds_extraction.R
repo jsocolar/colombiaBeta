@@ -1,13 +1,10 @@
 # extract and format hydroshed data
 
-# housekeeping ----
-library(sf)
-
 # data ----
-hs2 <- st_read(paste0(dir.path, 'inputs/GIS/hydrosheds/hybas_sa_lev01-06_v1c/hybas_sa_lev02_v1c.shp'))
-hs3 <- st_read(paste0(dir.path, 'inputs/GIS/hydrosheds/hybas_sa_lev01-06_v1c/hybas_sa_lev03_v1c.shp'))
-hs4 <- st_read(paste0(dir.path, 'inputs/GIS/hydrosheds/hybas_sa_lev01-06_v1c/hybas_sa_lev04_v1c.shp'))
-hs5 <- st_read(paste0(dir.path, 'inputs/GIS/hydrosheds/hybas_sa_lev01-06_v1c/hybas_sa_lev05_v1c.shp'))
+hs2 <- st_read(paste0(dir.path, 'inputshybas_sa_lev01-06_v1c/hybas_sa_lev02_v1c.shp'))
+hs3 <- st_read(paste0(dir.path, 'inputshybas_sa_lev01-06_v1c/hybas_sa_lev03_v1c.shp'))
+hs4 <- st_read(paste0(dir.path, 'inputs/hybas_sa_lev01-06_v1c/hybas_sa_lev04_v1c.shp'))
+hs5 <- st_read(paste0(dir.path, 'inputs/hybas_sa_lev01-06_v1c/hybas_sa_lev05_v1c.shp'))
 
 amazon_orinoco <- st_make_valid(st_union(st_make_valid(hs2[2, ]), st_make_valid(hs3[4, ])))
 pacific_prelim <- st_make_valid(st_union(st_make_valid(hs3[1,]), st_make_valid(hs3[25,])))
@@ -23,7 +20,7 @@ central <- st_make_valid(
     st_zm(
         st_read(
             paste0(dir.path, 
-                   'inputs/GIS/biogeographic_clips/mountains_clips/centralAndes__cauca__magdalena.kml')
+                   'inputs/biogeographic_clips/mountains_clips/centralAndes__cauca__magdalena.kml')
             )
         )
     )
@@ -34,9 +31,9 @@ central <- st_make_valid(central)
 sf_use_s2(TRUE)
 st_is_valid(central)
 
-sm <- st_make_valid(st_zm(st_read(paste0(dir.path, 'inputs/GIS/biogeographic_clips/mountains_clips/SNSM__guajira_valledupar.kml'))))
-pasto <- st_make_valid(st_zm(st_read(paste0(dir.path, 'inputs/GIS/biogeographic_clips/mountains_clips/pasto__pacific.kml'))))
-tacarcuna <- st_make_valid(st_zm(st_read(paste0(dir.path, 'inputs/GIS/biogeographic_clips/mountains_clips/tacarcuna__pacific.kml'))))
+sm <- st_make_valid(st_zm(st_read(paste0(dir.path, 'inputs/biogeographic_clips/mountains_clips/SNSM__guajira_valledupar.kml'))))
+pasto <- st_make_valid(st_zm(st_read(paste0(dir.path, 'inputs/biogeographic_clips/mountains_clips/pasto__pacific.kml'))))
+tacarcuna <- st_make_valid(st_zm(st_read(paste0(dir.path, 'inputs/biogeographic_clips/mountains_clips/tacarcuna__pacific.kml'))))
 
 
 pacific_prelim2 <- st_make_valid(st_difference(pacific_prelim, pasto))
@@ -52,5 +49,3 @@ magdalena_east <- st_make_valid(st_difference(magdalena, central))
 
 guajira_perija <- st_make_valid(st_difference(guajira_valledupar, sm))
 snsm <- st_make_valid(st_intersection(guajira_valledupar, sm))
-
-# this presumably gets called somewhere? Where?

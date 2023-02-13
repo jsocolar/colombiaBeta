@@ -1,26 +1,28 @@
-# This script formats unified table of species covariates from the elevations file, range maps, eltonTraits, & Parker
+# This script formats unified table of species covariates from the elevations file, 
+# range maps, eltonTraits, & Parker
 
-##### Script dependencies: parker_standardization.R, species_lists.R, combined_bird_maps.R, elevations_prep_and_exploration.R
+##### Script dependencies: parker_standardization.R, species_lists.R, 
+# combined_bird_maps.R, elevations_prep_and_exploration.R
 
-library(sf)
-library(ggplot2)
+library(sf); library(ggplot2)
 `%ni%` <- Negate(`%in%`)
-AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 
++y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
 ##### Begin with elevations file #####
-ef <- read.csv("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/elevations/elevations_final.csv")
+ef <- read.csv("inputs/elevations_final.csv")
 ef$latin_underscore <- gsub(" ", "_", ef$latin)
 elevations_final <- ef[is.na(ef$omit & !is.na(ef$is_na)), c("latin", "latin_underscore", "lower", "upper")]
 elevations_final$elev_breadth <- elevations_final$upper - elevations_final$lower
 
 ##### Add basic info about biogeographic restrictions from Ayerbe maps #####
-ayerbe_maps_updated <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_buffered_ranges_updated.RDS')
+ayerbe_maps_updated <- readRDS('outputs/ayerbe_buffered_ranges_updated.RDS')
 # Create traits file
 traits <- elevations_final[elevations_final$latin %in% names(ayerbe_maps_updated), ]
 traits$east_only <- traits$west_only <- traits$eandes_absent <- traits$wandes_absent <- traits$snsm_only <- NA
 
 # Get biogeographic polygons
-source('/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/GIS_processing/hydrosheds_extraction.R')
+source('code/GIS_processing/hydrosheds_extraction.R')
 cps <- list(amazon_orinoco = st_transform(amazon_orinoco, AEAstring), magdalena_east = st_transform(magdalena_east, AEAstring),
             magdalena_west = st_transform(magdalena_west, AEAstring), cauca_east = st_transform(cauca_east, AEAstring),
             cauca_west = st_transform(cauca_west, AEAstring), pasto = st_transform(pasto, AEAstring), 
@@ -44,10 +46,10 @@ eandes_polygon <- st_union(cps$amazon_orinoco, cps$magdalena_east)
 candes_polygon <- st_union(cps$magdalena_west, cps$cauca_east)
 
 # read in GADM colombia shapefile
-colombia <- st_read('/Users/JacobSocolar/Dropbox/Work/Colombia/Data/GIS/colombia_maps/gadm36_COL_shp/gadm36_COL_0.shp')
+colombia <- st_read('inputs/gadm36_COL_shp/gadm36_COL_0.shp')
 
-# File consists of many disjoint polygons, representing the mainland and numerous islands. Figure out which is the mainland
-# and extract it.
+# File consists of many disjoint polygons, representing the mainland and numerous 
+# islands. Figure out which is the mainland and extract it.
 npoly <- length(colombia$geometry[[1]])
 size <- rep(0,npoly)
 for(i in 1:npoly){
@@ -73,14 +75,10 @@ for(i in 1:nrow(traits)){
   traits$snsm_only[i] <- as.numeric(st_intersects(cps$snsm, map, sparse = F)[1,1] & !st_intersects(not_snsm, map, sparse = F)[1,1])    # Santa Marta endemics (in a Colombian context)
 }
 
-saveRDS(traits, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/traits_prelim.RDS")
+saveRDS(traits, "outputs/traits_prelim.RDS")
 
-
-
-
-traits <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/traits_prelim.RDS")
 ##### Add Family and Genus #####
-birdlife_list <- readxl::read_xlsx("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/HBW-BirdLife_Checklist_v4_Dec19/Handbook of the Birds of the World and BirdLife International digital checklist of the birds of the world_Version_4.xlsx",
+birdlife_list <- readxl::read_xlsx("inputs/HBW-BirdLife_Checklist_v4_Dec19/Handbook of the Birds of the World and BirdLife International digital checklist of the birds of the world_Version_4.xlsx",
                                  skip = 1)
 birdlife_v4 <- birdlife_list[!is.na(birdlife_list$Sequence),]
 families <- birdlife_v4[,c("Scientific name", "Order", "Family name")]
@@ -91,7 +89,7 @@ traits$Family[is.na(traits$Family) & traits$Genus == "Grallaria"] <- "Grallariid
 traits$Order[is.na(traits$Order) & traits$Genus == "Grallaria"] <- "PASSERIFORMES"
 
 ##### Add Parker traits #####
-parker <- read.csv('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/new_parker.csv')
+parker <- read.csv('inputs/new_parker.csv')
 for(j in 5:ncol(parker)){
   for(i in 1:nrow(parker)){
     if(parker[i,j] %in% c("Y", "Q", "E")){
@@ -131,10 +129,11 @@ parker_traits <- parker[,names(parker) %ni% c("X", "parker", "parker2")]
 traits <- merge(traits, parker_traits, by.x = "latin", by.y = "HBW", all.x = T)
 
 ##### Add BirdLife traits #####
-load('/Users/jacobsocolar/Dropbox/Work/Useful_data/BirdlifeTraits/birdlife_traits.Rdata')
+load('outputs/birdlife_traits.Rdata')
 
 bts <- data.frame(latin = birdlife_traits$names, generation_birdlife = 0, 
-                  mass_birdlife = unlist(birdlife_traits$body_mass), migrat_birdlife = unlist(birdlife_traits$migratory_status),
+                  mass_birdlife = unlist(birdlife_traits$body_mass), 
+                  migrat_birdlife = unlist(birdlife_traits$migratory_status),
                   forestDep_birdlife = unlist(birdlife_traits$forest_dep))
 for(i in 1:nrow(bts)){
   if(length(birdlife_traits$generation[[i]]) > 0){
@@ -150,11 +149,17 @@ traits$migrat_birdlife[is.na(traits$migrat_birdlife)] <- "not a migrant"
 
 # Add habitats from birdlife
 birdlife_habitats <- data.frame(latin = birdlife_traits$names, 
-                                birdlife_hab_forest_trop_moist_lowland = NA, birdlife_hab_forest_trop_moist_montane = NA, 
-                                birdlife_hab_forest_trop_dry = NA, birdlife_hab_forest_tropical_swamp = NA,
+                                birdlife_hab_forest_trop_moist_lowland = NA, 
+                                birdlife_hab_forest_trop_moist_montane = NA, 
+                                birdlife_hab_forest_trop_dry = NA, 
+                                birdlife_hab_forest_tropical_swamp = NA,
                                 birdlife_hab_savanna = NA,
-                                birdlife_hab_shrubland_trop_dry = NA, birdlife_hab_shrubland_trop_high = NA, birdlife_hab_shrubland_trop_moist = NA,
-                                birdlife_hab_grassland_trop_dry = NA, birdlife_hab_grassland_trop_high = NA, birdlife_hab_grassland_trop_wet = NA, 
+                                birdlife_hab_shrubland_trop_dry = NA, 
+                                birdlife_hab_shrubland_trop_high = NA, 
+                                birdlife_hab_shrubland_trop_moist = NA,
+                                birdlife_hab_grassland_trop_dry = NA, 
+                                birdlife_hab_grassland_trop_high = NA, 
+                                birdlife_hab_grassland_trop_wet = NA, 
                                 birdlife_hab_desert_hot = NA, 
                                 birdlife_hab_wetlands = NA)
 for(i in 1:nrow(birdlife_habitats)){
@@ -178,20 +183,15 @@ traits <- merge(traits, birdlife_habitats, by.x = "latin", by.y = "latin", all.x
 
 
 ##### Add EltonTraits traits #####
-initial_species_list <- read.csv("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/initial_species_list.csv")
-elton <- read.delim("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/elton.txt")
+initial_species_list <- read.csv("outputs/initial_species_list.csv")
+elton <- read.delim("inputs/elton.txt")
 
-elton_traits <- merge(initial_species_list, elton, by.x = "eltontraits", by.y = "Scientific")[,c(2, 16:26, 30:36, 42)]
+elton_traits <- merge(initial_species_list, elton, by.x = "eltontraits", 
+                      by.y = "Scientific")[,c(2, 16:26, 30:36, 42)]
 
 traits <- merge(traits, elton_traits, by.x = "latin", by.y = "HBW", all.x = T)
 
 # Confirm high correlation between EltonTraits masses and Birdlife masses
 summary(lm(traits$mass_birdlife ~ traits$BodyMass.Value))
 
-
-
-
-saveRDS(traits, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/traits.RDS")
-
-
-
+saveRDS(traits, "outputs/traits.RDS")
