@@ -1,26 +1,21 @@
-# This script takes previously ingested and standardized data on birds, traits, ranges, points, and visits and produces a unified data object for analysis
+# This script takes previously ingested and standardized data on birds, traits, 
+# ranges, points, and visits and produces a unified data object for analysis
 
-##### Script dependencies: combined_bird_maps.R, bird_import_and_cleaning.R, elevations_prep_and_exploration.R, points_formatting.R, migratory_dates.R, species_covariate_formatting.R #####
-socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
-socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
-if(socolar.desktop){
-  dir.path <- "/Users/JacobSocolar/Dropbox/Work"
-}else if(socolar.laptop){
-  dir.path <- "/Users/jacob/Dropbox/Work"
-}
-setwd(dir.path)
+##### Script dependencies: combined_bird_maps.R, bird_import_and_cleaning.R, 
+# elevations_prep_and_exploration.R, points_formatting.R, migratory_dates.R, 
+# species_covariate_formatting.R 
 
-
-
+# housekeeping
+library(sf); library(ggplot2)
 `%ni%` <- Negate(`%in%`)
 
 # Get formatted bird surveys object
-bird_surveys <- readRDS('Colombia/Data/Analysis/bird_surveys_current.RDS')
+bird_surveys <- readRDS('outputs/bird_surveys_current.RDS')
 
-# Get a matrix (actually a dataframe) of the distance from each species range to each sampling point.
-# This is just for checking whether to include a species in analysis, not for creating the distance-
-# to-range covariate.
-point_distances <- readRDS("Colombia/Data/GIS/point_distances/point_distances_biogeographic_clip_ayerbe.RDS")
+# Get a matrix (actually a dataframe) of the distance from each species range to 
+# each sampling point. This is just for checking whether to include a species 
+# in analysis, not for creating the distance-to-range covariate.
+point_distances <- readRDS("outputs/point_distances_biogeographic_clip_ayerbe.RDS")
 
 # Get a list of species with ranges overlapping our points
 include_species <- vector()
@@ -37,139 +32,157 @@ species_list <- gsub(" ", "_", row.names(point_distances_include))
 # Confirm that all detected species are in the species list
 which(bird_surveys$species_names %ni% species_list)
 
-# Extract detection array and pad with zeros for all never-detected species in species_list
+# Extract detection array and pad with zeros for all never-detected species in 
+# species_list
 det_array <- bird_surveys$detection_array[,1:4,]
-det_array_padded <- abind::abind(det_array, array(data = 0, 
-                                                  dim = c(dim(det_array)[1], 
-                                                                    dim(det_array)[2],
-                                                                    length(species_list) - dim(det_array)[3])), 
-                                                  along = 3)
+det_array_padded <- abind::abind(det_array, 
+                                 array(data = 0, 
+                                       dim = c(dim(det_array)[1], 
+                                               dim(det_array)[2],
+                                               length(species_list) - dim(det_array)[3])
+                                       ), 
+                                 along = 3)
 
 # Species names for det_array_padded
-species_names <- c(bird_surveys$species_names, species_list[species_list %ni% bird_surveys$species_names])
+species_names <- c(bird_surveys$species_names, 
+                   species_list[species_list %ni% bird_surveys$species_names])
 
 # Create flattened data object, where each species-point gets its own row
-point_distances_include_2 <- point_distances_include[, match(bird_surveys$point_names, names(point_distances_include))]
-
-i <- 1
-species <- species_list[i]
-det_array_ind <- which(species_names == species)
-
-
-flattened_data <- data.frame(species = rep(species, length(bird_surveys$point_names)),
-                             point = bird_surveys$point_names,
-                             v1 = 0,
-                             v2 = 0,
-                             v3 = 0,
-                             v4 = 0,
-                             distance = as.numeric(point_distances_include_2[i,]))
-
-
-for(i in 2:length(species_list)){
-  print(i)
-  species <- species_list[i]
-  det_array_ind <- which(species_names == species)
-  
-  if(det_array_ind <= dim(det_array)[3]){
-    fd_i <- data.frame(species = rep(species, length(bird_surveys$point_names)),
-                                         point = bird_surveys$point_names,
-                                         v1 = det_array[,1,det_array_ind],
-                                         v2 = det_array[,2,det_array_ind],
-                                         v3 = det_array[,3,det_array_ind],
-                                         v4 = det_array[,4,det_array_ind],
-                                         distance = as.numeric(point_distances_include_2[i,]))
-  }else{
-    fd_i <- data.frame(species = rep(species, length(bird_surveys$point_names)),
-                       point = bird_surveys$point_names,
-                       v1 = 0,
-                       v2 = 0,
-                       v3 = 0,
-                       v4 = 0,
-                       distance = as.numeric(point_distances_include_2[i,]))
-  }
-  
-  flattened_data <- rbind(flattened_data, fd_i)
-}
-
-sum(flattened_data$v1 == 1 & flattened_data$distance > 0)
-sum(flattened_data$v2 == 1 & flattened_data$distance > 0)
-sum(flattened_data$v3 == 1 & flattened_data$distance > 0, na.rm = T)
-sum(flattened_data$v4 == 1 & flattened_data$distance > 0, na.rm = T)
-
-flattened_data <- flattened_data[flattened_data$distance == 0, c('species', 'point', 'v1', 'v2', 'v3', 'v4')]
-rownames(flattened_data) <- NULL
-
-#saveRDS(flattened_data, "Colombia/Data/Analysis/flattened_data_current.RDS")
-flattened_data <- readRDS("Colombia/Data/Analysis/flattened_data_current.RDS")
-# Column for whether the species is ever detected at the point
-flattened_data$Q <- as.numeric(rowSums(flattened_data[,3:6], na.rm = T) > 0)
-
-# Read in point covariate information and merge with flattened_data
-all_pts <- readRDS("Colombia/Data/GIS/Points/all_pts.RDS")
-# Combine observers JJG and OC to one observer
-all_pts$obs1[all_pts$obs1 %in% c("JJG", "OC")] <- "JJG_OC"
-all_pts$obs2[all_pts$obs2 %in% c("JJG", "OC")] <- "JJG_OC"
-all_pts$obs3[all_pts$obs3 %in% c("JJG", "OC")] <- "JJG_OC"
-all_pts$obs4[all_pts$obs4 %in% c("JJG", "OC")] <- "JJG_OC"
-
-
-fd <- merge(flattened_data, all_pts, by.x = "point", by.y = "point", all.x = T)
-fd$v4[fd$nv %in% c(2,3)] <- NA
-fd$v3[fd$nv == 2] <- NA
-
-# Read in species-trait covariate information and merge with fd
-traits <- readRDS("Colombia/Data/Birds/traits/traits.RDS")
-# Confirm that we have trait covariates for every species of interest
-all(flattened_data$species %in% traits$latin_underscore)
-fd <- merge(fd, traits, by.x = "species", by.y = "latin_underscore", all.x = T)
-# Compute species-standardized elevations
-fd$elev_sp_standard <- (fd$elev_ALOS - fd$lower)/(fd$upper - fd$lower)
-
-
-# Read in migratory date information and merge with fd
-mig_dates <- readRDS("Colombia/Data/Birds/traits/mig_dates.RDS")
-mig_dates$species <- gsub(" ", "_", mig_dates$latin)
-fd <- merge(fd, mig_dates, by.x = "species", by.y = "species", all.x = T)
-
-# For each row, determine if the species is within the appropriate migratory period
-fd$in_date_range <- 0
-for(i in 1:nrow(fd)){
-  oday1 <- fd$oday1[i]
-  if(is.na(fd$oday2[i])){oday2 <- oday1}else{oday2 <- fd$oday2[i]}
-  if(is.na(fd$oday3[i])){oday3 <- oday2}else{oday3 <- fd$oday3[i]}
-  if(is.na(fd$oday4[i])){oday4 <- oday3}else{oday4 <- fd$oday4[i]}
-  
-  if(is.na(fd$start1[i])){
-    fd$in_date_range[i] <- 1
-  }else if((fd$start1[i] < fd$end1[i]) & oday1 >= fd$start1[i] & oday1 <= fd$end1[i]){
-    fd$in_date_range[i] <- 1
-  }else if((fd$start1[i] < fd$end1[i]) & oday4 >= fd$start1[i] & oday4 <= fd$end1[i]){
-    fd$in_date_range[i] <- 1
-  }else if((fd$start1[i] > fd$end1[i]) & (oday1 >= fd$start1[i] | oday1 <= fd$end1[i])){
-    fd$in_date_range[i] <- 1
-  }else if((fd$start1[i] > fd$end1[i]) & (oday4 >= fd$start1[i] | oday4 <= fd$end1[i])){
-    fd$in_date_range[i] <- 1
-  }else if(fd$start2[i] != fd$start1[i]){
-    if(fd$start2[i] > fd$end2[i]){
-      stop()
-    }else if(oday1 >= fd$start2[i] & oday1 <= fd$end2[i]){
-      fd$in_date_range[i] <- 1
-    }else if(oday4 >= fd$start2[i] & oday4 <= fd$end2[i]){
-      fd$in_date_range[i] <- 1
+flat_data1_fname <- "outputs/flattened_data_current.RDS"
+if(!exists(flat_data1_fname)) {
+    point_distances_include_2 <- point_distances_include[, match(bird_surveys$point_names, names(point_distances_include))]
+    
+    i <- 1
+    species <- species_list[i]
+    det_array_ind <- which(species_names == species)
+    
+    
+    flattened_data <- data.frame(species = rep(species, length(bird_surveys$point_names)),
+                                 point = bird_surveys$point_names,
+                                 v1 = 0,
+                                 v2 = 0,
+                                 v3 = 0,
+                                 v4 = 0,
+                                 distance = as.numeric(point_distances_include_2[i,]))
+    
+    
+    for(i in 2:length(species_list)){
+        print(i)
+        species <- species_list[i]
+        det_array_ind <- which(species_names == species)
+        
+        if(det_array_ind <= dim(det_array)[3]){
+            fd_i <- data.frame(species = rep(species, length(bird_surveys$point_names)),
+                               point = bird_surveys$point_names,
+                               v1 = det_array[,1,det_array_ind],
+                               v2 = det_array[,2,det_array_ind],
+                               v3 = det_array[,3,det_array_ind],
+                               v4 = det_array[,4,det_array_ind],
+                               distance = as.numeric(point_distances_include_2[i,]))
+        }else{
+            fd_i <- data.frame(species = rep(species, length(bird_surveys$point_names)),
+                               point = bird_surveys$point_names,
+                               v1 = 0,
+                               v2 = 0,
+                               v3 = 0,
+                               v4 = 0,
+                               distance = as.numeric(point_distances_include_2[i,]))
+        }
+        
+        flattened_data <- rbind(flattened_data, fd_i)
     }
-  }
+    
+    sum(flattened_data$v1 == 1 & flattened_data$distance > 0)
+    sum(flattened_data$v2 == 1 & flattened_data$distance > 0)
+    sum(flattened_data$v3 == 1 & flattened_data$distance > 0, na.rm = T)
+    sum(flattened_data$v4 == 1 & flattened_data$distance > 0, na.rm = T)
+    
+    flattened_data <- flattened_data[flattened_data$distance == 0, c('species', 'point', 'v1', 'v2', 'v3', 'v4')]
+    rownames(flattened_data) <- NULL
+    
+    saveRDS(flattened_data, flat_data1_fname)
+} else {
+    flattened_data <- readRDS(flat_data1_fname)
 }
 
-sum(fd$in_date_range)
-# Confirm that no detections fall outside the migratory date range.
-sum(fd$Q == 1 & fd$in_date_range == 0)
 
-# Remove superfluous columns from fd
-flattened_data_full <- fd[, names(fd) %ni% c("birds", "beetles", "habitat", "other", "latin.x", "latin.y")]
-#saveRDS(flattened_data_full, "Colombia/Data/Analysis/flattened_data_full.RDS")
 
-flattened_data_full <- readRDS("Colombia/Data/Analysis/flattened_data_full.RDS")
-# Look at statistics of species-standardized elevations at species-points with a detection  
+flat_data2_fname <- "outputs/flattened_data_full.RDS"
+if(!exists(flat_data2_fname)) {
+    
+    # Column for whether the species is ever detected at the point
+    flattened_data$Q <- as.numeric(rowSums(flattened_data[,3:6], na.rm = T) > 0)
+    
+    # Read in point covariate information and merge with flattened_data
+    all_pts <- readRDS("outputs/all_pts.RDS")
+    # Combine observers JJG and OC to one observer
+    all_pts$obs1[all_pts$obs1 %in% c("JJG", "OC")] <- "JJG_OC"
+    all_pts$obs2[all_pts$obs2 %in% c("JJG", "OC")] <- "JJG_OC"
+    all_pts$obs3[all_pts$obs3 %in% c("JJG", "OC")] <- "JJG_OC"
+    all_pts$obs4[all_pts$obs4 %in% c("JJG", "OC")] <- "JJG_OC"
+    
+    
+    fd <- merge(flattened_data, all_pts, by.x = "point", by.y = "point", all.x = T)
+    fd$v4[fd$nv %in% c(2,3)] <- NA
+    fd$v3[fd$nv == 2] <- NA
+    
+    # Read in species-trait covariate information and merge with fd
+    traits <- readRDS("outputs/traits.RDS")
+    # Confirm that we have trait covariates for every species of interest
+    all(flattened_data$species %in% traits$latin_underscore)
+    fd <- merge(fd, traits, by.x = "species", by.y = "latin_underscore", all.x = T)
+    # Compute species-standardized elevations
+    fd$elev_sp_standard <- (fd$elev_ALOS - fd$lower)/(fd$upper - fd$lower)
+    
+    
+    # Read in migratory date information and merge with fd
+    mig_dates <- readRDS("outputs/mig_dates.RDS")
+    mig_dates$species <- gsub(" ", "_", mig_dates$latin)
+    fd <- merge(fd, mig_dates, by.x = "species", by.y = "species", all.x = T)
+    
+    # For each row, determine if the species is within the appropriate migratory period
+    fd$in_date_range <- 0
+    for(i in 1:nrow(fd)){
+        oday1 <- fd$oday1[i]
+        if(is.na(fd$oday2[i])){oday2 <- oday1}else{oday2 <- fd$oday2[i]}
+        if(is.na(fd$oday3[i])){oday3 <- oday2}else{oday3 <- fd$oday3[i]}
+        if(is.na(fd$oday4[i])){oday4 <- oday3}else{oday4 <- fd$oday4[i]}
+        
+        if(is.na(fd$start1[i])){
+            fd$in_date_range[i] <- 1
+        }else if((fd$start1[i] < fd$end1[i]) & oday1 >= fd$start1[i] & oday1 <= fd$end1[i]){
+            fd$in_date_range[i] <- 1
+        }else if((fd$start1[i] < fd$end1[i]) & oday4 >= fd$start1[i] & oday4 <= fd$end1[i]){
+            fd$in_date_range[i] <- 1
+        }else if((fd$start1[i] > fd$end1[i]) & (oday1 >= fd$start1[i] | oday1 <= fd$end1[i])){
+            fd$in_date_range[i] <- 1
+        }else if((fd$start1[i] > fd$end1[i]) & (oday4 >= fd$start1[i] | oday4 <= fd$end1[i])){
+            fd$in_date_range[i] <- 1
+        }else if(fd$start2[i] != fd$start1[i]){
+            if(fd$start2[i] > fd$end2[i]){
+                stop()
+            }else if(oday1 >= fd$start2[i] & oday1 <= fd$end2[i]){
+                fd$in_date_range[i] <- 1
+            }else if(oday4 >= fd$start2[i] & oday4 <= fd$end2[i]){
+                fd$in_date_range[i] <- 1
+            }
+        }
+    }
+    
+    sum(fd$in_date_range)
+    # Confirm that no detections fall outside the migratory date range.
+    sum(fd$Q == 1 & fd$in_date_range == 0)
+    
+    # Remove superfluous columns from fd
+    flattened_data_full <- fd[, names(fd) %ni% c("birds", "beetles", "habitat", 
+                                                 "other", "latin.x", "latin.y")]
+    saveRDS(flattened_data_full, flat_data2_fname)
+} else {
+    flattened_data_full <- readRDS(flat_data2_fname)
+}
+
+# Look at statistics of species-standardized elevations at species-points with a 
+# detection  
 fdq <- flattened_data_full[flattened_data_full$Q == 1,]
 max(fdq$elev_sp_standard)
 min(fdq$elev_sp_standard)
@@ -180,7 +193,8 @@ nq <- vector()
 nall <- vector()
 for(i in 2:length(a)){
   nq[i-1] <- sum(fdq$elev_sp_standard > a[i-1] & fdq$elev_sp_standard <= a[i])
-  nall[i-1] <- sum(flattened_data_full$elev_sp_standard > a[i-1] & flattened_data_full$elev_sp_standard <= a[i])
+  nall[i-1] <- sum(flattened_data_full$elev_sp_standard > a[i-1] & 
+                       flattened_data_full$elev_sp_standard <= a[i])
 }
 
 plot(boot::logit(nq/nall) ~ seq(-.9, 1.9, .2))
@@ -190,30 +204,44 @@ plot(nall ~ seq(-.9, 1.9, .2))
 min(nall)
 
 
-# Subset to include only species-points that are in the date range and in an elevational range of (-1, 2)
-bird_data_trimmed <- flattened_data_full[flattened_data_full$in_date_range == 1 & flattened_data_full$elev_sp_standard > -1 & flattened_data_full$elev_sp_standard < 2, ]
+# Subset to include only species-points that are in the date range and in an 
+# elevational range of (-1, 2)
+bird_data_trimmed <- flattened_data_full[flattened_data_full$in_date_range == 1 & 
+                                             flattened_data_full$elev_sp_standard > -1 & 
+                                             flattened_data_full$elev_sp_standard < 2, ]
 #saveRDS(bird_data_trimmed, "Colombia/Data/Analysis/bird_data_trimmed.RDS")
 bird_data_trimmed <- readRDS("Colombia/Data/Analysis/bird_data_trimmed.RDS")
+
 # Examine statistics of final dataset
-nrow(bird_data_trimmed)
-sum(bird_data_trimmed$Q)
-mean(bird_data_trimmed$Q)
+# nrow(bird_data_trimmed)
+# sum(bird_data_trimmed$Q)
+# mean(bird_data_trimmed$Q)
 
 
 ############
 vscale <- function(x){return(as.vector(scale(x)))}
 
-birds <- readRDS("Colombia/Data/Analysis/bird_data_trimmed.RDS")
+# already read in? 
+birds <- readRDS("outputs/bird_data_trimmed.RDS")
 birds$sp_cl <- paste(birds$species, birds$cluster, sep = "__")
 birds$sp_sr <- paste(birds$species, birds$cluster, sep = "__")
 birds$elev_median <- rowMeans(cbind(birds$lower, birds$upper))
 birds$det_data <- as.matrix(birds[,c("v1", "v2", "v3", "v4")])
 birds$det_data[is.na(birds$det_data)] <- -1
-birds$obsSM <- matrix(as.numeric(c(birds$obs1 == "SCM", birds$obs2 == "SCM", birds$obs3 == "SCM", birds$obs4 == "SCM")), ncol = 4)
+birds$obsSM <- matrix(as.numeric(c(birds$obs1 == "SCM", 
+                                   birds$obs2 == "SCM", 
+                                   birds$obs3 == "SCM", 
+                                   birds$obs4 == "SCM")), ncol = 4)
 birds$obsSM[is.na(birds$obsSM)] <- 0
-birds$obsDE <- matrix(as.numeric(c(birds$obs1 == "DPE", birds$obs2 == "DPE", birds$obs3 == "DPE", birds$obs4 == "DPE")), ncol = 4)
+birds$obsDE <- matrix(as.numeric(c(birds$obs1 == "DPE", 
+                                   birds$obs2 == "DPE", 
+                                   birds$obs3 == "DPE", 
+                                   birds$obs4 == "DPE")), ncol = 4)
 birds$obsDE[is.na(birds$obsDE)] <- 0
-birds$obsJG_OC <- matrix(as.numeric(c(birds$obs1 == "JJG_OC", birds$obs2 == "JJG_OC", birds$obs3 == "JJG_OC", birds$obs4 == "JJG_OC")), ncol = 4)
+birds$obsJG_OC <- matrix(as.numeric(c(birds$obs1 == "JJG_OC", 
+                                      birds$obs2 == "JJG_OC", 
+                                      birds$obs3 == "JJG_OC", 
+                                      birds$obs4 == "JJG_OC")), ncol = 4)
 birds$obsJG_OC[is.na(birds$obsJG)] <- 0
 birds$time <- matrix((scale(c(birds$hps1, birds$hps2, birds$hps3, birds$hps4))), ncol = 4)
 birds$time[is.na(birds$time)] <- 0  # these zeros correspond to visits that don't actually exist
@@ -227,24 +255,14 @@ birds$mountain_limited <- birds$east_only | birds$west_only
 birds$valley_limited <- birds$snsm_only | birds$wandes_absent | birds$eandes_absent
 
 #### Add distance-from-range covariate ####
-library(sf)
-library(ggplot2)
-source("Code/colombiaBeta/GIS_processing/get_mainland.R")
+source("code/GIS_processing/get_mainland.R")
 
-socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
-socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
-if(socolar.desktop){
-  dir.path <- "/Users/JacobSocolar/Dropbox/Work"
-}else if(socolar.laptop){
-  dir.path <- "/Users/jacob/Dropbox/Work"
-}
-setwd(dir.path)
-
-AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 
+    +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 mainland <- st_transform(mainland, AEAstring)
 mainland_inward <- st_buffer(mainland, -7000)
 
-ayerbe_list_updated <- readRDS('Colombia/Data/GIS/ayerbe_maps/ayerbe_list_updated.RDS')
+ayerbe_list_updated <- readRDS('outputs/ayerbe_list_updated.RDS')
 
 birds$distance_from_range <- 0
 sp_list <- unique(birds$species)
@@ -252,7 +270,8 @@ for(i in 1:length(sp_list)){  # this takes ~ 5 minutes
   print(i)
   sp <- sp_list[i]
   ayerbe <- st_union(ayerbe_list_updated[[gsub("_", " ", sp)]])
-  points <- st_as_sf(birds[birds$species == sp, c("lon", "lat")], coords = c("lon", "lat"))
+  points <- st_as_sf(birds[birds$species == sp, c("lon", "lat")], 
+                     coords = c("lon", "lat"))
   st_crs(points) <- st_crs("WGS84")
   points <- st_transform(points, st_crs(ayerbe))
   range_linestring <- st_cast(ayerbe, "MULTILINESTRING")
@@ -307,8 +326,8 @@ sp_obs_matrix <- matrix(as.integer(as.factor(sp_obs_columns)), ncol=4)
 sp_obs_matrix[is.na(sp_obs_matrix)] <- 0
 birds$sp_obs_matrix <- sp_obs_matrix
 
-#saveRDS(birds, "Colombia/Data/Analysis/birds.RDS")
-birds <- readRDS("Colombia/Data/Analysis/birds.RDS")
+saveRDS(birds, "Colombia/Data/Analysis/birds.RDS")
+
 ec <- c(-1,1)
 # ###########
 # bird_stan_data1 <- list(
@@ -508,7 +527,7 @@ bird_standata6_means_and_sds <- list(time_mean = mean(c(birds$hps1, birds$hps2, 
                                      distance_to_range_logit_rescale = 30000)
 bird_stan_data6_package <- list(data = bird_stan_data6,
                                        means_and_sds = bird_standata6_means_and_sds)
-saveRDS(bird_stan_data6_package, "Colombia/Data/Analysis/bird_stan_data6_package.RDS")
+saveRDS(bird_stan_data6_package, "outputs/bird_stan_data6_package.RDS")
 
 
 
@@ -642,7 +661,7 @@ bird_standata7_means_and_sds <- list(time_mean = mean(c(birds$hps1, birds$hps2, 
                                      distance_to_range_logit_rescale = 30000)
 bird_stan_data7_package <- list(data = bird_stan_data7,
                                 means_and_sds = bird_standata7_means_and_sds)
-saveRDS(bird_stan_data7_package, "Colombia/Data/Analysis/bird_stan_data7_package.RDS")
+saveRDS(bird_stan_data7_package, "outputs/bird_stan_data7_package.RDS")
 
 
 
@@ -774,7 +793,7 @@ bird_standata8_means_and_sds <- list(time_mean = mean(c(birds$hps1, birds$hps2, 
                                      distance_to_range_logit_rescale = 30000)
 bird_stan_data8_package <- list(data = bird_stan_data8,
                                 means_and_sds = bird_standata8_means_and_sds)
-saveRDS(bird_stan_data8_package, "Colombia/Data/Analysis/bird_stan_data8_package.RDS")
+saveRDS(bird_stan_data8_package, "outputs/bird_stan_data8_package.RDS")
 
 
 
@@ -908,9 +927,9 @@ bird_standata9_means_and_sds <- list(time_mean = mean(c(birds$hps1, birds$hps2, 
 bird_stan_data9_package <- list(data = bird_stan_data9,
                                 means_and_sds = bird_standata9_means_and_sds)
 
-saveRDS(bird_stan_data9_package, "Colombia/Data/Analysis/bird_stan_data9_package.RDS")
+saveRDS(bird_stan_data9_package, "outputs/bird_stan_data9_package.RDS")
 
-v9_1 <- cmdstanr::read_cmdstan_csv("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Stan_outputs/v9_first_run/occupancy_v9-202104160126-2-326f84.csv")
+v9_1 <- cmdstanr::read_cmdstan_csv("inputs/v9_first_run/occupancy_v9-202104160126-2-326f84.csv")
 
 bird_stan_data9_1_package <- bird_stan_data9_package
 
@@ -918,7 +937,5 @@ old_inv <- v9_1$inv_metric[[1]]
 new_inv <- c(old_inv[1:(i-2)], old_inv[(i+758):length(old_inv)])
 bird_stan_data9_1_package$inv_metric <- new_inv
 
-saveRDS(bird_stan_data9_1_package, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data9_1_package.RDS")
-saveRDS(bird_stan_data9_1_package, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/Current_data/bird_stan_data9_1_package.RDS")
-
-
+saveRDS(bird_stan_data9_1_package, "outputs/bird_stan_data9_1_package.RDS")
+saveRDS(bird_stan_data9_1_package, "outputs/bird_stan_data9_1_package.RDS")
