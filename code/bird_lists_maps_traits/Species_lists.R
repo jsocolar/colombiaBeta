@@ -12,17 +12,17 @@ AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_
 
 # data ----
 # colombia map
-colombia <- st_read('inputs/GIS/colombia_maps/gadm36_COL_shp/gadm36_COL_0.shp')
+colombia <- st_read('inputs/gadm36_COL_shp/gadm36_COL_0.shp')
 
 # pulido phylogeny
-pulido <- ape::read.tree(file = "inputs/Birds/phylogeny/Pulido_phylogeny/JETZ TREES/All_birds_MaxCladeCredTree.txt")
+pulido <- ape::read.tree(file = "inputs/Pulido_phylogeny/JETZ TREES/All_birds_MaxCladeCredTree.txt")
 
 # Elton traits (download if doesn't exist)
-if(!exists("inputs/Birds/traits/elton.txt")) {
+if(!exists("inputs/elton.txt")) {
     download.file("https://ndownloader.figshare.com/files/5631081",
-                  destfile = 'inputs/Birds/traits/elton.txt')
+                  destfile = 'inputs/elton.txt')
 }
-traits <- read.delim('inputs/Birds/traits/elton.txt', header=T, stringsAsFactors = F)
+traits <- read.delim('inputs/elton.txt', header=T, stringsAsFactors = F)
 
 ##### Basic Colombia map #####
 # read in GADM colombia shapefile
@@ -47,12 +47,15 @@ b_mainland <- st_buffer(mainland, dist = 100000)
 plot(b_mainland)
 
 ##### Birdlife maps #####
-botw <- "private_inputs/GIS/birdlife_maps/BOTW/BOTW.gdb"
-st_layers(botw)
-orig_range_maps <- st_read(dsn=botw,layer="All_Species")
-recast_range_maps <- st_cast(orig_range_maps, to = "MULTIPOLYGON")
-save(recast_range_maps, file = "private_outputs/GIS/birdlife_maps/recast_range_maps.Rdata")
-load("private_outputs/GIS/birdlife_maps/recast_range_maps.Rdata")
+botw_recast_fname <- "outputs/recast_birdlife_range_maps.Rdata"
+if(!exists(botw_recast_fname)) {
+    orig_range_maps <- st_read(dsn="private_inputs/BOTW/BOTW.gdb",
+                               layer="All_Species")
+    recast_range_maps <- st_cast(orig_range_maps, to = "MULTIPOLYGON")
+    save(recast_range_maps, file = botw_recast_fname)   
+} else {
+    load(botw_recast_fname)
+}
 
 birdlife.species <- unique(recast_range_maps$SCINAME)
 nsp <- length(birdlife.species)
@@ -63,20 +66,23 @@ b_mainland_latlon <- st_transform(b_mainland, st_crs(recast_range_maps))
 
 # Extract a list of all species that ovelap the buffered polygon
 colombia_overlaps <- st_intersects(recast_range_maps, b_mainland_latlon)
-# "although coordinates are longitude/latitude, st_intersects assumes that they are planar"
-# I think the above is equivalent to checking for intersections on a Mercator projection.  It won't be a problem here.
-save(colombia_overlaps, file = "private_outputs/Birds/species_list_creation/HBW_colombia_overlaps.Rdata")
-load("private_outputs/Birds/species_list_creation/HBW_colombia_overlaps.Rdata")
+# "although coordinates are longitude/latitude, st_intersects assumes that they 
+# are planar". I think this is equivalent to checking for intersections on a 
+# Mercator projection.  It won't be a problem here.
+save(colombia_overlaps, file = "outputs/HBW_colombia_overlaps.Rdata")
+load("outputs/HBW_colombia_overlaps.Rdata")
 # Get the list of species
 colombia_species <- unique(recast_range_maps$SCINAME[unlist(lapply(colombia_overlaps, FUN = function(i){return(length(i) != 0)}))])
-save(colombia_species, file = "private_outputs/Birds/species_list_creation/colombia_species.Rdata")
-load("private_outputs/Birds/species_list_creation/colombia_species.Rdata")
+save(colombia_species, file = "outputs/colombia_species.Rdata")
+load("outputs/colombia_species.Rdata")
 
 # Read in the HBW/eBird taxonomic interconversion that Marshall Iliff prepared
-taxonomy <- read.csv("Data/Birds/species_list_creation/HBW_eBird_taxonomy.csv", stringsAsFactors = F)
-t2 <- taxonomy[taxonomy$HBW_CAT == "sp" | taxonomy$CLEM_CAT_2019 == "sp", ] # remove taxa that are not treated as species by either eBird or HBW
+taxonomy <- read.csv("inputs/HBW_eBird_taxonomy.csv", stringsAsFactors = F)
+# remove taxa that are not treated as species by either eBird or HBW
+t2 <- taxonomy[taxonomy$HBW_CAT == "sp" | taxonomy$CLEM_CAT_2019 == "sp", ]
 
-# Make a few changes in the HBW taxonomy that were not yet current in the file version provided by Marshall
+# Make a few changes in the HBW taxonomy that were not yet current in the file 
+# version provided by Marshall
 t2$HBW_LATIN[t2$HBW_LATIN == "Nyctibius bracteatus"] <- "Phyllaemulor bracteatus"
 t2$HBW_LATIN[t2$HBW_LATIN == "Gallinula melanops"] <- "Porphyriops melanops"
 t2$HBW_LATIN[t2$HBW_LATIN == "Claravis mondetoura"] <- "Paraclaravis mondetoura"
@@ -92,37 +98,49 @@ t2 <- rbind(t2, data.frame(orig_sort = NA, concept_8 = NA, latin_name = NA, TAXO
                            SORT_INTEGRATED = NA))
 
 colombia_species[colombia_species %ni% t2$HBW_LATIN]
-# The ebird/HBW interconversion now contains all species in with range-maps overlapping the buffered Colombia polygon
+# The ebird/HBW interconversion now contains all species in with range-maps 
+# overlapping the buffered Colombia polygon
 
 csp2 <- t2[t2$HBW_LATIN %in% colombia_species, ]
 # Extract just the part of the interconversion file that is relevant to Colombia
 
 
-elevation_dataset <- read.csv("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/Bird_elevations_initial.csv", stringsAsFactors = F)
-# pull in the elevation data based on the Donegan checklist. These data are described in 
-# /Users/jacobsocolar/Dropbox/Work/Colombia/Writing/Bird_elevation methods.docx, except that they do not yet
-# have the various HBW splits implemented.  (Those are in Bird_elevations_final.csv)
+elevation_dataset <- read.csv("inputs/Bird_elevations_initial.csv", 
+                              stringsAsFactors = F)
+# pull in the elevation data based on the Donegan checklist. These data are 
+# described in Work/Colombia/Writing/Bird_elevation methods.docx, except that 
+# they do not yet have the various HBW splits implemented. (Those are in 
+# Bird_elevations_final.csv)
 
 species_to_check <- csp2$HBW_LATIN[csp2$HBW_LATIN %ni% elevation_dataset$Scientific & 
                                      !((csp2$CLEM_SCI_2019 %in% elevation_dataset$Scientific) & csp2$HBW.Clem == "sp-sp")]
-# These are the species from the range-maps that are not included in the compiled elevation dataset.
-# These species either do not occur in the Donegan checklist (despite being mapped within 100 km of Colombia
-# by BirdLife, or are species with taxonomic or nomenclatural variation between HBW and Donegan)
+# These are the species from the range-maps that are not included in the compiled 
+# elevation dataset. These species either do not occur in the Donegan checklist 
+# (despite being mapped within 100 km of Colombia by BirdLife, or are species 
+# with taxonomic or nomenclatural variation between HBW and Donegan)
 
-write.csv(species_to_check, file = 'outputs/Birds/species_list_creation/species_to_check.csv')
-# This is an initial save of the species to check, which is the basis for a manually edited file, saved as 
-# "species_to_check_checked.csv".  
-# Each species was hand-checked against BirdLife maps and various taxonomic sources to assign it to one of four categories:
-# 1) Not Colombia: species that do not occur in Colombia, following the Donegan checklist
-# 2) Synonym: simple nomenclatural difference (e.g. different authorties place in different genera)
-# 3) Clean split/lump: HBW splits or lumps species in Donegan, but in such a way that all colombian populations belong to 
-#    a single species in both HBW and Donegan
-# 4) Messy split/lump: HBW splits or lumps species in Donegan, in such a way that one source treats as heterospecific two 
-#    populations, both occurring in Colombia, that the other source treats as conspecific
-# Additionally, there is a column "really.messy" which contains a 1 if multiple species (following one authority or the 
-# other) from a messy split/lump are both represented in our field-collected data. And a column "mapped.2.border"
-# contains a 1 if a species not on the Donegan list is nevertheless mapped to the immediate vicinity of the Colombian border,
-# excluding species that are confined to the south bank of the Amazon or to Venezuelan highlands.
+write.csv(species_to_check, file = 'outputs/species_to_check.csv')
+# This is an initial save of the species to check, which is the basis for a 
+# manually edited file, saved as "species_to_check_checked.csv".  
+# Each species was hand-checked against BirdLife maps and various taxonomic 
+# sources to assign it to one of four categories:
+# 1) Not Colombia: species that do not occur in Colombia, following the Donegan 
+#   checklist
+# 2) Synonym: simple nomenclatural difference (e.g. different authorties place 
+#   in different genera)
+# 3) Clean split/lump: HBW splits or lumps species in Donegan, but in such a way 
+#   that all colombian populations belong to 
+#   a single species in both HBW and Donegan
+# 4) Messy split/lump: HBW splits or lumps species in Donegan, in such a way 
+#   that one source treats as heterospecific two 
+#   populations, both occurring in Colombia, that the other source treats as 
+#   conspecific
+# Additionally, there is a column "really.messy" which contains a 1 if multiple 
+# species (following one authority or the other) from a messy split/lump are 
+# both represented in our field-collected data. And a column "mapped.2.border"
+# contains a 1 if a species not on the Donegan list is nevertheless mapped to 
+# the immediate vicinity of the Colombian border, excluding species that are 
+# confined to the south bank of the Amazon or to Venezuelan highlands.
 
 # This next block of code was used to identify names that are present in Donegan (and relevant to our analysis)
 # but absent from HBW/BirdLife. Those issues were added manually at lines 283-end of species_to_check_checked.csv
@@ -131,7 +149,8 @@ elevation_species <- elevation_dataset$Scientific[is.na(elevation_dataset$coasta
                                                     is.na(elevation_dataset$vagrant)]
 # Extract species from the Donegan data that are relevant to analysis (not vagrant or strictly coastal)
 
-s2c2 <- elevation_species[(elevation_species %ni% csp2$HBW_LATIN) & (elevation_species %ni% csp2$CLEM_SCI_2019[csp2$HBW.Clem == 'sp-sp'])]
+s2c2 <- elevation_species[(elevation_species %ni% csp2$HBW_LATIN) & 
+                              (elevation_species %ni% csp2$CLEM_SCI_2019[csp2$HBW.Clem == 'sp-sp'])]
 # Get species absent from HBW that don't correspond to species-species synonymy in Marshall's file
 
 changes <- read.csv('outputs/Birds/species_list_creation/species_to_check_checked.csv', stringsAsFactors = F)
@@ -557,4 +576,4 @@ initial_species_list <- initial_species_list[-which(initial_species_list$HBW == 
 initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Tachornis squamata"), ]
 initial_species_list <- initial_species_list[-which(initial_species_list$HBW == "Panyptila cayennensis"), ]
 
-write.csv(initial_species_list, file = "outputs/Birds/species_list_creation/initial_species_list.csv", row.names = F)
+write.csv(initial_species_list, file = "outputs/initial_species_list.csv", row.names = F)
