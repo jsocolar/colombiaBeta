@@ -10,19 +10,19 @@ editor: visual
 
 Get a species list for Colombia under BirdLife Taxonomy. Inputs are:
 
--   Data/GIS/colombia_maps/gadm36_COL_shp/gadm36_COL_0.shp, a shapefile for Colombia
+-   inputs/gadm36_COL_shp/gadm36_COL_0.shp, a shapefile for Colombia
 
--   Data/GIS/birdlife_maps/BOTW/BOTW.gdb, the 2019 BirdLife range maps. Not shareable without permission.
+-   inputs/BOTW/BOTW.gdb, the 2019 BirdLife range maps. Not shareable without permission.
 
--   Data/Birds/species_list_creation/HBW_eBird_taxonomy.csv, a BirdLife/eBird interconversion table prepared by Marshall Iliff. Not shareable without permission.
+-   inputs/HBW_eBird_taxonomy.csv, a BirdLife/eBird interconversion table prepared by Marshall Iliff. Not shareable without permission.
 
--   Data/Birds/species_list_creation/Bird_elevations_initial.csv, bird elevations from Donegan, without yet having all BirdLife splits implemented.
+-   inputs/Bird_elevations_initial.csv, bird elevations from Donegan, without yet having all BirdLife splits implemented.
 
--   Data/Birds/species_list_creation/species_to_check_checked.csv, a manually edited file that provides information about taxa that don't match 1:1 between Donegan and BirdLife.
+-   inputs/species_to_check_checked.csv, a manually edited file that provides information about taxa that don't match 1:1 between Donegan and BirdLife.
 
--   Data/Birds/phylogeny/Pulido_phylogeny/JETZ TREES/All_birds_MaxCladeCredTree.txt, Pulido-Santacruz & Weir consensus tree.
+-   inputs/Pulido_phylogeny/JETZ TREES/All_birds_MaxCladeCredTree.txt, Pulido-Santacruz & Weir consensus tree.
 
--   Data/Birds/traits/elton.txt, Elton Traits data. Downloadable from https://ndownloader.figshare.com/files/5631081
+-   inputs/elton.txt, Elton Traits data. Downloaded from https://ndownloader.figshare.com/files/5631081 and saved to inputs on running "Species_lists.R".
 
 ```{r}
 source("code/bird_lists_maps_traits/Species_lists.R")
