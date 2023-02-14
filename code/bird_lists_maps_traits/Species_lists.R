@@ -18,7 +18,7 @@ colombia <- st_read('inputs/gadm36_COL_shp/gadm36_COL_0.shp')
 pulido <- ape::read.tree(file = "inputs/Pulido_phylogeny/JETZ TREES/All_birds_MaxCladeCredTree.txt")
 
 # Elton traits (download if doesn't exist)
-if(!exists("inputs/elton.txt")) {
+if(!file.exists("inputs/elton.txt")) {
     download.file("https://ndownloader.figshare.com/files/5631081",
                   destfile = 'inputs/elton.txt')
 }
@@ -48,7 +48,7 @@ plot(b_mainland)
 
 ##### Birdlife maps #####
 botw_recast_fname <- "outputs/recast_birdlife_range_maps.Rdata"
-if(!exists(botw_recast_fname)) {
+if(!file.exists(botw_recast_fname)) {
     orig_range_maps <- st_read(dsn="private_inputs/BOTW/BOTW.gdb",
                                layer="All_Species")
     recast_range_maps <- st_cast(orig_range_maps, to = "MULTIPOLYGON")
@@ -63,21 +63,23 @@ nsp <- length(birdlife.species)
 ##### Getting a unified list of species of interest #####
 # Transform the buffered Colombia shapefile back to the lat-lon that the range maps use
 b_mainland_latlon <- st_transform(b_mainland, st_crs(recast_range_maps))
+sf_use_s2(use_s2 = FALSE)
 
 # Extract a list of all species that ovelap the buffered polygon
-colombia_overlaps <- st_intersects(recast_range_maps, b_mainland_latlon)
+colombia_overlaps <- st_intersects(recast_range_maps, test)
 # "although coordinates are longitude/latitude, st_intersects assumes that they 
 # are planar". I think this is equivalent to checking for intersections on a 
 # Mercator projection.  It won't be a problem here.
 save(colombia_overlaps, file = "outputs/HBW_colombia_overlaps.Rdata")
 load("outputs/HBW_colombia_overlaps.Rdata")
+
 # Get the list of species
 colombia_species <- unique(recast_range_maps$SCINAME[unlist(lapply(colombia_overlaps, FUN = function(i){return(length(i) != 0)}))])
 save(colombia_species, file = "outputs/colombia_species.Rdata")
 load("outputs/colombia_species.Rdata")
 
 # Read in the HBW/eBird taxonomic interconversion that Marshall Iliff prepared
-taxonomy <- read.csv("inputs/HBW_eBird_taxonomy.csv", stringsAsFactors = F)
+taxonomy <- read.csv("private_inputs/HBW_eBird_taxonomy.csv", stringsAsFactors = F)
 # remove taxa that are not treated as species by either eBird or HBW
 t2 <- taxonomy[taxonomy$HBW_CAT == "sp" | taxonomy$CLEM_CAT_2019 == "sp", ]
 
