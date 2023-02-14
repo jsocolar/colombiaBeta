@@ -61,23 +61,27 @@ birdlife.species <- unique(recast_range_maps$SCINAME)
 nsp <- length(birdlife.species)
 
 ##### Getting a unified list of species of interest #####
-# Transform the buffered Colombia shapefile back to the lat-lon that the range maps use
-b_mainland_latlon <- st_transform(b_mainland, st_crs(recast_range_maps))
-sf_use_s2(use_s2 = FALSE)
+colombia_species_fname <- "outputs/colombia_species.Rdata"
 
-# Extract a list of all species that ovelap the buffered polygon
-colombia_overlaps <- st_intersects(recast_range_maps, test)
-# "although coordinates are longitude/latitude, st_intersects assumes that they 
-# are planar". I think this is equivalent to checking for intersections on a 
-# Mercator projection.  It won't be a problem here.
-save(colombia_overlaps, file = "outputs/HBW_colombia_overlaps.Rdata")
-load("outputs/HBW_colombia_overlaps.Rdata")
-
-# Get the list of species
-colombia_species <- unique(recast_range_maps$SCINAME[unlist(lapply(colombia_overlaps, FUN = function(i){return(length(i) != 0)}))])
-save(colombia_species, file = "outputs/colombia_species.Rdata")
-load("outputs/colombia_species.Rdata")
-
+if(!file.exists(colombia_species_fname)) {
+    # Transform the buffered Colombia shapefile back to the lat-lon that the 
+    # range maps use
+    b_mainland_latlon <- st_transform(b_mainland, st_crs(recast_range_maps))
+    sf_use_s2(use_s2 = FALSE)
+    
+    # Extract a list of all species that ovelap the buffered polygon
+    colombia_overlaps <- st_intersects(recast_range_maps, b_mainland_latlon)
+    # "although coordinates are longitude/latitude, st_intersects assumes that they 
+    # are planar". I think this is equivalent to checking for intersections on a 
+    # Mercator projection.  It won't be a problem here.
+    
+    # Get the list of species
+    colombia_species <- unique(recast_range_maps$SCINAME[unlist(lapply(colombia_overlaps, FUN = function(i){return(length(i) != 0)}))])
+    save(colombia_species, file = "outputs/colombia_species.Rdata")
+} else {
+    load("outputs/colombia_species.Rdata")
+}
+        
 # Read in the HBW/eBird taxonomic interconversion that Marshall Iliff prepared
 taxonomy <- read.csv("private_inputs/HBW_eBird_taxonomy.csv", stringsAsFactors = F)
 # remove taxa that are not treated as species by either eBird or HBW
@@ -155,7 +159,7 @@ s2c2 <- elevation_species[(elevation_species %ni% csp2$HBW_LATIN) &
                               (elevation_species %ni% csp2$CLEM_SCI_2019[csp2$HBW.Clem == 'sp-sp'])]
 # Get species absent from HBW that don't correspond to species-species synonymy in Marshall's file
 
-changes <- read.csv('outputs/Birds/species_list_creation/species_to_check_checked.csv', stringsAsFactors = F)
+changes <- read.csv('inputs/species_to_check_checked.csv', stringsAsFactors = F)
 s2c2[(s2c2 %ni% changes$synonym) & (s2c2 %ni% changes$clean.split.lump) & (s2c2 %ni% changes$messy.split.lump)]
 # Check for extra Donegan species that aren't accounted for in species_to_check_checked.csv
 # All changes accounted for! (This is because changes not accounted for were added manually to species_to_check_checked.csv)
