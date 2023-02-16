@@ -7,8 +7,10 @@
 # name matches to either HBW or Clements (we already have a HBW/Clements lookup 
 # table), then by hand.
 
-##### Script dependencies: nf_species_list.R, birdlife_scraper.R, 
-# species_lists.R  #####
+# Script dependencies: 
+# - nf_species_list.R
+# - birdlife_scraper.R
+# - species_lists.R  
 
 library(sf)
 `%ni%` <- Negate(`%in%`)
@@ -67,7 +69,7 @@ sum(nf_species %ni% parker.spp)
 #nf_species[nf_species %ni% parker.spp]
 
 # Read in the HBW/eBird taxonomic interconversion that Marshall Iliff prepared
-taxonomy <- read.csv("Data/Birds/species_list_creation/HBW_eBird_taxonomy.csv", stringsAsFactors = F)
+taxonomy <- read.csv("private_inputs/HBW_eBird_taxonomy.csv", stringsAsFactors = F)
 t2 <- taxonomy[taxonomy$HBW_CAT == "sp" | taxonomy$CLEM_CAT_2019 == "sp", ] # remove taxa that are not treated as species by either eBird or HBW
 
 # Make a few changes in the HBW taxonomy that were not yet current in the file version provided by Marshall
@@ -1505,7 +1507,8 @@ parker_lookup$parker[parker_lookup$HBW == "Rallus crepitans"] <- 'MISSING'
 
 
 ##### Create updated parker table using HBW taxonomy #####
-HBW_parker <- cbind(parker_lookup, as.data.frame(matrix(nrow = nrow(parker_lookup), ncol = 41)))
+HBW_parker <- cbind(parker_lookup, 
+                    as.data.frame(matrix(nrow = nrow(parker_lookup), ncol = 41)))
 names(HBW_parker)[4:44] <- names(parker)[27:67]
 
 # Species that need no updating or checking
@@ -1528,7 +1531,7 @@ for(i in 1:nrow(hp2)){
 }
 hp2 <- hp2[order(hp2$parker), ]
 
-load('outputs/birdlife_traits.Rdata')
+load('inputs/birdlife_traits.Rdata')
 
 # Check whether BirdLife gives identical habitat preferences for the split taxa
 birdlife_habitats <- list()
@@ -1642,9 +1645,6 @@ hp2[hp2$HBW == "Thamnophilus atrinucha", 'F12'] <- ""
 hp2[hp2$HBW == "Thamnophilus pelzelni", 'F12'] <- ""
 hp2[hp2$HBW == "Trogon mesurus", 'F2'] <- ""; hp2[hp2$HBW == "Trogon mesurus", 'F7'] <- "Y"
 hp2[hp2$HBW == "Veniliornis chocoensis", 'F8'] <- ""
-
-
-
 
 
 # Species that have 2 names in parker for one taxon in HBW
