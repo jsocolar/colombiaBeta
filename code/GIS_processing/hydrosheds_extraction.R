@@ -18,12 +18,9 @@ guajira_valledupar <- st_make_valid(st_union(valledupar, st_difference(maracaibo
 
 central <- st_make_valid(
     st_zm(
-        st_read(
-            paste0(dir.path, 
-                   'inputs/biogeographic_clips/mountains_clips/centralAndes__cauca__magdalena.kml')
-            )
-        )
+        st_read('inputs/biogeographic_clips/mountains_clips/centralAndes__cauca__magdalena.kml')
     )
+)
 
 st_is_valid(central) # see https://github.com/r-spatial/sf/issues/1771
 sf_use_s2(FALSE)
@@ -31,10 +28,9 @@ central <- st_make_valid(central)
 sf_use_s2(TRUE)
 st_is_valid(central)
 
-sm <- st_make_valid(st_zm(st_read(paste0(dir.path, 'inputs/biogeographic_clips/mountains_clips/SNSM__guajira_valledupar.kml'))))
-pasto <- st_make_valid(st_zm(st_read(paste0(dir.path, 'inputs/biogeographic_clips/mountains_clips/pasto__pacific.kml'))))
-tacarcuna <- st_make_valid(st_zm(st_read(paste0(dir.path, 'inputs/biogeographic_clips/mountains_clips/tacarcuna__pacific.kml'))))
-
+sm <- st_make_valid(st_zm(st_read('inputs/biogeographic_clips/mountains_clips/SNSM__guajira_valledupar.kml')))
+pasto <- st_make_valid(st_zm(st_read('inputs/biogeographic_clips/mountains_clips/pasto__pacific.kml')))
+tacarcuna <- st_make_valid(st_zm(st_read('inputs/biogeographic_clips/mountains_clips/tacarcuna__pacific.kml')))
 
 pacific_prelim2 <- st_make_valid(st_difference(pacific_prelim, pasto))
 pacific <- st_make_valid(st_difference(pacific_prelim2, tacarcuna))
