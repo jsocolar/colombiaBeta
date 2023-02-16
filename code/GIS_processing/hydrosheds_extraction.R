@@ -1,10 +1,10 @@
 # extract and format hydroshed data
 
 # data ----
-hs2 <- st_read(paste0(dir.path, 'inputshybas_sa_lev01-06_v1c/hybas_sa_lev02_v1c.shp'))
-hs3 <- st_read(paste0(dir.path, 'inputshybas_sa_lev01-06_v1c/hybas_sa_lev03_v1c.shp'))
-hs4 <- st_read(paste0(dir.path, 'inputs/hybas_sa_lev01-06_v1c/hybas_sa_lev04_v1c.shp'))
-hs5 <- st_read(paste0(dir.path, 'inputs/hybas_sa_lev01-06_v1c/hybas_sa_lev05_v1c.shp'))
+hs2 <- st_read('inputs/hydrosheds/hybas_sa_lev01-06_v1c/hybas_sa_lev02_v1c.shp')
+hs3 <- st_read('inputs/hydrosheds/hybas_sa_lev01-06_v1c/hybas_sa_lev03_v1c.shp')
+hs4 <- st_read('inputs/hydrosheds/hybas_sa_lev01-06_v1c/hybas_sa_lev04_v1c.shp')
+hs5 <- st_read('inputs/hydrosheds/hybas_sa_lev01-06_v1c/hybas_sa_lev05_v1c.shp')
 
 amazon_orinoco <- st_make_valid(st_union(st_make_valid(hs2[2, ]), st_make_valid(hs3[4, ])))
 pacific_prelim <- st_make_valid(st_union(st_make_valid(hs3[1,]), st_make_valid(hs3[25,])))
