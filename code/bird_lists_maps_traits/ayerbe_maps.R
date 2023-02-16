@@ -32,7 +32,7 @@ ayerbe_files <- list.files('inputs/rangemaps_Quinones')
 ayerbe_shpfiles <- ayerbe_files[grep('.shp$', ayerbe_files)]
 
 ayerbe_sf_fname <- 'outputs/initial_ayerbe_map_sf.RDS'
-if(!exists(ayerbe_sf_fname)) {
+if(!file.exists(ayerbe_sf_fname)) {
     initial_map_list <- list()
     for(i in 1:length(ayerbe_shpfiles)){
         initial_map_list[[i]] <- st_make_valid(
@@ -47,12 +47,12 @@ if(!exists(ayerbe_sf_fname)) {
     # purposes of string matching
     initial_map_sf$Species <- gsub('[[:space:]]', ' ', initial_map_sf$Species) 
     saveRDS(initial_map_sf, file = ayerbe_sf_fname)   
+} else {
+    initial_map_sf <- readRDS(ayerbe_sf_fname)
 }
 
 ##### Standardize taxonomy to HBW species list #####
-initial_map_sf <- readRDS(ayerbe_sf_fname)
-# ?? directory issue
-initial_species_list <- read.csv("inputs/initial_species_list.csv")
+initial_species_list <- read.csv("outputs/initial_species_list.csv")
 initial_species_list$HBW_underscore <- gsub(" ", "_", initial_species_list$HBW)
 
 # One-to-one (from a Colombian perspective) synonymy that is resolved by 
@@ -186,10 +186,18 @@ initial_species_list$HBW[initial_species_list$HBW %ni% initial_map_sf$Species]
 # of the parent taxon's range.  These polygons were drawn by hand in Google Earth 
 # with the relevant Ayerbe maps simultaneously imported.
 
-# Get dataframe giving the HBW species, the file path for the masking polygons, and the Ayerbe species to which the mask must be applied
+# remove desktop.ini files which seem to have proliferated througout folders and 
+# break pipeline
+ini_files <- list.files("inputs/ayerbe_updates", "desktop.ini", full.names = T, 
+                        recursive = T)
+file.remove(ini_files)
+
+# Get dataframe giving the HBW species, the file path for the masking polygons, 
+# and the Ayerbe species to which the mask must be applied
 mask_update <- data.frame(new_species = list.files('inputs/ayerbe_updates/ayerbe_mask'),
-                          path = list.files('inputs/ayerbe_updates/ayerbe_mask', full.names = T),
+                          path = list.files('inputs/ayerbe_updates/ayerbe_mask', full.names = T,),
                           old_species = NA)
+
 for(i in 1:nrow(mask_update)){
   nf <- list.files(mask_update$path[i])
   mask_update$old_species[i] <- gsub('.txt', '', nf[grep('.txt', nf)])
@@ -216,8 +224,9 @@ for(i in 1:nrow(mask_update)){
 ayerbe_splits <- do.call(rbind, new_map_list)
 
 ##### Missing species #####
-missing_species <- data.frame(species = list.files('ayerbe_updates/ayerbe_missing'),
-                              path = list.files('ayerbe_updates/ayerbe_missing', full.names = T))
+missing_species <- data.frame(species = list.files('inputs/ayerbe_updates/ayerbe_missing'),
+                              path = list.files('inputs/ayerbe_updates/ayerbe_missing', full.names = T))
+missing_species <- missing_species[!grepl("desktop.ini", missing_species$species),]
 missing_map_list <- list()
 counter <- 0
 for(i in 1:nrow(missing_species)){
@@ -261,7 +270,6 @@ ayerbe_maps_prelim <- initial_map_sf[initial_map_sf$Species %ni%
                                          mask_update$old_species, ]
 ayerbe_maps_prelim2 <- rbind(ayerbe_maps_prelim, ayerbe_splits)
 ayerbe_maps <- st_transform(rbind(ayerbe_maps_prelim2, ayerbe_missing), AEAstring)
-ayerbe_maps[ayerbe_]
 initial_species_list$HBW[initial_species_list$HBW %ni% ayerbe_maps$Species]
 
-saveRDS(ayerbe_maps, file = 'outputs/ayerbe_maps/ayerbe_maps.RDS')
+saveRDS(ayerbe_maps, file = 'outputs/ayerbe_maps.RDS')
