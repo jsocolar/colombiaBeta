@@ -1,6 +1,11 @@
-# This script produces analysis-ready updated Ayerbe range maps and buffered Ayerbe range maps
+# This script produces analysis-ready updated Ayerbe range maps and buffered 
+# Ayerbe range maps
 
-###### Script dependencies: species_lists.R, ayerbe_maps.R, bird_import_and_cleaning.R, hydrosheds_extraction.R #####
+###### Script dependencies: 
+#   species_lists.R
+#   ayerbe_maps.R
+#   bird_import_and_cleaning.R
+#   hydrosheds_extraction.R
 
 # housekeeping ----
 library(sf); library(ggplot2)
@@ -10,7 +15,8 @@ AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0
 
 ##### Get colombia mainland shapefile #####
 colombia <- st_read('inputs/gadm36_COL_shp/gadm36_COL_0.shp')
-# file consists of many disjoint polygons, representing the mainland and numerous islands. Figure out which is the mainland and extract it.
+# file consists of many disjoint polygons, representing the mainland and 
+# numerous islands. Figure out which is the mainland and extract it.
 npoly <- length(colombia$geometry[[1]])
 size <- rep(0,npoly)
 for(i in 1:npoly){
@@ -27,8 +33,8 @@ m2 <- st_simplify(mainland, dTolerance = 10000)
 
 
 ##### Buffered Ayerbe maps #####
-initial_species_list <- read.csv("inputs/initial_species_list.csv")
-ayerbe_maps <- readRDS('outputs/ayerbe_maps/ayerbe_maps.RDS') # from ayerbe_maps.R
+initial_species_list <- read.csv("outputs/initial_species_list.csv")
+ayerbe_maps <- readRDS('outputs/ayerbe_maps.RDS') # from ayerbe_maps.R
 
 ayerbe_maps$Species[ayerbe_maps$Species %ni% initial_species_list$HBW]
 # Pseudastur occidentalis; occurrence in Colombia is sketchy, and in any case 
@@ -41,9 +47,7 @@ ayerbe_maps$Species[ayerbe_maps$Species %ni% initial_species_list$HBW]
 initial_species_list$HBW[initial_species_list$HBW %ni% ayerbe_maps$Species]
 
 ayerbe_list_fname <- 'outputs/ayerbe_list.RDS'
-if(!exists(ayerbe_list_fname)) {
-    
-    
+if(!file.exists(ayerbe_list_fname)) {
     ayerbe_list <- list()
     for(i in 1:nrow(initial_species_list)){
         ayerbe_list[[i]] <- st_make_valid(ayerbe_maps[ayerbe_maps$Species == initial_species_list$HBW[i], ])
@@ -92,7 +96,7 @@ if(!exists(ayerbe_list_fname)) {
 
 ##### Buffered ayerbe maps #####
 ayerbe_fname <- "outputs/ayerbe_buffered_ranges.RDS"
-if(!exists(ayerbe_fname)) {
+if(!file.exists(ayerbe_fname)) {
     source('code/GIS_processing/hydrosheds_extraction.R')
     
     clipping_polygons <- list(amazon_orinoco = st_transform(amazon_orinoco, AEAstring), 
@@ -143,10 +147,9 @@ if(!exists(ayerbe_fname)) {
     ayerbe_buffered_ranges <- readRDS(ayerbe_fname)
 }
 
-
 bird_surveys <- readRDS('inputs/bird_surveys_current.RDS')
 colombia_points <- st_as_sf(readRDS("inputs/all_pts.RDS"), 
-                                                        coords = c('lon', 'lat'), crs = 4326)
+                            coords = c('lon', 'lat'), crs = 4326)
 bird_points <- st_transform(colombia_points[colombia_points$point %in% bird_surveys$point_names, ], AEAstring)
 
 ayerbe_distances <- list()
