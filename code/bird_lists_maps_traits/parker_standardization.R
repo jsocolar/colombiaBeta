@@ -1,39 +1,65 @@
-# This script generates a taxonomic standardization of the Parker databases to BirdLife/HBW taxonomy (2019),
-# for all species with range overlapping neotropical forest ecoregions.
-# First we get a species list by overlaying BirdLife maps with neotropical forest ecoregions.  We confirm that 
-# the species list includes all species in our baseline list for Colombian analyses.  
-# Then we match names in Parker to names in HBW, first by automatically handling exact name matches to either 
-# HBW or Clements (we already have a HBW/Clements lookup table), then by hand.
+# This script generates a taxonomic standardization of the Parker databases to 
+# BirdLife/HBW taxonomy (2019), for all species with range overlapping 
+# neotropical forest ecoregions. First we get a species list by overlaying 
+# BirdLife maps with neotropical forest ecoregions.  We confirm that the species 
+# list includes all species in our baseline list for Colombian analyses. Then we 
+# match names in Parker to names in HBW, first by automatically handling exact 
+# name matches to either HBW or Clements (we already have a HBW/Clements lookup 
+# table), then by hand.
 
-##### Script dependencies: nf_species_list.R, birdlife_scraper.R, species_lists.R  #####
+# Script dependencies: 
+# - nf_species_list.R
+# - birdlife_scraper.R
+# - species_lists.R  
 
 library(sf)
-
 `%ni%` <- Negate(`%in%`)
 
-setwd("/Users/jacobsocolar/Dropbox/Work/Colombia")
-load('/Users/jacobsocolar/Dropbox/Work/Useful_data/BirdlifeTraits/nf_species.Rdata') # list of neotropical forest species
+load('outputs/nf_species.Rdata') # list of neotropical forest species
 
-# Drop species that are strictly coastal/pelagic, species that are restricted to deserts, and Passenger Pigeon
-nf_drops <- c(grep('Ardenna ', nf_species), grep('Hydrobates ', nf_species), grep('Onychoprion ', nf_species),
-              grep('Thalassarche ', nf_species), grep('Phalaropus lobatus', nf_species), grep('Sterna vittata', nf_species),
-              grep('Sternula lorata', nf_species), grep('Charadrius nivosus', nf_species), grep('Clangula hyemalis', nf_species),
-              grep('Colaptes chrysoides', nf_species), grep('Daption', nf_species), grep('Sula', nf_species), 
-              grep('Ectopistes migratorius', nf_species), grep('Egretta rufescens', nf_species), grep('Fregetta ', nf_species),
-              grep('Pachyptila ', nf_species), grep('Pseudobulweria ', nf_species), grep('Puffinus ', nf_species),
-              grep('Stercorarius ', nf_species), grep('Macronectes ', nf_species), grep('Macronectes ', nf_species),
-              grep('Procellaria ', nf_species), grep('Pterodroma ', nf_species), grep('Synthliboramphus ', nf_species),
-              grep('Phoebastria ', nf_species), grep('Calidris virgata', nf_species), grep('Bulweria ', nf_species),
-              grep('Fulmarus ', nf_species), grep('Calonectris ', nf_species), grep('Diomedea ', nf_species),
-              grep('Phoebetria ', nf_species), grep('Xema ', nf_species), grep('Sterna paradisaea', nf_species))
+# Drop species that are strictly coastal/pelagic, species that are restricted to 
+# deserts, and Passenger Pigeon
+nf_drops <- c(grep('Ardenna ', nf_species), 
+              grep('Hydrobates ', nf_species), 
+              grep('Onychoprion ', nf_species),
+              grep('Thalassarche ', nf_species), 
+              grep('Phalaropus lobatus', nf_species), 
+              grep('Sterna vittata', nf_species),
+              grep('Sternula lorata', nf_species), 
+              grep('Charadrius nivosus', nf_species), 
+              grep('Clangula hyemalis', nf_species),
+              grep('Colaptes chrysoides', nf_species), 
+              grep('Daption', nf_species), 
+              grep('Sula', nf_species), 
+              grep('Ectopistes migratorius', nf_species), 
+              grep('Egretta rufescens', nf_species), 
+              grep('Fregetta ', nf_species),
+              grep('Pachyptila ', nf_species), 
+              grep('Pseudobulweria ', nf_species), 
+              grep('Puffinus ', nf_species),
+              grep('Stercorarius ', nf_species), 
+              grep('Macronectes ', nf_species), 
+              grep('Macronectes ', nf_species),
+              grep('Procellaria ', nf_species), 
+              grep('Pterodroma ', nf_species), 
+              grep('Synthliboramphus ', nf_species),
+              grep('Phoebastria ', nf_species), 
+              grep('Calidris virgata', nf_species), 
+              grep('Bulweria ', nf_species),
+              grep('Fulmarus ', nf_species), 
+              grep('Calonectris ', nf_species), 
+              grep('Diomedea ', nf_species),
+              grep('Phoebetria ', nf_species), 
+              grep('Xema ', nf_species), 
+              grep('Sterna paradisaea', nf_species))
 
 nf_species <- nf_species[-nf_drops]
-initial_species_list <- read.csv("Data/Birds/species_list_creation/initial_species_list.csv")
+initial_species_list <- read.csv("outputs/initial_species_list.csv")
 sum(initial_species_list$HBW %ni% nf_species)
 
 ###### Parker ######
-parker <- read.csv('Data/Birds/traits/Parker_Stotz_Fitzpatrick_1996/databases/adata.csv')
-parker.nb <- read.csv('Data/Birds/traits/Parker_Stotz_Fitzpatrick_1996/databases/cdata.csv')
+parker <- read.csv('inputs/Parker_Stotz_Fitzpatrick_1996/databases/adata.csv')
+parker.nb <- read.csv('inputs/Parker_Stotz_Fitzpatrick_1996/databases/cdata.csv')
 
 parker <- gtools::smartbind(parker, parker.nb)
 parker.spp <- paste(parker$GENUS, parker$SPECIES)
@@ -43,7 +69,7 @@ sum(nf_species %ni% parker.spp)
 #nf_species[nf_species %ni% parker.spp]
 
 # Read in the HBW/eBird taxonomic interconversion that Marshall Iliff prepared
-taxonomy <- read.csv("Data/Birds/species_list_creation/HBW_eBird_taxonomy.csv", stringsAsFactors = F)
+taxonomy <- read.csv("private_inputs/HBW_eBird_taxonomy.csv", stringsAsFactors = F)
 t2 <- taxonomy[taxonomy$HBW_CAT == "sp" | taxonomy$CLEM_CAT_2019 == "sp", ] # remove taxa that are not treated as species by either eBird or HBW
 
 # Make a few changes in the HBW taxonomy that were not yet current in the file version provided by Marshall
@@ -59,15 +85,30 @@ t2$HBW_LATIN[t2$HBW_LATIN == "Claravis geoffroyi"] <- "Paraclaravis geoffroyi"
 t2$HBW_LATIN[t2$HBW_LATIN == "Hylatomus galeatus"] <- "Celeus galeatus"
 t2$HBW_LATIN[t2$CLEM_SCI_2019 == "Aramides albiventris"] <- "Aramides albiventris"
 
-t2 <- rbind(t2, data.frame(orig_sort = NA, concept_8 = NA, latin_name = NA, TAXON_nid_MATCHED = NA, HBW_CAT = "sp",
-                           HBW_LATIN = c("Catharus maculatus", "Pyrrhura chapmani", "Phaethornis major", "Myrmoderus eowilsoni", 
-                                         "Machaeropterus eckelberryi", 'Arremon dorbignii'), 
-                           HBW_LATIN_rev = NA, HBW_EN_EBIRD = NA,
-                           HBW.Clem = "sp-ssp", cat_match_2019 = "HBW split", sci_match = NA, CLEM_SORT = NA,
-                           CLEM_SCI_2019 = c("Catharus dryas", "Pyrrhura melanura", "Phaethornis bourcieri", "Myrmoderus eowilsoni",
+t2 <- rbind(t2, data.frame(orig_sort = NA, 
+                           concept_8 = NA, 
+                           latin_name = NA, 
+                           TAXON_nid_MATCHED = NA, 
+                           HBW_CAT = "sp",
+                           HBW_LATIN = c("Catharus maculatus", "Pyrrhura chapmani", 
+                                         "Phaethornis major", "Myrmoderus eowilsoni", 
+                                         "Machaeropterus eckelberryi", 
+                                         'Arremon dorbignii'), 
+                           HBW_LATIN_rev = NA, 
+                           HBW_EN_EBIRD = NA,
+                           HBW.Clem = "sp-ssp", 
+                           cat_match_2019 = "HBW split", 
+                           sci_match = NA, 
+                           CLEM_SORT = NA,
+                           CLEM_SCI_2019 = c("Catharus dryas", "Pyrrhura melanura", 
+                                             "Phaethornis bourcieri", "Myrmoderus eowilsoni",
                                              "Machaeropterus eckelberryi", 'Arremon flavirostris'), 
-                           CLEM_ENG_2019 = NA, notes = NA,
-                           CLEM_CAT_2019 = NA, SPECIES_CODE_2019 = NA, CLEM_SPECIES_CODE_2018 = NA, range = NA, 
+                           CLEM_ENG_2019 = NA, 
+                           notes = NA,
+                           CLEM_CAT_2019 = NA, 
+                           SPECIES_CODE_2019 = NA, 
+                           CLEM_SPECIES_CODE_2018 = NA, 
+                           range = NA, 
                            SORT_INTEGRATED = NA))
 
 
@@ -1466,7 +1507,8 @@ parker_lookup$parker[parker_lookup$HBW == "Rallus crepitans"] <- 'MISSING'
 
 
 ##### Create updated parker table using HBW taxonomy #####
-HBW_parker <- cbind(parker_lookup, as.data.frame(matrix(nrow = nrow(parker_lookup), ncol = 41)))
+HBW_parker <- cbind(parker_lookup, 
+                    as.data.frame(matrix(nrow = nrow(parker_lookup), ncol = 41)))
 names(HBW_parker)[4:44] <- names(parker)[27:67]
 
 # Species that need no updating or checking
@@ -1489,14 +1531,15 @@ for(i in 1:nrow(hp2)){
 }
 hp2 <- hp2[order(hp2$parker), ]
 
-load('/Users/jacobsocolar/Dropbox/Work/Useful_data/BirdlifeTraits/birdlife_traits.Rdata')
+load('inputs/birdlife_traits.Rdata')
 
 # Check whether BirdLife gives identical habitat preferences for the split taxa
 birdlife_habitats <- list()
 for(i in 1:length(birdlife_traits$habitats)){
   h_length <- length(birdlife_traits$habitats[[i]])
   if(h_length == 0){birdlife_habitats[[i]] <- "unavailable"}else{
-    birdlife_habitats[[i]] <- data.frame(class = rep(NA, h_length), habitat = rep(NA, h_length), 
+    birdlife_habitats[[i]] <- data.frame(class = rep(NA, h_length), 
+                                         habitat = rep(NA, h_length), 
                                          suitability = rep(NA, h_length))
     for(j in 1:h_length){
       birdlife_habitats[[i]][j,] <- strsplit(birdlife_traits$habitats[[i]][j], "; ")[[1]][1:3]
@@ -1521,7 +1564,8 @@ for(i in 1:nrow(hp2)){
   }
 }
 
-# All cases where BirdLife does not give identical habitat preferences for the split taxa are checked by hand
+# All cases where BirdLife does not give identical habitat preferences for the 
+# split taxa are checked by hand
 hp2[hp2$HBW == "Psittacara frontatus", c('F7', 'F8')] <- ""
 hp2[hp2$HBW == "Arremon franciscanus", 'F1'] <- ""; hp2[hp2$HBW == "Arremon franciscanus", c('F7', 'N1')] <- "Y"
 hp2[hp2$HBW == "Atlapetes melanopsis", 'N3'] <- "Y"
@@ -1601,9 +1645,6 @@ hp2[hp2$HBW == "Thamnophilus atrinucha", 'F12'] <- ""
 hp2[hp2$HBW == "Thamnophilus pelzelni", 'F12'] <- ""
 hp2[hp2$HBW == "Trogon mesurus", 'F2'] <- ""; hp2[hp2$HBW == "Trogon mesurus", 'F7'] <- "Y"
 hp2[hp2$HBW == "Veniliornis chocoensis", 'F8'] <- ""
-
-
-
 
 
 # Species that have 2 names in parker for one taxon in HBW
@@ -1736,10 +1777,8 @@ hp5$F4[73] <- "Y"
 hp5[74,] <- ""
 hp5$HBW[74] <- "Columba livia"
 
-
-
 new_parker1 <- rbind(hp1, hp2, hp3, hp4, hp5)
 sum(duplicated(new_parker1$HBW))
 new_parker <- new_parker1[!duplicated(new_parker1$HBW), ]
 
-write.csv(new_parker, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/new_parker.csv')
+write.csv(new_parker, file = 'outputs/new_parker.csv')

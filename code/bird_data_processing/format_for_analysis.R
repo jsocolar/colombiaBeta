@@ -49,7 +49,7 @@ species_names <- c(bird_surveys$species_names,
 
 # Create flattened data object, where each species-point gets its own row
 flat_data1_fname <- "outputs/flattened_data_current.RDS"
-if(!exists(flat_data1_fname)) {
+if(!file.exists(flat_data1_fname)) {
     point_distances_include_2 <- point_distances_include[, match(bird_surveys$point_names, names(point_distances_include))]
     
     i <- 1
@@ -108,7 +108,7 @@ if(!exists(flat_data1_fname)) {
 
 
 flat_data2_fname <- "outputs/flattened_data_full.RDS"
-if(!exists(flat_data2_fname)) {
+if(!file.exists(flat_data2_fname)) {
     
     # Column for whether the species is ever detected at the point
     flattened_data$Q <- as.numeric(rowSums(flattened_data[,3:6], na.rm = T) > 0)
@@ -183,10 +183,10 @@ if(!exists(flat_data2_fname)) {
 
 # Look at statistics of species-standardized elevations at species-points with a 
 # detection  
-fdq <- flattened_data_full[flattened_data_full$Q == 1,]
-max(fdq$elev_sp_standard)
-min(fdq$elev_sp_standard)
-hist(fdq$elev_sp_standard)
+# fdq <- flattened_data_full[flattened_data_full$Q == 1,]
+# max(fdq$elev_sp_standard)
+# min(fdq$elev_sp_standard)
+# hist(fdq$elev_sp_standard)
 
 a <- seq(-1,2,.2)
 nq <- vector()
@@ -209,8 +209,7 @@ min(nall)
 bird_data_trimmed <- flattened_data_full[flattened_data_full$in_date_range == 1 & 
                                              flattened_data_full$elev_sp_standard > -1 & 
                                              flattened_data_full$elev_sp_standard < 2, ]
-#saveRDS(bird_data_trimmed, "Colombia/Data/Analysis/bird_data_trimmed.RDS")
-bird_data_trimmed <- readRDS("Colombia/Data/Analysis/bird_data_trimmed.RDS")
+saveRDS(bird_data_trimmed, "Colombia/Data/Analysis/bird_data_trimmed.RDS")
 
 # Examine statistics of final dataset
 # nrow(bird_data_trimmed)
@@ -326,7 +325,7 @@ sp_obs_matrix <- matrix(as.integer(as.factor(sp_obs_columns)), ncol=4)
 sp_obs_matrix[is.na(sp_obs_matrix)] <- 0
 birds$sp_obs_matrix <- sp_obs_matrix
 
-saveRDS(birds, "Colombia/Data/Analysis/birds.RDS")
+saveRDS(birds, "outputs/birds.RDS")
 
 ec <- c(-1,1)
 # ###########
@@ -929,13 +928,14 @@ bird_stan_data9_package <- list(data = bird_stan_data9,
 
 saveRDS(bird_stan_data9_package, "outputs/bird_stan_data9_package.RDS")
 
-v9_1 <- cmdstanr::read_cmdstan_csv("inputs/v9_first_run/occupancy_v9-202104160126-2-326f84.csv")
-
-bird_stan_data9_1_package <- bird_stan_data9_package
-
-old_inv <- v9_1$inv_metric[[1]]
-new_inv <- c(old_inv[1:(i-2)], old_inv[(i+758):length(old_inv)])
-bird_stan_data9_1_package$inv_metric <- new_inv
-
-saveRDS(bird_stan_data9_1_package, "outputs/bird_stan_data9_1_package.RDS")
-saveRDS(bird_stan_data9_1_package, "outputs/bird_stan_data9_1_package.RDS")
+# now defunct:
+# v9_1 <- cmdstanr::read_cmdstan_csv("inputs/v9_first_run/occupancy_v9-202104160126-2-326f84.csv")
+# 
+# bird_stan_data9_1_package <- bird_stan_data9_package
+# 
+# old_inv <- v9_1$inv_metric[[1]]
+# new_inv <- c(old_inv[1:(i-2)], old_inv[(i+758):length(old_inv)])
+# bird_stan_data9_1_package$inv_metric <- new_inv
+# 
+# saveRDS(bird_stan_data9_1_package, "outputs/bird_stan_data9_1_package.RDS")
+# saveRDS(bird_stan_data9_1_package, "outputs/bird_stan_data9_1_package.RDS")

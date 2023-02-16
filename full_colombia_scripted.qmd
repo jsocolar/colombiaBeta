@@ -8,53 +8,89 @@ editor: visual
 
 ## Baseline species lists
 
-Get a species list for Colombia under BirdLife Taxonomy. Inputs are:
-
--   inputs/gadm36_COL_shp/gadm36_COL_0.shp, a shapefile for Colombia
-
--   inputs/BOTW/BOTW.gdb, the 2019 BirdLife range maps. Not shareable without permission.
-
--   inputs/HBW_eBird_taxonomy.csv, a BirdLife/eBird interconversion table prepared by Marshall Iliff. Not shareable without permission.
-
--   inputs/Bird_elevations_initial.csv, bird elevations from Donegan, without yet having all BirdLife splits implemented.
-
--   inputs/species_to_check_checked.csv, a manually edited file that provides information about taxa that don't match 1:1 between Donegan and BirdLife.
-
--   inputs/Pulido_phylogeny/JETZ TREES/All_birds_MaxCladeCredTree.txt, Pulido-Santacruz & Weir consensus tree.
-
--   inputs/elton.txt, Elton Traits data. Downloaded from https://ndownloader.figshare.com/files/5631081 and saved to inputs on running "Species_lists.R".
+#### Get a species list for Colombia under BirdLife Taxonomy
 
 ```{r}
 source("code/bird_lists_maps_traits/Species_lists.R")
 ```
 
-Get a species list for all species overlapping neotropical forest ecoregions following BirdLife taxonomy. We use this later to match taxonomically to the Parker database (it's easier and less error-prone to do so if we have all neotropical species; note that every Colombian species identified above gets included as overlapping at least one neotropical forest ecoregion (this is on the basis of BirdLife maps, not on the basis of actual occurrence in forests). Inputs are:
+Inputs are:
 
--   /Users/jacobsocolar/Dropbox/Work/Useful_data/Map_data/Continents/continent.shp, a continents shapefile
+-   inputs/gadm36_COL_shp/gadm36_COL_0.shp, a shapefile for Colombia
 
--   /Users/jacobsocolar/Dropbox/Work/Useful_data/Map_data/WWF_ecoregions/wwf_terr_ecos.shp, WWF terrestrial ecoregions
+-   private_inputs/BOTW/BOTW.gdb, the 2019 BirdLife range maps. Not shareable without permission.
 
--   /Users/jacobsocolar/Dropbox/Work/Useful_data/Map_data/WWF_ecoregions/nf_masks/florida_mask.kml, /Users/jacobsocolar/Dropbox/Work/Useful_data/Map_data/WWF_ecoregions/nf_masks/baja_mask.kml, custom drawn masks for bits of neotropical forest in Florida and Baja California
+-   private_inputs/HBW_eBird_taxonomy.csv, a BirdLife/eBird interconversion table prepared by Marshall Iliff. Not shareable without permission.
+
+-   inputs/Bird_elevations_initial.csv, bird elevations from Donegan, without yet having all BirdLife splits implemented.
+
+-   inputs/species_to_check_checked.csv, a manually edited file that provides information about taxa that don't match 1:1 between Donegan and BirdLife. (note: this is awkwardly placed as an input, as it relies on the manual checking of outputs/species_to_check.csv. We designate it as an input so that the pipeline can be run from start to finish consistently)
+
+-   inputs/Pulido_phylogeny/JETZ TREES/All_birds_MaxCladeCredTree.txt, Pulido-Santacruz & Weir consensus tree.
+
+-   inputs/elton.txt, Elton Traits data. Downloaded from https://ndownloader.figshare.com/files/5631081 and saved to inputs on running "Species_lists.R".
+
+Outputs are:
+
+-   outputs/colombia_species.Rdata
+
+-   outputs/species_to_check.csv
+
+-   outputs/recast_birdlife_range_maps.Rdata
+
+-   outputs/initial_species_list.csv
+
+Note: script slow to run for the first time (but faster once some outputs are generated and saved).
+
+#### Get a species list for all species overlapping neotropical forest ecoregions following BirdLife taxonomy. 
+
+We use this later to match taxonomically to the Parker database (it's easier and less error-prone to do so if we have all neotropical species; note that every Colombian species identified above gets included as overlapping at least one neotropical forest ecoregion (this is on the basis of BirdLife maps, not on the basis of actual occurrence in forests).
 
 ```{r}
-source("/Users/jacob/Dropbox/simon_stuff/new_repo/colombiaBeta/bird_lists_maps_traits/nf_species_list.R")
+source("code/bird_lists_maps_traits/nf_species_list.R")
 ```
+
+Inputs:
+
+-   inputs/Continents/continent.shp, a continents shapefile
+
+-   inputs/WWF_ecoregions/wwf_terr_ecos.shp, WWF terrestrial ecoregions
+
+-   inputs/WWF_ecoregions/nf_masks/florida_mask.kml, inputs/WWF_ecoregions/nf_masks/baja_mask.kml, custom drawn masks for bits of neotropical forest in Florida and Baja California
+
+-   outputs/recast_birdlife_range_maps.Rdata
+
+Outputs:
+
+-   outputs/nf_species.Rdata
 
 ## Sampling point data
 
-Import and process coordinates for Jacob's points. Inputs:
+#### **Import and process raw GPS coordinates for Jacob's points**
 
--   Birds/Jacob_data_v1.1.csv, Jacob bird data entered; contains coords for Jacob points.
+```{r}
+source("code/GIS_processing/coord_processing.R")
+```
+
+Inputs:
+
+-   inputs/Jacob_data_v1.1.csv, Jacob bird data entered; contains coords for Jacob points.
 
 -   Multiple files in the GIS folder, which gives GPS points downloaded from Jacob's GPS.
 
 -   ee\$Image('JAXA/ALOS/AW3D30/V2_2'), ALOS elevations
 
+Outputs:
+
+-   outputs/socolar_points_v1.csv
+
+#### **Import and process coordinates for all points, add certain covariates**
+
 ```{r}
-source("/Users/jacob/Dropbox/simon_stuff/new_repo/colombiaBeta/GIS_processing/coord_processing.R")
+source("code/GIS_processing/points_formatting.R")
 ```
 
-Import and process coordinates for all points, add certain covariates. Inputs:
+Inputs:
 
 -   GIS/Points/CO_sampling_points_metafile, Felicity's metafile
 
@@ -74,37 +110,49 @@ Import and process coordinates for all points, add certain covariates. Inputs:
 
 -   Birds/Jacob_data_v1.1.csv Jacob bird data
 
--   /Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/subregions/subregions.kml, bespoke shapes for defining subregions in the analysis
+-   inputs/subregions.kml, bespoke shapes for defining subregions in the analysis
+
+Outputs:
+
+-   outputs/all_pts.RDS
+
+#### Import and format bird survey data
 
 ```{r}
-source("/Users/jacob/Dropbox/simon_stuff/new_repo/colombiaBeta/GIS_processing/points_formatting.R")
+source("code/bird_data_processing/bird_import_and_cleaning.R")
 ```
-
-## Import and format bird survey data
 
 Inputs:
 
--   Birds/species_list_creation/HBW_eBird_taxonomy.csv, a BirdLife/eBird interconversion table prepared by Marshall Iliff. Not shareable without permission.
+-   private_inputs/HBW_eBird_taxonomy.csv, a BirdLife/eBird interconversion table prepared by Marshall Iliff. Not shareable without permission.
 
--   Birds/James_WAndes_all_birds.csv, James Andes data
+-   inputs/James_WAndes_all_birds.csv, James Andes data
 
--   GIS/Points/James_andes_points.csv, James Andes points
+-   inputs/James_andes_points.csv, James Andes points
 
--   Birds/James_llanos_all_birds.csv, James llanos data
+-   inputs/James_llanos_all_birds.csv, James llanos data
 
--   /Users/jacobsocolar/Google Drive/Simon_data/data/bird data_Jan&Jun2019/data_Jan&Jun2019_currentVersion.xlsx, Simon data
+-   inputs/data_Jan&Jun2019_currentVersion.xlsx, Simon data
 
--   Birds/Simon_list_21-05-2019.csv, a lookup table for Simon data prepared by JBS to match common names from Simon's data to common names from eBird taxonomy
+-   inputs/Simon_list_21-05-2019.csv, a lookup table for Simon data prepared by JBS to match common names from Simon's data to common names from eBird taxonomy
 
--   Birds/Jacob_data_v1.1.csv, Jacob data
+-   outputs/colombia_species.Rdata
 
-```{r}
-source("/Users/jacob/Dropbox/simon_stuff/new_repo/colombiaBeta/bird_data_processing/bird_import_and_cleaning.R")
-```
+-   inputs/Jacob_data_v1.1.csv, Jacob data
+
+-   outputs/all_pts.RDS
+
+Outputs:
+
+-   outputs/bird_surveys\_\<Sys.time()\>.RDS
+
+-   outputs/bird_surveys_current.RDS
 
 ## Species ranges
 
-Create polygons for biogeographic clipping. Inputs:
+#### **Create polygons for biogeographic clipping** 
+
+Inputs:
 
 -   inputs/hydrosheds/hybas_sa_lev01-06_v1c/hybas_sa_lev02_v1c.shp, and multiple other files that replace the `lev02` with `lev03`, `lev04`, and `lev05`. Hydrosheds layers.
 
@@ -120,7 +168,13 @@ Create polygons for biogeographic clipping. Inputs:
 
 The above inputs are called by `hydrosheds_extraction.R` which is sourced inside of `combined_bird_maps.R` and `species_covariate_formatting.R` (see below)
 
-Load and pre-process Ayerbe maps. Inputs:
+#### **Load and pre-process Ayerbe maps**
+
+```{r}
+source('code/bird_lists_maps_traits/ayerbe_maps.R')
+```
+
+Inputs:
 
 -   inputs/gadm36_COL_shp/gadm36_COL_0.shp, colombia shapefile
 
@@ -130,13 +184,17 @@ Load and pre-process Ayerbe maps. Inputs:
 
 -   multiple files in inputs/ayerbe_updates/ayerbe_missing, handmade range maps for a handful of species missing from Ayerbe
 
--   **NOTE: currently can't run file without initial_species_lists.csv**
+Outputs:
+
+-   outputs/ayerbe_maps.RDS
+
+#### **Create geographically buffered Ayerbe maps.** 
 
 ```{r}
-source('code/bird_lists_maps_traits/ayerbe_maps.R')
+source("code/bird_lists_maps_traits/combined_bird_maps.R")
 ```
 
-Create geographically buffered Ayerbe maps. Inputs:
+Inputs:
 
 -   inputs/gadm36_COL_shp/gadm36_COL_0.shp, Colombia shapefile
 
@@ -146,43 +204,73 @@ Create geographically buffered Ayerbe maps. Inputs:
 
 -   multiple files in inputs/ayerbe_map_updates for bespoke range map updates
 
-```{r}
-source("code/bird_lists_maps_traits/combined_bird_maps.R")
-```
+-   outputs/ayerbe_maps.RDS
+
+Outputs:
+
+-   outputs/ayerbe_list.RDS
+
+-   outputs/ayerbe_buffered_ranges.RDS
+
+-   outputs/point_distances_biogeographic_clip_ayerbe.RDS
 
 ## Species traits
 
-Scrape birdlife website for trait info. Inputs:
+#### **Scrape birdlife website for trait info.** 
+
+Note: this has been shifted outside of the pipeline with it's output passed in as an input
+
+```{r}
+# source("/bird_lists_maps_traits/birdlife_scraper.R")
+```
+
+Inputs:
 
 -   /Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/HBW-BirdLife_Checklist_v4_Dec19/HBW-BirdLife_List_of_Birds_v4.xlsx, the 2019 BirdLife checklist
 
-```{r}
-source("/Users/jacob/Dropbox/simon_stuff/new_repo/colombiaBeta/bird_lists_maps_traits/birdlife_scraper.R")
-```
-
-Update Parker databases to birdlife taxonomy. Inputs:
-
--   Data/Birds/traits/Parker_Stotz_Fitzpatrick_1996/databases/adata.csv, breeders
-
--   Data/Birds/traits/Parker_Stotz_Fitzpatrick_1996/databases/cdata.csv, nonbreeders
-
--   Data/Birds/species_list_creation/HBW_eBird_taxonomy.csv, Iliff's BirdLife/Ebird conversion again. Not shareable w/o permission.
+#### **Update Parker databases to birdlife taxonomy.** 
 
 ```{r}
-source("/Users/jacob/Dropbox/simon_stuff/new_repo/colombiaBeta/bird_lists_maps_traits/parker_standardization.R")
+source("code/bird_lists_maps_traits/parker_standardization.R")
 ```
 
-Read in an pre-process elevational limits. Inputs:
+Inputs:
 
--   /Users/jacobsocolar/Google Drive/Simon_data/data/elevational_ranges_Quinones.csv, the range lmints from Ayerbe
+-   inputs/Parker_Stotz_Fitzpatrick_1996/databases/adata.csv, breeders
 
--   The output of the below script is then modified by hand to produce /Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/elevations/elevations_final.csv
+-   inputs/Parker_Stotz_Fitzpatrick_1996/databases/cdata.csv, nonbreeders
+
+-   private_inputs/HBW_eBird_taxonomy.csv, Iliff's BirdLife/Ebird conversion again. Not shareable w/o permission.
+
+Outputs:
+
+-   outputs/new_parker.csv
+
+#### **Read in an pre-process elevational limits.** 
 
 ```{r}
-source("/Users/jacob/Dropbox/simon_stuff/new_repo/colombiaBeta/bird_lists_maps_traits/elevations_prep_and_exploration.R")
+# source("/bird_lists_maps_traits/elevations_prep_and_exploration.R")
 ```
 
-Create and format file with species covariates. Inputs:
+Note: this has been shifted outside of the pipeline with it's output passed in as an input
+
+Inputs:
+
+-   inputs/elevational_ranges_Quinones.csv, the range limits from Ayerbe
+
+Outputs:
+
+-   outputs/
+
+-   The output of the this script is then modified by hand to produce inputs/elevations_final.csv. (note: this is awkwardly placed as an input, as it relies on the manual checking of outputs/species_to_check.csv. We designate it as an input so that the pipeline can be run from start to finish consistently)
+
+#### **Create and format file with species covariates.** 
+
+```{r}
+source("code/bird_lists_maps_traits/species_covariate_formatting.R")
+```
+
+Inputs:
 
 -   inputs/elevations_final.csv, created by hand from output of above script
 
@@ -192,13 +280,9 @@ Create and format file with species covariates. Inputs:
 
 -   inputs/elton.txt, elton traits
 
--   parker_new.csv **Where is this?**
+-   outputs/parker_new.csv
 
 -   outputs/initial_species_list.csv
-
-```{r}
-source("code/bird_lists_maps_traits/species_covariate_formatting.R")
-```
 
 Read and pre-process migratory dates. Inputs:
 
@@ -206,14 +290,16 @@ Read and pre-process migratory dates. Inputs:
 
 ## Format for analysis
 
-Inputs: sources `get_mainland.R` which has as inputs:
-
--   inputs/gadm36_COL_shp/gadm36_COL_0.shp, colombia shapefile
-
-Also:
-
--   inputs/v9_first_run/occupancy_v9-202104160126-2-326f84.csv
+#### Produce final analysis version of dataset
 
 ```{r}
 source("code/bird_data_processing/format_for_analysis.R")
 ```
+
+Inputs:
+
+-   sources `get_mainland.R` which has as inputs: inputs/gadm36_COL_shp/gadm36_COL_0.shp, colombia shapefile
+
+Outputs:
+
+-   outputs/bird_stan_data9_package.RDS

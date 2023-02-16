@@ -2,34 +2,18 @@
 
 `%ni%` <- Negate(`%in%`)
 
-##### For collaborative projects--figure out what machine we're on and automatically set the working directory ####
-socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
-socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
-if(socolar.desktop){
-  dir.path <- "/Users/JacobSocolar/Dropbox/Work/Colombia/Data"
-  googleAPIkey <- readLines('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/GoogleAPIkey.txt')
-}else if(socolar.laptop){
-  dir.path <- "/Users/jacob/Dropbox/Work/Colombia/Data"
-  googleAPIkey <- readLines('/Users/jacob/Dropbox/Work/Code/code_keychain/GoogleAPIkey.txt')
-}# else if(){dir.path <- }
-# Edit the above for whatever computer(s) you use.  Just make absolutely sure that the if condition is something that definitely
-# wouldn't possibly evaluate as true on anybody else's system, and that none of the preceding conditions could possibly evaluate
-# to TRUE on your system!  (This isn't just about making sure that we get the right working directories; in some cases we might
-# conceivably invoke system commands for file management that depend on dir.path.)
-setwd(dir.path)
-############################
 
-jacob1 <- read.csv("Birds/Jacob_data_v1.1.csv")
-points_list <- droplevels(unique(jacob1$Point[jacob1$Point != ""]))
+jacob1 <- read.csv("inputs/Jacob_data_v1.1.csv")
+#points_list <- droplevels(unique(jacob1$Point[jacob1$Point != ""])) # error
 
-files1 <- list.files('GIS/GPS/GPS1')            # GPX folder of my GPS
-files2 <- list.files('GIS/GPS/GPS2')       # GPX folder of GPS used by Diego & Marcela
+files1 <- list.files('inputs/GPS/GPS1')            # GPX folder of my GPS
+files2 <- list.files('inputs/GPS/GPS2')       # GPX folder of GPS used by Diego & Marcela
 
 # Older versions of my GPX folder: confirm that they don't have files that have been deleted
-gXX <- list.files('GIS/GPS/GPXDump/GPX_old')
-gX <- list.files('GIS/GPS/GPXDump/1_3_2018/GPX')
-gX2 <- list.files('GIS/GPS/GPXDump/6_3_2019')
-gX3 <- list.files('GIS/GPS/GPXDump/10_5_2019')
+gXX <- list.files('inputs/GPS/GPXDump/GPX_old')
+gX <- list.files('inputs/GPS/GPXDump/1_3_2018/GPX')
+gX2 <- list.files('inputs/GPS/GPXDump/6_3_2019')
+gX3 <- list.files('inputs/GPS/GPXDump/10_5_2019')
 gXX[gXX %ni% files1]
 gX[gX %ni% files1]
 gX2[gX2 %ni% files1]
@@ -37,8 +21,8 @@ gX3[gX3 %ni% files1]
 # files1 contains all of gX3 plus additional points from August and September 2019
 
 # Extract files that potentially contain relevant waypoints:
-gpx1 <- paste0('GIS/GPS/GPS1/', files1[grep('\\.gpx', files1)])
-gpx2 <- paste0('GIS/GPS/GPS2/', files2[grep('\\.gpx', files2)])
+gpx1 <- paste0('inputs/GPS/GPS1/', files1[grep('\\.gpx', files1)])
+gpx2 <- paste0('inputs/GPS/GPS2/', files2[grep('\\.gpx', files2)])
 gpx1 <- c(gpx1[grep('Waypoints_', gpx1)], gpx1[grep('/Waypoints.gpx', gpx1)], gpx1[grep('TAB', gpx1)], 
           gpx1[grep('TAP', gpx1)], gpx1[grep('ABF', gpx1)], gpx1[grep('PSF', gpx1)])
 gpx2 <- gpx2[grep('Waypoints_', gpx2)]
@@ -109,7 +93,8 @@ pts <- pts[order(pts$name), ]
 pts$ele <- as.numeric(pts$ele)
 
 #############################################################3
-points <- pts[1:465,-4]   # remove María José's transect points (rows) and the "time" column
+points <- pts[1:465,-4]   # remove María José's transect points (rows) and the 
+# "time" column
 
 # Handle nonstandard names
 points <- points[points$name %ni% c('MOF3', 'SLF2'), ]
@@ -124,18 +109,18 @@ points <- points[-grep('ENT', points$name), ]
 # Remove exact duplicate rows
 points <- points[!duplicated(points), ]
 row.names(points) <- seq(nrow(points))
-View(points)
+# View(points)
 
 # Check all elevations against google maps API
-gelevs1 <- googleway::google_elevation(df_locations = points[1,], location_type = "individual", key = googleAPIkey)
-gelevs <- gelevs1$results[ , c(1,3)]
-for(i in 2:nrow(points)){
-  gelevs1 <- googleway::google_elevation(df_locations = points[i,], location_type = "individual", key = googleAPIkey)
-  if(gelevs1$status != "OK"){c(print("NOT OK"), i)}
-  gelevs <- rbind(gelevs, gelevs1$results[ , c(1,3)])
-}
-
-points$g_elev_init <- gelevs$elevation
+# gelevs1 <- googleway::google_elevation(df_locations = points[1,], location_type = "individual", key = googleAPIkey)
+# gelevs <- gelevs1$results[ , c(1,3)]
+# for(i in 2:nrow(points)){
+#   gelevs1 <- googleway::google_elevation(df_locations = points[i,], location_type = "individual", key = googleAPIkey)
+#   if(gelevs1$status != "OK"){c(print("NOT OK"), i)}
+#   gelevs <- rbind(gelevs, gelevs1$results[ , c(1,3)])
+# }
+# 
+# points$g_elev_init <- gelevs$elevation
 
 # And against ALOS (JAXA)
 library(reticulate)
@@ -207,7 +192,7 @@ points$cluster <- paste('cluster', gsub('[[:digit:]]', '', points$name), ceiling
 points$cluster[235:241] <- c(rep('cluster_PSP_1', 2), rep('cluster_PSP_2', 2), rep('cluster_PSP_3', 3))
 
 # within-cluster distances
-for(i in 1:length(unique(cluster)))
+# for(i in 1:length(unique(cluster))) # ???
 
 
 
@@ -230,5 +215,5 @@ hist(points$g_elev_init - points$ALOS_init)
 points[points$g_elev_init - points$ALOS_init < -20,]
 points[points$g_elev_init - points$ALOS_init > 20,]
 
-write.csv(points, file = "GIS/Points/socolar_points_v1.csv")
+write.csv(points, file = "outputs/socolar_points_v1.csv")
 

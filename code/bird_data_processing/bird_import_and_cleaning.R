@@ -1,32 +1,18 @@
-###### Script dependencies: Species_lists.R, currently uses Felicity's metafile but eventually will depend on point formatting script #####
+###### Script dependencies: Species_lists.R, currently uses Felicity's metafile 
+# but eventually will depend on point formatting script #####
 
 `%ni%` <- Negate(`%in%`)
 
-##### For collaborative projects--figure out what machine we're on and automatically set the working directory ####
-socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
-socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
-if(socolar.desktop){
-  dir.path <- "/Users/JacobSocolar/Dropbox/Work/Colombia/Data"
-  simon.file.path <- "/Users/jacobsocolar/Google Drive/Simon_data/data/bird data_Jan&Jun2019/data_Jan&Jun2019_currentVersion.xlsx"
-  simon.RDS.path <- "/Users/jacobsocolar/Google Drive/Simon_data/data/bird data_Jan&Jun2019/formattedDataset_JanJun2019.rds"
-}else if(socolar.laptop){
-  dir.path <- "/Users/jacob/Dropbox/Work/Colombia/Data"
-}# else if(){dir.path <- }
-# Edit the above for whatever computer(s) you use.  Just make absolutely sure that the if condition is something that definitely
-# wouldn't possibly evaluate as true on anybody else's system, and that none of the preceding conditions could possibly evaluate
-# to TRUE on your system!  (This isn't just about making sure that we get the right working directories; in some cases we might
-# conceivably invoke system commands for file management that depend on dir.path.)
-setwd(dir.path)
 ############################
 
 # read in united eBird/HBW taxonomy
-taxonomy <- read.csv("Birds/species_list_creation/HBW_eBird_taxonomy.csv")
+taxonomy <- read.csv("private_inputs/HBW_eBird_taxonomy.csv")
 t2 <- taxonomy[taxonomy$HBW_CAT == "sp" | taxonomy$CLEM_CAT_2019 == "sp", ] # remove taxa that are not treated as species by either eBird or HBW
 
 ##### Western Andes #####
-wandes1 <- read.csv("Birds/James_WAndes_all_birds.csv")
+wandes1 <- read.csv("inputs/James_WAndes_all_birds.csv")
 wandes <- wandes1[wandes1$Distance %in% c('A', 'B', 'C'), ]
-wandes_pts <- read.csv("GIS/Points/James_andes_points.csv")
+wandes_pts <- read.csv("inputs/James_andes_points.csv")
 unique(wandes_pts$Habcode)
 goodpts <- wandes_pts$Point[wandes_pts$Habcode != "Sy"]
 
@@ -162,36 +148,51 @@ wandes$Species[wandes$Species == "Synallaxis moesta"] <- "Synallaxis brachyura"
 wandes$Species[wandes$Species == "Drymophila caudata"] <- "Drymophila striaticeps"
 
 
-wandes <- wandes[-which(wandes$Species %in% c("Stelgidopteryx ruficollis", "Atticora tibialis", "Hirundo rustica",
-                                              "Pygochelidon cyanoleuca", "Orochelidon murina")), ]
-# The above species (all Swallows) are not noted as flyovers but it is certain that most records were flyovers.
-# JGG confirms that there is no good way to separate the flyovers from the perched birds, so we are discarding
-# all swallows from the West Andes data
+wandes <- wandes[-which(wandes$Species %in% c("Stelgidopteryx ruficollis", 
+                                              "Atticora tibialis", 
+                                              "Hirundo rustica",
+                                              "Pygochelidon cyanoleuca", 
+                                              "Orochelidon murina")), ]
+# The above species (all Swallows) are not noted as flyovers but it is certain 
+# that most records were flyovers. JGG confirms that there is no good way to 
+# separate the flyovers from the perched birds, so we are discarding all swallows 
+# from the West Andes data
 
-wandes <- wandes[-which(wandes$Species %in% c("Hummingbird sp", "Chaetura sp", "Unkn.", "Chaetura cinereiventris", "Vireo olivaceus")), ]
-# The above either are not species level taxa, or were seen exclusively in flight (Chaetura cinereiventris, pers. comm. JGG),
-# or in the case of Vireo olivaceus cannot be reliably assigned to olivaceus vs. chivi (pers. comm. JGG).
+wandes <- wandes[-which(wandes$Species %in% c("Hummingbird sp", 
+                                              "Chaetura sp", 
+                                              "Unkn.", 
+                                              "Chaetura cinereiventris", 
+                                              "Vireo olivaceus")), ]
+# The above either are not species level taxa, or were seen exclusively in 
+# flight (Chaetura cinereiventris, pers. comm. JGG), or in the case of Vireo 
+# olivaceus cannot be reliably assigned to olivaceus vs. chivi (pers. comm. JGG).
 
 unique(wandes$Species[wandes$Migrant.or.transient. == "Y"])
-wandes <- wandes[-which(wandes$Migrant.or.transient. == "Y" & wandes$Species %in% c('Bubulcus ibis', 'Streptoprocne zonaris',
-                                                                                'Coragyps atratus', 'Falco sparverius',
-                                                                                'Geranoaetus polyosoma', 'Cathartes aura',
-                                                                                'Caracara cheriway', 'Rupornis magnirostris',
-                                                                                'Streptoprocne rutila', 'Milvago chimachima',
-                                                                                'Elanoides forficatus', 'Morphnarchus princeps',
-                                                                                'Geranoaetus albicaudatus', 'Accipiter striatus')), ]
-# Remove all species that have this designation because they are flyovers, but not species that have this designation
-# because they are migrants
-
-
-unique(wandes$Species[wandes$Species %ni% t2$HBW_LATIN & wandes$Species %ni% t2$CLEM_SCI_2019])
+wandes <- wandes[-which(wandes$Migrant.or.transient. == "Y" & 
+                            wandes$Species %in% c('Bubulcus ibis', 
+                                                  'Streptoprocne zonaris',
+                                                  'Coragyps atratus', 
+                                                  'Falco sparverius',
+                                                  'Geranoaetus polyosoma', 
+                                                  'Cathartes aura',
+                                                  'Caracara cheriway', 
+                                                  'Rupornis magnirostris',
+                                                  'Streptoprocne rutila', 
+                                                  'Milvago chimachima',
+                                                  'Elanoides forficatus', 
+                                                  'Morphnarchus princeps',
+                                                  'Geranoaetus albicaudatus', 
+                                                  'Accipiter striatus')), ]
+# Remove all species that have this designation because they are flyovers, but 
+# not species that have this designation because they are migrants
+unique(wandes$Species[wandes$Species %ni% t2$HBW_LATIN & 
+                          wandes$Species %ni% t2$CLEM_SCI_2019])
 p1 <- unique(wandes$Species[wandes$Species %ni% t2$HBW_LATIN])
 p2 <- unique(wandes$Species[wandes$Species %ni% t2$CLEM_SCI_2019])
-p1
-p2
+# p1
+# p2
+# dim(wandes)
 
-
-dim(wandes)
 wandes2 <- wandes
 wandes <- wandes[wandes$Point %in% goodpts,]
 
@@ -202,15 +203,18 @@ WAndesSpp <- gsub(" ", "_", unique(wandes$Species))
 
 
 ##### Llanos #####
-llanos <- read.csv("Birds/James_llanos_all_birds.csv")
+llanos <- read.csv("inputs/James_llanos_all_birds.csv")
 llanos$Species <- as.character(llanos$Species)
 
 # Align to HBW taxonomy.
-# Most differences correspond to different names for the same taxon, but a minority of changes involve splits/lumps
-# It appears that no HBW splits have both daughters represented, but borderline cases include Myiodynastes maculatus/solitarius, 
-# Turdus ignobilis/debilis, and Tolmomyias flaviventris/viridiceps.  The Myiodynastes are assumed to all be maculatus
-# based on date.  The Turdus are assumed to all be ignobilis based on photos from the region in eBird.  The Tolmomyias
-# are assumed to all be flaviventris based on recordings from the region on Xeno-Canto.
+# Most differences correspond to different names for the same taxon, but a 
+# minority of changes involve splits/lumps. It appears that no HBW splits have 
+# both daughters represented, but borderline cases include Myiodynastes 
+# maculatus/solitarius, Turdus ignobilis/debilis, and Tolmomyias 
+# flaviventris/viridiceps.  The Myiodynastes are assumed to all be maculatus
+# based on date. The Turdus are assumed to all be ignobilis based on photos from 
+# the region in eBird.  The Tolmomyias are assumed to all be flaviventris based 
+# on recordings from the region on Xeno-Canto.
 
 llanos$Species[llanos$Species == "Buteo magnirostris"] <- "Rupornis magnirostris"
 llanos$Species[llanos$Species == "Penelope jacuae"] <- "Penelope jacquacu"
@@ -282,8 +286,11 @@ llanos$Species[llanos$Species == "Todirostrum nigriceps"] <- "Todirostrum chryso
 llanos$Species[llanos$Species == "Turdus ignobilis"] <- "Turdus debilis"
 
 
-# We assume that all of the llanos Myiodynastes maculatus are nominate maculatus, given the Jan-March timeframe.
-llanos <- llanos[llanos$Species != "Vireo olivaceus", ] # Records are in February and March, when there's no way to separate true olivaceus from resident chivi after the fact
+# We assume that all of the llanos Myiodynastes maculatus are nominate 
+# maculatus, given the Jan-March timeframe.
+llanos <- llanos[llanos$Species != "Vireo olivaceus", ] # Records are in 
+# February and March, when there's no way to separate true olivaceus from 
+# resident chivi after the fact
 llanos <- llanos[llanos$Species != "Streptoprocne zonaris", ]
 
 # Remove Myiopagis viridicata, whose ID is questionable
@@ -302,11 +309,13 @@ L2sp[L2sp %ni% L3sp]
 
 
 ##### East Andes #####
-simon1 <- data.frame(readxl::read_excel(simon.file.path))
+simon1 <- data.frame(readxl::read_excel("inputs/data_Jan&Jun2019_currentVersion.xlsx"))
 
-# some of the below consists of data checks that won't be necessary for final analysis but are retained for now
-# (until the data file is finalized) to guard against typos and entry errors.
-all.equal(is.na(simon1$Point), is.na(simon1$Visit)) #  make sure that NAs in jacob1$Take universally match ""'s in jacob1$Point
+# some of the below consists of data checks that won't be necessary for final 
+# analysis but are retained for now (until the data file is finalized) to guard 
+# against typos and entry errors.
+all.equal(is.na(simon1$Point), is.na(simon1$Visit)) #  make sure that NAs in 
+# jacob1$Take universally match ""'s in jacob1$Point
 which(is.na(simon1$Point) & !is.na(simon1$Visit))
 which(!is.na(simon1$Point) & is.na(simon1$Visit))
 
@@ -316,7 +325,8 @@ length(unique(simon1$Dist)) # make sure that unique doesn't include "" as a 12th
 unique(simon1$FO)
 length(unique(simon1$FO)) # make sure that unique doesn't include "" as a 3rd item
 
-unique(simon1$Visit) # Just need to make sure later that 5's are sites genuinely visited 5 times and not typos for 4.
+unique(simon1$Visit) # Just need to make sure later that 5's are sites genuinely 
+# visited 5 times and not typos for 4.
 
 # Fill in point and visit identifiers
 for(i in 2:nrow(simon1)){
@@ -333,17 +343,18 @@ unique(simon1$Visit[simon1$Point == 'SEF2'])
 unique(simon1$Visit[simon1$Point == 'SEF3'])
 
 # Read in my lookup table for Simon's dataset
-simon_list <- read.csv("Birds/Simon_list_21-05-2019.csv", stringsAsFactors = F)
+simon_list <- read.csv("inputs/Simon_list_21-05-2019.csv", stringsAsFactors = F)
 simon_list$English.Ebird[229] <- "White-banded tyrannulet"
 simon_list$English.Simon[simon_list$English.Simon == "Black-collared Jay"] <- "Black-collared jay"
 
 simon_species <- unique(simon1$Species)
 simon_species[simon_species %ni% simon_list$English.Simon]
 
-#View(simon1[simon1$Species %ni% c(simon_list$English.Simon, 'Sono', 'Vis', 'Note', '-', '"') & !grepl(" sp$", simon1$Species) & !(is.na(simon1$Species)), ])
+# View(simon1[simon1$Species %ni% c(simon_list$English.Simon, 'Sono', 'Vis', 'Note', '-', '"') & 
+#                 !grepl(" sp$", simon1$Species) & !(is.na(simon1$Species)), ])
 
-# Extract the analyzeable records, but do so in several steps to implement typo checks and to keep track of 
-# how many species/entries are unanalyzeable.
+# Extract the analyzeable records, but do so in several steps to implement typo 
+# checks and to keep track of how many species/entries are unanalyzeable.
 simon2 <- simon1[simon1$Species %in% simon_list$English.Simon, ]
 simon2$Dist[is.na(simon2$Dist)] <- 'C'
 simon <- droplevels(simon2[is.na(simon2$FO) & simon2$Dist %in% c('A', 'B', 'C', 'C/B', 'B/C', 'A/B'), ])
@@ -380,10 +391,9 @@ simon$Latin[simon$Latin == "Thraupis_palmarum"] <- "Tangara_palmarum"
 simon$Latin[simon$Latin == "Xenops_rutilans"] <- "Xenops_rutilus"
 simon$Latin[simon$Latin == "Heliangelus_amethysticollis"] <- "Heliangelus_clarisse"
 
-
 simonSpp <- unique(simon$Latin)
 
-load("Birds/species_list_creation/colombia_species.Rdata")
+load("outputs/colombia_species.Rdata")
 unique(simonSpp[gsub("_", " ", simonSpp) %ni% colombia_species])
 
 simon_visit_data <- simon1[!is.na(simon1$Time), names(simon1) %in% c("Point", "Visit", "Date", "Wind", "Vis", "Rain", "Sun", "Time", "Observer")]
@@ -391,10 +401,8 @@ simon_visit_data <- simon1[!is.na(simon1$Time), names(simon1) %in% c("Point", "V
 table(simon_visit_data$Point)[table(simon_visit_data$Point) != 4]
 
 
-
-
 ##### Jacob #####
-jacob1 <- read.csv("Birds/Jacob_data_v1.1.csv")
+jacob1 <- read.csv("inputs/Jacob_data_v1.1.csv")
 
 # some of the below consists of data checks that won't be necessary for final analysis but are retained for now
 # (until the data file is finalized) to guard against typos and entry errors.
@@ -414,7 +422,7 @@ for(i in 2:nrow(jacob1)){
   }
 }
 
-load("Birds/species_list_creation/colombia_species.Rdata")
+load("outputs/colombia_species.Rdata")
 unique(jacob1$Species[gsub("_", " ", jacob1$Species) %ni% colombia_species])
 length(unique(jacob1$Species[gsub("_", " ", jacob1$Species) %ni% colombia_species]))
 
@@ -433,7 +441,6 @@ unique(jacob2$Species[which(jacob2$Species %ni% jacob3$Species)])
 length(unique(jacob2$Species[which(jacob2$Species %ni% jacob3$Species)]))
 
 jacob <- droplevels(jacob3[jacob3$Species %ni% c("Sono", "Visu"), ])
-
 
 # Get data file of visit-specific information
 jacob_visit_data <- jacob1[!is.na(jacob1$Time), names(jacob1) %in% c("Point", "Take", "Date", "Wind", "Vis", "Sky", "Sun", "Drip", "Time")]
@@ -462,11 +469,6 @@ dim(jacob3)[1] - dim(jacob)[1]
 jacobSpp <- as.character(unique(jacob$Species)[order(unique(jacob$Species))])
 jacobSpp[gsub("_", " ", jacobSpp) %ni% colombia_species]
 
-LlanosSpp
-WAndesSpp
-simonSpp
-jacobSpp
-
 
 ##### Combining Species Lists #####
 LlanosSpp <- gsub(" ", "_", unique(llanos$Species))
@@ -481,6 +483,11 @@ otherSpp
 #601
 
 allSpp[gsub("_", " ", allSpp) %ni% colombia_species]
+
+LlanosSpp
+WAndesSpp
+simonSpp
+jacobSpp
 
 # counting number of point-visits per species
 jacobACF1 <- jacob[, names(jacob) %in% c("Point", "Take", "Species", "Count")]
@@ -589,7 +596,7 @@ allSpp[which(v > 5)]
 
 
 ##### Organize array for occupancy model #####
-colombia_points <- readRDS('GIS/Points/all_pts.RDS')
+colombia_points <- readRDS('outputs/all_pts.RDS')
 
 unique(combined$visit)
 allSpp <- as.character(unique(combined$species))[order(as.character(unique(combined$species)))]
@@ -598,8 +605,8 @@ allPts <- as.character(unique(combined$point))[order(as.character(unique(combine
 allPts[allPts %ni% colombia_points$point]
 colombia_points$point[colombia_points$point %ni% allPts & colombia_points$birds==1 & colombia_points$habitat %ni% c("PALM", "Sy")]
 
-# The strategy below will be to populate a zero-filled array with ones, and then to go back and fill with NAs
-# for any visit that never occurred.
+# The strategy below will be to populate a zero-filled array with ones, and then 
+# to go back and fill with NAs for any visit that never occurred.
 detection_array <- array(data = 0, dim = c(length(allPts), 5, length(allSpp)))
 
 # Fill with ones
@@ -642,10 +649,11 @@ detection_array[allPts %ni% five_visit, 5, ] <- NA
 detection_array[allPts %in% c(two_visit, three_visit), 4, ] <- NA
 detection_array[allPts %in% two_visit, 3, ] <- NA
 
-sum(detection_array, na.rm = T) == nrow(combined) # issue with lack of visit 3 on CHP1; to be resolved by Simon
+sum(detection_array, na.rm = T) == nrow(combined) # issue with lack of visit 3 
+# on CHP1; to be resolved by Simon
 
-bird_surveys <- list(detection_array = detection_array, species_names = allSpp, point_names = allPts)
-saveRDS(bird_surveys, file = paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_', Sys.Date(), '.RDS'))
-saveRDS(bird_surveys, file = '/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_surveys_current.RDS')
-
-
+bird_surveys <- list(detection_array = detection_array, 
+                     species_names = allSpp, 
+                     point_names = allPts)
+saveRDS(bird_surveys, paste0('outputs/bird_surveys_', Sys.Date(), '.RDS'))
+saveRDS(bird_surveys, 'outputs/bird_surveys_current.RDS')
