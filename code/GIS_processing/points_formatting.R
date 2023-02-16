@@ -1,34 +1,16 @@
 ##### Script dependencies: coord_processing.R, GEE_setup.sh, bird_import_and_cleaning.R #####
 
-library(reticulate)
-library(sf)
+library(reticulate); library(sf)
 
 `%ni%` <- Negate(`%in%`)
 
-##### For collaborative projects--figure out what machine we're on and automatically set the working directory ####
-socolar.desktop <- file.exists('/Users/jacobsocolar/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
-socolar.laptop <- file.exists('/Users/jacob/Dropbox/Work/Code/code_keychain/machine_identifier_n5L8paM.txt')
-if(socolar.desktop){
-  dir.path <- "/Users/JacobSocolar/Dropbox/Work/Colombia/Data"
-  simon.file.path <- "/Users/jacobsocolar/Google Drive/Simon_data/data/bird data_Jan&Jun2019/data_Jan&Jun2019_currentVersion.xlsx"
-  simon.RDS.path <- "/Users/jacobsocolar/Google Drive/Simon_data/data/bird data_Jan&Jun2019/formattedDataset_JanJun2019.rds"
-  simon.points.path <- "/Users/jacobsocolar/Google Drive/Simon_data/data/points/points_EasternCordillera.rds"
-}else if(socolar.laptop){
-  dir.path <- "/Users/jacob/Dropbox/Work/Colombia/Data"
-}# else if(){dir.path <- }
-# Edit the above for whatever computer(s) you use.  Just make absolutely sure that the if condition is something that definitely
-# wouldn't possibly evaluate as true on anybody else's system, and that none of the preceding conditions could possibly evaluate
-# to TRUE on your system!  (This isn't just about making sure that we get the right working directories; in some cases we might
-# conceivably invoke system commands for file management that depend on dir.path.)
-setwd(dir.path)
-############################
 
-points_meta <- read.csv('GIS/Points/CO_sampling_points_metafile.csv')
-wandes_pts <- read.csv("GIS/Points/James_andes_points.csv")
+points_meta <- read.csv('inputs/CO_sampling_points_metafile.csv')
+wandes_pts <- read.csv("inputs/James_andes_points.csv")
 wandes2_pts <- points_meta[points_meta$region == "occidental", ]
-llanos_pts <- readxl::read_excel("GIS/Points/Llanos master habitat data.xlsx")
+llanos_pts <- readxl::read_excel("inputs/Llanos master habitat data.xlsx")
 eandes_pts <- readRDS(simon.points.path)
-socolar_pts <- read.csv("GIS/Points/socolar_points_v1.csv")
+socolar_pts <- read.csv("outputs/socolar_points_v1.csv")
 socolar_pts <- socolar_pts[socolar_pts$name %ni% c("MOF1", "MOF2", "MOF3", "MOF4", "MOF5", "MOF6", "MOP1", "MOP2", "MOP3", "MOP4", "MOP5", "MOP6"), ]
 
 eandes_pts$geometry <- NULL
@@ -66,7 +48,7 @@ check_wandes <- merge(wandes_part, wandes2_part, by.x = "point", by.y = "point")
 discrepancies <- check_wandes[check_wandes$lat.x != check_wandes$lat.y | check_wandes$lon.x != check_wandes$lon.y, ]
 discrepancies$distance <- 111000 * sqrt((discrepancies$lat.x - discrepancies$lat.y)^2 + (discrepancies$lon.x - discrepancies$lon.y)^2)
 discrepancies <- discrepancies[order(discrepancies$distance), ]
-View(discrepancies)
+# View(discrepancies)
 
 
 # Assemble all points
@@ -76,17 +58,14 @@ length(unique(all_pts$point)) == nrow(all_pts)
 # Check other points against metafile
 points_meta$point_id <- gsub("d", "D", points_meta$point_id)
 sum(all_pts$point %ni% points_meta$point_id)
-View(points_meta[points_meta$point_id %ni% all_pts$point,])
+# View(points_meta[points_meta$point_id %ni% all_pts$point,])
 check_all <- merge(points_meta, all_pts, by.x = "point_id", by.y = "point")
 discrepancies <- check_all[check_all$lat.x != check_all$lat.y | check_all$lon != check_all$long, ]
 discrepancies$distance <- 111000 * sqrt((discrepancies$lat.x - discrepancies$lat.y)^2 + (discrepancies$lon - discrepancies$long)^2)
 discrepancies <- discrepancies[order(discrepancies$distance), ]
-View(discrepancies)
-
-
+# View(discrepancies)
 
 unique(all_pts$habitat)
-
 all_pts$natural <- as.numeric(all_pts$habitat %in% c("Forest", "Paramo", "FOREST", "P", "Sm"))
 all_pts$paramo <- as.numeric(all_pts$habitat == "Paramo")
 all_pts$pasture <- as.numeric(all_pts$habitat %in% c("Pasture", "PASTURE", "G"))
@@ -114,9 +93,9 @@ ALOSelev <- sapply(c(1:length(pts_elev$features)),function(x)pts_elev$features[[
 
 all_pts$elev_ALOS <- ALOSelev
 
-wandes1 <- read.csv("Birds/James_WAndes_all_birds.csv")
-llanos <- read.csv("Birds/James_llanos_all_birds.csv")
-simon1 <- data.frame(readxl::read_excel(simon.file.path))
+wandes1 <- read.csv("inputs/James_WAndes_all_birds.csv")
+llanos <- read.csv("inputs/James_llanos_all_birds.csv")
+simon1 <- data.frame(readxl::read_excel("inputs/data_Jan&Jun2019_currentVersion.xlsx"))
 simon_visit_data <- simon1[!is.na(simon1$Time), names(simon1) %in% c("Point", "Visit", "Date", "Wind", "Vis", "Rain", "Sun", "Time", "Observer")]
 
 # Correct minor errors in data file
@@ -131,7 +110,7 @@ simon_visit_data$posix <- lubridate::force_tz(simon_visit_data$t2 + as.Date(simo
 
 simon_visit_data$Observer[is.na(simon_visit_data$Observer)] <- "SCM"
 
-jacob1 <- read.csv("Birds/Jacob_data_v1.1.csv")
+jacob1 <- read.csv("inputs/Jacob_data_v1.1.csv")
 jacob_visit_data <- jacob1[!is.na(jacob1$Time),]
 jacob_visit_data$Date <- gsub("/18$", "/2018", jacob_visit_data$Date)
 jacob_visit_data$Date <- gsub("/19$", "/2019", jacob_visit_data$Date)
@@ -305,8 +284,7 @@ for(i in 1:nrow(all_pts)){
 }
 
 all_pts$subregion <- NA
-subregions <- st_read("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/subregions/subregions.kml")
-head(subregions)
+subregions <- st_read("inputs/subregions.kml")
 
 all_pts_sf <- st_as_sf(all_pts, coords = c("lon", "lat"), 
                                crs = 4326)
@@ -321,8 +299,4 @@ for(i in 1:nrow(all_pts)){
 
 all_pts$subregion[all_pts$point %in% c("D13_1", "D13_2")] <- "subregion_llanosWest"
 
-saveRDS(all_pts, file = "GIS/Points/all_pts.RDS")
-
-
-
-
+saveRDS(all_pts, file = "outputs/all_pts.RDS")
