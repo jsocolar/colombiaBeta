@@ -45,7 +45,8 @@ if(!file.exists(ayerbe_sf_fname)) {
     # At least one entry contains some kind of crazy whitespace character that 
     # gets printed as " " in the R console but which does not match " " for the 
     # purposes of string matching
-    initial_map_sf$Species <- gsub('[[:space:]]', ' ', initial_map_sf$Species) 
+    initial_map_sf$Species <- gsub("([A-Z][a-z]*).([a-z]*)", "\\1 \\2", 
+                                   initial_map_sf$Species) 
     saveRDS(initial_map_sf, file = ayerbe_sf_fname)   
 } else {
     initial_map_sf <- readRDS(ayerbe_sf_fname)
