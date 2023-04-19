@@ -6,6 +6,8 @@ format: html
 editor: visual
 ---
 
+# Data formatting
+
 ## Baseline species lists
 
 #### Get a species list for Colombia under BirdLife Taxonomy
@@ -42,7 +44,7 @@ Outputs are:
 
 Note: script slow to run for the first time (but faster once some outputs are generated and saved).
 
-#### Get a species list for all species overlapping neotropical forest ecoregions following BirdLife taxonomy. 
+#### Get a species list for all species overlapping neotropical forest ecoregions following BirdLife taxonomy.
 
 We use this later to match taxonomically to the Parker database (it's easier and less error-prone to do so if we have all neotropical species; note that every Colombian species identified above gets included as overlapping at least one neotropical forest ecoregion (this is on the basis of BirdLife maps, not on the basis of actual occurrence in forests).
 
@@ -150,7 +152,7 @@ Outputs:
 
 ## Species ranges
 
-#### **Create polygons for biogeographic clipping** 
+#### **Create polygons for biogeographic clipping**
 
 Inputs:
 
@@ -188,7 +190,7 @@ Outputs:
 
 -   outputs/ayerbe_maps.RDS
 
-#### **Create geographically buffered Ayerbe maps.** 
+#### **Create geographically buffered Ayerbe maps.**
 
 ```{r}
 source("code/bird_lists_maps_traits/combined_bird_maps.R")
@@ -216,7 +218,7 @@ Outputs:
 
 ## Species traits
 
-#### **Scrape birdlife website for trait info.** 
+#### **Scrape birdlife website for trait info.**
 
 Note: this has been shifted outside of the pipeline with it's output passed in as an input
 
@@ -228,7 +230,13 @@ Inputs:
 
 -   /Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/HBW-BirdLife_Checklist_v4_Dec19/HBW-BirdLife_List_of_Birds_v4.xlsx, the 2019 BirdLife checklist
 
-#### **Update Parker databases to birdlife taxonomy.** 
+Outputs:
+
+-   /Users/jacobsocolar/Dropbox/Work/Useful_data/BirdlifeTraits/neotrop_pages.Rdata
+
+-   /Users/jacobsocolar/Dropbox/Work/Useful_data/BirdlifeTraits/birdlife_traits.Rdata
+
+#### **Update Parker databases to birdlife taxonomy.**
 
 ```{r}
 source("code/bird_lists_maps_traits/parker_standardization.R")
@@ -246,7 +254,7 @@ Outputs:
 
 -   outputs/new_parker.csv
 
-#### **Read in an pre-process elevational limits.** 
+#### **Read in an pre-process elevational limits.**
 
 ```{r}
 # source("/bird_lists_maps_traits/elevations_prep_and_exploration.R")
@@ -264,7 +272,7 @@ Outputs:
 
 -   The output of the this script is then modified by hand to produce inputs/elevations_final.csv. (note: this is awkwardly placed as an input, as it relies on the manual checking of outputs/species_to_check.csv. We designate it as an input so that the pipeline can be run from start to finish consistently)
 
-#### **Create and format file with species covariates.** 
+#### **Create and format file with species covariates.**
 
 ```{r}
 source("code/bird_lists_maps_traits/species_covariate_formatting.R")
@@ -302,4 +310,36 @@ Inputs:
 
 Outputs:
 
--   outputs/bird_stan_data9_package.RDS
+-   outputs/birds.RDS
+-   outputs/birds_analysis_dataframe.RDS
+-   outputs/birds_fd.RDS
+
+# Analysis & model processing
+
+Code to fit occupancy model, run model checks, and extract covariates required for downstream processing.
+
+## Fit model
+
+```{r}
+source("bird_analysis_plotting/run_stan/flocker_model.R")
+```
+
+Fit flocker model to bird dataset, outputting both the flocker fit and cmdstanr .csv files. Run using flocker version 0.1-0. Note that this takes approx. a month to run. These were manually transferred to output locations (note: change output locations?)
+
+Inputs:
+
+-   flocker data
+
+Outputs:
+
+-   outputs/stan_out/...
+
+-   outputs/\<brmfit\>
+
+# Generating figures
+
+...
+
+# GDM analysis
+
+Analysis of raw data that doesn't rely on outputs from occupancy model.
