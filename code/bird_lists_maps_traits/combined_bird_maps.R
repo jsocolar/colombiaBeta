@@ -50,6 +50,7 @@ ayerbe_list_fname <- 'outputs/ayerbe_list.RDS'
 if(!file.exists(ayerbe_list_fname)) {
     ayerbe_list <- list()
     for(i in 1:nrow(initial_species_list)){
+        print(i)
         ayerbe_list[[i]] <- st_make_valid(ayerbe_maps[ayerbe_maps$Species == initial_species_list$HBW[i], ])
     }
     names(ayerbe_list) <- initial_species_list$HBW
