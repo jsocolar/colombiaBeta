@@ -30,8 +30,8 @@ m2 <- st_simplify(mainland, dTolerance = 10000)
 ##### Read Ayerbe shapefiles provided by Humboldt, and bind to sf frame #####
 ayerbe_files <- list.files('inputs/rangemaps_Quinones')
 ayerbe_shpfiles <- ayerbe_files[grep('.shp$', ayerbe_files)]
-
 ayerbe_sf_fname <- 'outputs/initial_ayerbe_map_sf.RDS'
+
 if(!file.exists(ayerbe_sf_fname)) {
     initial_map_list <- list()
     for(i in 1:length(ayerbe_shpfiles)){
@@ -45,7 +45,7 @@ if(!file.exists(ayerbe_sf_fname)) {
     # At least one entry contains some kind of crazy whitespace character that 
     # gets printed as " " in the R console but which does not match " " for the 
     # purposes of string matching
-    initial_map_sf$Species <- gsub("([A-Z][a-z]*).([a-z]*)", "\\1 \\2", 
+    initial_map_sf$Species <- gsub("([A-Z][a-z]*).([a-z]*).*", "\\1 \\2", 
                                    initial_map_sf$Species) 
     saveRDS(initial_map_sf, file = ayerbe_sf_fname)   
 } else {
@@ -74,13 +74,14 @@ for(i in 1:nrow(initial_map_sf)){
 # Additional one-to-one synonymy
 initial_map_sf$Species[initial_map_sf$Species == "Oxypogon stubelii"] <- "Oxypogon stuebelii"
 initial_map_sf$Species[initial_map_sf$Species == "Geospizopis unicolor"] <- "Geospizopsis unicolor"
-initial_map_sf$Species[initial_map_sf$Species == "Picumnus olivaceus_M"] <- "Picumnus olivaceus"
-initial_map_sf$Species[initial_map_sf$Species == "Tinamus tao_1"] <- "Tinamus tao"
-initial_map_sf$Species[initial_map_sf$Species == "Scytalopus latrans_M"] <- "Scytalopus latrans"
-initial_map_sf$Species[initial_map_sf$Species == "Picumnus spilogaster orinocensis VU"] <- "Picumnus spilogaster"
-initial_map_sf$Species[initial_map_sf$Species == "Parkesia noveboracensis_M"] <- "Parkesia noveboracensis"
-initial_map_sf$Species[initial_map_sf$Species == "Crypturellus soui_1"] <- "Crypturellus soui"
-initial_map_sf$Species[initial_map_sf$Species == "Hylopezus macularius_"] <- "Hylopezus macularius"
+# Cases now handled by gsub
+# initial_map_sf$Species[initial_map_sf$Species == "Picumnus olivaceus_M"] <- "Picumnus olivaceus"
+# initial_map_sf$Species[initial_map_sf$Species == "Tinamus tao_1"] <- "Tinamus tao"
+# initial_map_sf$Species[initial_map_sf$Species == "Scytalopus latrans_M"] <- "Scytalopus latrans"
+# initial_map_sf$Species[initial_map_sf$Species == "Picumnus spilogaster orinocensis VU"] <- "Picumnus spilogaster"
+# initial_map_sf$Species[initial_map_sf$Species == "Parkesia noveboracensis_M"] <- "Parkesia noveboracensis"
+# initial_map_sf$Species[initial_map_sf$Species == "Crypturellus soui_1"] <- "Crypturellus soui"
+# initial_map_sf$Species[initial_map_sf$Species == "Hylopezus macularius_"] <- "Hylopezus macularius"
 
 # A weird case: Zimmerius vilissimus gets split to parvus and improbus, but because Elton, eBird, and HBW all split improbus but
 # keep parvus lumped with vilissimus, the autoconversion changes vilissimus directly to parvus.  Here we change it back so that
@@ -267,6 +268,7 @@ ayerbe_missing <- st_intersection(ayerbe_missing_prelim,
 ##### Combine for complete Ayerbe map set #####
 # note that there is no map, and no line in the sf frame, for Vireo olivaceus or 
 # Troglodytes ochraceus
+# Note: Grallaria rufula splits get handled in combined_bird_maps.R
 ayerbe_maps_prelim <- initial_map_sf[initial_map_sf$Species %ni% 
                                          mask_update$old_species, ]
 ayerbe_maps_prelim2 <- rbind(ayerbe_maps_prelim, ayerbe_splits)
