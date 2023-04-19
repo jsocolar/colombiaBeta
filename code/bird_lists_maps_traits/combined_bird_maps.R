@@ -202,6 +202,9 @@ for(i in 1:length(bad_species)){
 
 ##### Combined map errors #####
 ayerbe_upd_list_fname <- 'outputs/ayerbe_list_updated.RDS'
+# remove .ini files
+file.remove(list.files("inputs/ayerbe_map_updates", ".ini", full.names = T, recursive = T))
+
 if(!exists(ayerbe_upd_list_fname)) {
     update_files <- list.files('inputs/ayerbe_map_updates', recursive = T, full.names = T)
     update_species <- gsub("_", " ", list.files('inputs/ayerbe_map_updates'))
@@ -249,7 +252,7 @@ if(!exists(update_buff_ranges_fname)) {
         ayerbe_buffered_ranges_updated[[i]] <- buffered_output
     }
     
-saveRDS(ayerbe_buffered_ranges_updated, file = update_buff_ranges_fname)
+    saveRDS(ayerbe_buffered_ranges_updated, file = update_buff_ranges_fname)
 } else {
     ayerbe_buffered_ranges_updated <- readRDS(update_buff_ranges_fname)
 }
@@ -292,4 +295,4 @@ for(i in 1:length(ayerbe_buffered_ranges_updated)){
   point_distances[i, ] <- st_distance(bird_points, ayerbe_buffered_ranges_updated[[i]])
 }
 
-saveRDS(point_distances, file = "outputs/point_distances_biogeographic_clip_ayerbe.RDS")
+saveRDS(point_distances, "outputs/point_distances_biogeographic_clip_ayerbe.RDS")
