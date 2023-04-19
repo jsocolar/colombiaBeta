@@ -147,8 +147,8 @@ if(!file.exists(ayerbe_fname)) {
     ayerbe_buffered_ranges <- readRDS(ayerbe_fname)
 }
 
-bird_surveys <- readRDS('inputs/bird_surveys_current.RDS')
-colombia_points <- st_as_sf(readRDS("inputs/all_pts.RDS"), 
+bird_surveys <- readRDS('outputs/bird_surveys_current.RDS')
+colombia_points <- st_as_sf(readRDS("outputs/all_pts.RDS"), 
                             coords = c('lon', 'lat'), crs = 4326)
 bird_points <- st_transform(colombia_points[colombia_points$point %in% bird_surveys$point_names, ], AEAstring)
 
