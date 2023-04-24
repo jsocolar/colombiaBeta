@@ -89,7 +89,7 @@ traits$Family[is.na(traits$Family) & traits$Genus == "Grallaria"] <- "Grallariid
 traits$Order[is.na(traits$Order) & traits$Genus == "Grallaria"] <- "PASSERIFORMES"
 
 ##### Add Parker traits #####
-parker <- read.csv('inputs/new_parker.csv')
+parker <- read.csv('outputs/new_parker.csv')
 for(j in 5:ncol(parker)){
   for(i in 1:nrow(parker)){
     if(parker[i,j] %in% c("Y", "Q", "E")){
@@ -122,14 +122,14 @@ panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...){usr <- par("u
   if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
   text(0.5, 0.5, txt, cex = cex.cor * r)
 }
-pairs(parker_pairstest, lower.panel = panel.cor, upper.panel = panel.smooth)
+#pairs(parker_pairstest, lower.panel = panel.cor, upper.panel = panel.smooth)
 
 parker_traits <- parker[,names(parker) %ni% c("X", "parker", "parker2")]
 
 traits <- merge(traits, parker_traits, by.x = "latin", by.y = "HBW", all.x = T)
 
 ##### Add BirdLife traits #####
-load('outputs/birdlife_traits.Rdata')
+load('inputs/birdlife_traits.Rdata')
 
 bts <- data.frame(latin = birdlife_traits$names, generation_birdlife = 0, 
                   mass_birdlife = unlist(birdlife_traits$body_mass), 
