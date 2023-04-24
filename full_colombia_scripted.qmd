@@ -292,6 +292,8 @@ Inputs:
 
 -   outputs/initial_species_list.csv
 
+-   outputs/traits.RDS
+
 Read and pre-process migratory dates. Inputs:
 
 -   inputs/migratory.csv, handmade table of migratory dates
