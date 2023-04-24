@@ -294,9 +294,19 @@ Inputs:
 
 -   outputs/traits.RDS
 
-Read and pre-process migratory dates. Inputs:
+#### Read and pre-process migratory dates
+
+```{r}
+source("code/bird_data_processing/migratory_dates.R")
+```
+
+Inputs:
 
 -   inputs/migratory.csv, handmade table of migratory dates
+
+Outputs:
+
+-   outputs/mig_dates.RDS
 
 ## Format for analysis
 
