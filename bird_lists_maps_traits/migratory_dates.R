@@ -1,6 +1,6 @@
 # Read in table of migratory dates compiled by JBS.  
-mig_dates <- read.csv("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/migratory.csv")
-initial_species_list <- read.csv("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/species_list_creation/initial_species_list.csv")
+mig_dates <- read.csv("inputs/migratory.csv")
+initial_species_list <- read.csv("outputs/initial_species_list.csv")
 
 mig_dates <- mig_dates[mig_dates$latin %in% initial_species_list$HBW, ]
 
@@ -35,4 +35,4 @@ mig_dates$start2 <- as.numeric(mig_dates$start2)
 mig_dates$end1 <- as.numeric(mig_dates$end1)
 mig_dates$end2 <- as.numeric(mig_dates$end2)
 
-saveRDS(mig_dates, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Birds/traits/mig_dates.RDS")
+saveRDS(mig_dates, "outputs/mig_dates.RDS")
