@@ -183,10 +183,10 @@ if(!file.exists(flat_data2_fname)) {
 
 # Look at statistics of species-standardized elevations at species-points with a 
 # detection  
-# fdq <- flattened_data_full[flattened_data_full$Q == 1,]
-# max(fdq$elev_sp_standard)
-# min(fdq$elev_sp_standard)
-# hist(fdq$elev_sp_standard)
+fdq <- flattened_data_full[flattened_data_full$Q == 1,]
+max(fdq$elev_sp_standard)
+min(fdq$elev_sp_standard)
+hist(fdq$elev_sp_standard)
 
 a <- seq(-1,2,.2)
 nq <- vector()
@@ -209,7 +209,7 @@ min(nall)
 bird_data_trimmed <- flattened_data_full[flattened_data_full$in_date_range == 1 & 
                                              flattened_data_full$elev_sp_standard > -1 & 
                                              flattened_data_full$elev_sp_standard < 2, ]
-saveRDS(bird_data_trimmed, "Colombia/Data/Analysis/bird_data_trimmed.RDS")
+saveRDS(bird_data_trimmed, "outputs/bird_data_trimmed.RDS")
 
 # Examine statistics of final dataset
 # nrow(bird_data_trimmed)
@@ -220,7 +220,6 @@ saveRDS(bird_data_trimmed, "Colombia/Data/Analysis/bird_data_trimmed.RDS")
 ############
 vscale <- function(x){return(as.vector(scale(x)))}
 
-# already read in? 
 birds <- readRDS("outputs/bird_data_trimmed.RDS")
 birds$sp_cl <- paste(birds$species, birds$cluster, sep = "__")
 birds$sp_sr <- paste(birds$species, birds$cluster, sep = "__")
