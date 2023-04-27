@@ -36,7 +36,8 @@ S.Am <- sp::SpatialPolygons(list(S.ps), proj4string=crs)
 NS.Am <- st_as_sf(rgeos::gUnion(S.Am, N.Am)) # American mainland sf
 
 # Get neotropical forest ecoregions
-ecoregions <- st_read("inputs/WWF_ecoregions/wwf_terr_ecos.shp")
+ecoregions <- st_read("inputs/WWF_ecoregions/wwf_terr_ecos.shp") |>
+    st_make_valid()
 neotrop.for.americas <- st_union(ecoregions[(ecoregions$REALM %in% c("NA", "NT")) & (ecoregions$BIOME %in% c(1:2)),])
 
 # Find intersection of neotropical forest ecoregions and the American mainland
