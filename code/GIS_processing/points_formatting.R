@@ -110,7 +110,7 @@ simon_visit_data$posix <- lubridate::force_tz(simon_visit_data$t2 + as.Date(simo
 
 simon_visit_data$Observer[is.na(simon_visit_data$Observer)] <- "SCM"
 
-jacob1 <- read.csv("inputs/Jacob_data_v1.1.csv")
+jacob1 <- read.csv("inputs/Jacob_data_v1.2.csv")
 jacob_visit_data <- jacob1[!is.na(jacob1$Time),]
 jacob_visit_data$Date <- gsub("/18$", "/2018", jacob_visit_data$Date)
 jacob_visit_data$Date <- gsub("/19$", "/2019", jacob_visit_data$Date)

@@ -402,7 +402,7 @@ table(simon_visit_data$Point)[table(simon_visit_data$Point) != 4]
 
 
 ##### Jacob #####
-jacob1 <- read.csv("inputs/Jacob_data_v1.1.csv")
+jacob1 <- read.csv("inputs/Jacob_data_v1.2.csv")
 
 # some of the below consists of data checks that won't be necessary for final analysis but are retained for now
 # (until the data file is finalized) to guard against typos and entry errors.
@@ -456,12 +456,12 @@ table(jacob_visit_data$Point)[table(jacob_visit_data$Point) != 4]
 # 235 Llanos spp
 # 314 WAndes spp
 # 247 EAndes spp (Simon+David only)
-# 771 Jacob spp
+# 781 Jacob spp
 ## 294 Amazon
-## 565 Jacob outside Amazon
+## 576 Jacob outside Amazon
 # 601 other spp (all data except Jacob)
-# 969 total spp
-## 807 total spp outside of Amazon
+# 971 total spp
+## 810 total spp outside of Amazon
 
 dim(jacob)
 dim(jacob3)[1] - dim(jacob)[1]
@@ -476,7 +476,7 @@ WAndesSpp <- gsub(" ", "_", unique(wandes$Species))
 
 allSpp <- unique(c(jacobSpp, simonSpp, LlanosSpp, WAndesSpp))
 allSpp
-#969
+#971
 
 otherSpp <- unique(c(simonSpp, LlanosSpp, WAndesSpp))
 otherSpp
@@ -510,9 +510,9 @@ sum(v==4)
 sum(v==5)
 
 jacobSpp[which(v<5)]
-# 392
+# 399
 jacobSpp[which(v>=5)]
-# 379
+# 382
 
 
 NonAmazonSpp <- as.character(unique(jacob$Species[1:(min(which(jacob$Point == 'SGP12'))-1)]))
@@ -564,11 +564,11 @@ sum(v==4)
 sum(v==5)
 
 allSpp[which(v<5)]
-# 359
+# 360
 allSpp[which(v>=5)]
-# 610
+# 611
 allSpp[which(v > 5)]
-# 568
+# 571
 
 combinedPOINTSUMMARY <- doBy::summaryBy(dummy.sum ~ point + species, data = combined_new)
 dim(combinedPOINTSUMMARY)
@@ -588,11 +588,11 @@ sum(v==4)
 sum(v==5)
 
 allSpp[which(v<5)]
-# 411
+# 414
 allSpp[which(v>=5)]
-# 558
+# 557
 allSpp[which(v > 5)]
-# 511
+# 513
 
 
 ##### Organize array for occupancy model #####
@@ -649,8 +649,7 @@ detection_array[allPts %ni% five_visit, 5, ] <- NA
 detection_array[allPts %in% c(two_visit, three_visit), 4, ] <- NA
 detection_array[allPts %in% two_visit, 3, ] <- NA
 
-sum(detection_array, na.rm = T) == nrow(combined) # issue with lack of visit 3 
-# on CHP1; to be resolved by Simon
+sum(detection_array, na.rm = T) == nrow(combined)
 
 bird_surveys <- list(detection_array = detection_array, 
                      species_names = allSpp, 

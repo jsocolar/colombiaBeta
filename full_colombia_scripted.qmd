@@ -76,7 +76,7 @@ source("code/GIS_processing/coord_processing.R")
 
 Inputs:
 
--   inputs/Jacob_data_v1.1.csv, Jacob bird data entered; contains coords for Jacob points.
+-   inputs/Jacob_data_v1.2.csv, Jacob bird data entered; contains coords for Jacob points.
 
 -   Multiple files in the GIS folder, which gives GPS points downloaded from Jacob's GPS.
 
@@ -110,7 +110,7 @@ Inputs:
 
 -   /Users/jacobsocolar/Google Drive/Simon_data/data/bird data_Jan&Jun2019/data_Jan&Jun2019_currentVersion.xlsx, Simon's bird data
 
--   Birds/Jacob_data_v1.1.csv Jacob bird data
+-   Birds/Jacob_data_v1.2.csv Jacob bird data
 
 -   inputs/subregions.kml, bespoke shapes for defining subregions in the analysis
 
@@ -140,7 +140,7 @@ Inputs:
 
 -   outputs/colombia_species.Rdata
 
--   inputs/Jacob_data_v1.1.csv, Jacob data
+-   inputs/Jacob_data_v1.2.csv, Jacob data
 
 -   outputs/all_pts.RDS
 
@@ -332,7 +332,7 @@ Code to fit occupancy model, run model checks, and extract covariates required f
 
 ## Fit model
 
-```{r}
+```{r, eval = FALSE}
 source("bird_analysis_plotting/run_stan/flocker_model.R")
 ```
 

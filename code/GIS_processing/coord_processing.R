@@ -3,7 +3,7 @@
 `%ni%` <- Negate(`%in%`)
 
 
-jacob1 <- read.csv("inputs/Jacob_data_v1.1.csv")
+jacob1 <- read.csv("inputs/Jacob_data_v1.2.csv")
 #points_list <- droplevels(unique(jacob1$Point[jacob1$Point != ""])) # error
 
 files1 <- list.files('inputs/GPS/GPS1')            # GPX folder of my GPS
