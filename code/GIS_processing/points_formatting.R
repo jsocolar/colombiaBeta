@@ -9,7 +9,7 @@ points_meta <- read.csv('inputs/CO_sampling_points_metafile.csv')
 wandes_pts <- read.csv("inputs/James_andes_points.csv")
 wandes2_pts <- points_meta[points_meta$region == "occidental", ]
 llanos_pts <- readxl::read_excel("inputs/Llanos master habitat data.xlsx")
-eandes_pts <- readRDS(simon.points.path)
+eandes_pts <- readRDS("inputs/points_EasternCordillera.rds")
 socolar_pts <- read.csv("outputs/socolar_points_v1.csv")
 socolar_pts <- socolar_pts[socolar_pts$name %ni% c("MOF1", "MOF2", "MOF3", "MOF4", "MOF5", "MOF6", "MOP1", "MOP2", "MOP3", "MOP4", "MOP5", "MOP6"), ]
 

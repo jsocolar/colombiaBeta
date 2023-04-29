@@ -5,6 +5,7 @@
 
 # housekeeping ----
 library(sf)
+sf::sf_use_s2(FALSE)
 `%ni%` <- Negate(`%in%`)
 
 ###### Get mainland neotropical forest polygon #####

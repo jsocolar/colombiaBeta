@@ -9,6 +9,7 @@
 
 # housekeeping ----
 library(sf); library(ggplot2)
+sf_use_s2(FALSE)
 `%ni%` <- Negate(`%in%`)
 AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 
     +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
@@ -96,23 +97,22 @@ if(!file.exists(ayerbe_list_fname)) {
 }
 
 ##### Buffered ayerbe maps #####
+source('code/GIS_processing/hydrosheds_extraction.R')
+
+clipping_polygons <- list(amazon_orinoco = st_transform(amazon_orinoco, AEAstring), 
+                          magdalena_east = st_transform(magdalena_east, AEAstring),
+                          magdalena_west = st_transform(magdalena_west, AEAstring), 
+                          cauca_east = st_transform(cauca_east, AEAstring),
+                          cauca_west = st_transform(cauca_west, AEAstring), 
+                          pasto = st_transform(pasto, AEAstring),
+                          pacific = st_transform(pacific, AEAstring), 
+                          snsm = st_transform(snsm, AEAstring),
+                          guajira_perija = st_transform(guajira_perija, AEAstring), 
+                          catatumbo = st_transform(catatumbo, AEAstring),
+                          tacarcuna = st_transform(tacarcuna, AEAstring))
+
 ayerbe_fname <- "outputs/ayerbe_buffered_ranges.RDS"
 if(!file.exists(ayerbe_fname)) {
-    source('code/GIS_processing/hydrosheds_extraction.R')
-    
-    clipping_polygons <- list(amazon_orinoco = st_transform(amazon_orinoco, AEAstring), 
-                              magdalena_east = st_transform(magdalena_east, AEAstring),
-                              magdalena_west = st_transform(magdalena_west, AEAstring), 
-                              cauca_east = st_transform(cauca_east, AEAstring),
-                              cauca_west = st_transform(cauca_west, AEAstring), 
-                              pasto = st_transform(pasto, AEAstring),
-                              pacific = st_transform(pacific, AEAstring), 
-                              snsm = st_transform(snsm, AEAstring),
-                              guajira_perija = st_transform(guajira_perija, AEAstring), 
-                              catatumbo = st_transform(catatumbo, AEAstring),
-                              tacarcuna = st_transform(tacarcuna, AEAstring))
-    
-    
     ayerbe_buffered_ranges <- list()
     for(i in 1:nrow(initial_species_list)){
         print(i)
@@ -128,7 +128,15 @@ if(!file.exists(ayerbe_fname)) {
                 # this is an issue for Ayerbe splits/HBW lumps, e.g. Frederickena
                 if(nrow(clipped_range) != 1){clipped_range <- st_union(clipped_range)}  
                 counter <- counter + 1
-                if(i != 1045){cr <- clipped_range[, 1]}else{cr <- clipped_range}
+                if(inherits(clipped_range, "data.frame")){
+                    cr <- clipped_range[, 1]
+                } else {
+                    assertthat::assert_that(
+                        inherits(clipped_range, "sfc_MULTIPOLYGON") |
+                            inherits(clipped_range, "sfc_POLYGON")
+                        )
+                    cr <- clipped_range
+                }
                 buffered_cr <- st_buffer(cr, 160000)
                 buffer_list[[counter]] <- st_intersection(buffered_cr, cp)
             }
