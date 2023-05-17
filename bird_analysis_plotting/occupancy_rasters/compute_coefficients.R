@@ -1,7 +1,23 @@
-# extract linear predictor for non-spatially varying component of model
+# Extract linear predictor for non-spatially varying component of model
+# 
+# The model has a large chunk of terms that vary at the species level, with only
+# a minority (distance to range margin, elevation) that vary at the cell level 
+# (i.e. spatially). Rather than using flocker::fitted() which would require 
+# generating a *very* large number of cell level predictions, we can instead 
+# compute the linear predictor for the species-level component of the model and 
+# separately compute the linear predictor for the spatial (cell-level) component
+# of the model. This script calculates the linear predictor for the 
+# species-level terms and extracts coefficients for generating the spatially 
+# varying terms
+#
+# TODO: currently this reads an old fit (ffit3_copy) from the outputs directory. 
+# This is to be deleted and replaced with the full fit from the final model run, 
+# once it is finished
+# TODO: where are unit_covariates generated? if this doesn't exist in pipeline, 
+# need to add. 
 
-library(flocker); library(dplyr); library(brms)
-library(data.table)
+# packages
+library(flocker); library(dplyr); library(brms); library(data.table)
 
 # Assemble dataframe to predict the spatially constant parts of the response
 uc1 <- readRDS("outputs/unit_covariates.RDS") %>%
@@ -22,9 +38,11 @@ uc1 <- readRDS("outputs/unit_covariates.RDS") %>%
 
 # Read in fitted flocker model
 fm3 <- readRDS("outputs/ffit3_copy.RDS")
+
 # Model was fit from `more-models` branch; we will switch so that we can
 # use `fitted_flocker()` which is not yet updated to work with that branch
 attributes(fm3)$lik_type <- "V"
+
 # Munging because when we built fm3 we thinned manually
 fm3$fit@sim$thin <- 100
 fm3$fit@sim$n_save[1] <- 10
@@ -34,7 +52,7 @@ fm3$data <- fm3$data %>%
     group_by(species) %>%
     slice(1)
 
-##### prediction function #####
+# compute coef functions ----
 # helper for monotonic effects, translated from brms-generated stan
 stan_mo <- function(scale, i) {
   out <- rep(NA, length(i))
@@ -100,8 +118,8 @@ compute_coefs <- function(uc1, fm3, iter = NULL){
             fm3, 
             dpar = "occ",
             draw_ids = 1:10,
-            ##### TODO: make sure that when fm3 is multi-chain, the draw_ids is getting out the same
-            ##### iterations as iter does elsewhere!
+            # TODO: make sure that when fm3 is multi-chain, the draw_ids is 
+            # getting out the same iterations as iter does elsewhere!
             
             newdata = newdata$data[1:nrow(uc), ], 
             re_formula = ~ (1 + pasture |g1| species) + (1 + pasture |g2| Family),
@@ -164,4 +182,5 @@ compute_coefs <- function(uc1, fm3, iter = NULL){
 }
 
 out <- compute_coefs(uc1, fm3)
+
 saveRDS(out, "outputs/lpo_and_coefs.rds")
