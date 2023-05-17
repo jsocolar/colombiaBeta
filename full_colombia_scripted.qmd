@@ -326,7 +326,7 @@ Outputs:
 -   outputs/birds_analysis_dataframe.RDS
 -   outputs/birds_fd.RDS
 
-# Analysis & model processing
+# Analysis & model fitting/processing
 
 Code to fit occupancy model, run model checks, and extract covariates required for downstream processing.
 
@@ -348,10 +348,64 @@ Outputs:
 
 -   outputs/\<brmfit\>
 
-# Generating figures
+## Model diagnostic checks
 
-...
+diagnostics
 
-# GDM analysis
+## Model wrangling
+
+Code to extract coefficients and generate predictive rasters from model for use in downstream analysis etc.
+
+### Extract coefficients and generate linear predictor for species-level terms 
+
+```{r}
+source("code/occ_modelling/compute_coefficients.R")
+```
+
+Inputs:
+
+-   outputs/unit_covariates.RDS -- TODO: this needs updating
+
+-   outputs/ffit3_copy.rds- TODO: this needs updating with final model run
+
+Outputs:
+
+-   outputs/lpo_and_coefs.rds
+
+### Generate predicted occupancy rasters
+
+```{r}
+source("code/occ_modelling/compute_predicted_occupancy.R")
+```
+
+Inputs:
+
+-   outputs/lpo_and_coefs.rds
+
+-   outputs/xy_info_lookup.rds - TODO: where is this generated?
+
+-   outputs/prediction_info_dt.rds - TODO: where is this generated?
+
+Outputs:
+
+-   outputs/predicted_occupancy_dts/posterior_pasture\_\<\<iteration id\>\>.rds
+
+-   outputs/predicted_occupancy_dts/posterior_forest\_\<\<iteration id\>\>.rds
+
+-   outputs/predicted_occupancy_dts/averaged_posterior_10.rds - this is redundant so remove at some point.
+
+## Model predictive checks
+
+PPCs: i.e. code currently residing in bird_analysis_plotting/posterior_predictive_checks
+
+# Analysis and generating figures
+
+## Community sensitivity at varying spatial grain
+
+```{r}
+source("code/analysis_and_plotting/regional_windowing_analysis.R")
+```
+
+## GDM analysis
 
 Analysis of raw data that doesn't rely on outputs from occupancy model.
