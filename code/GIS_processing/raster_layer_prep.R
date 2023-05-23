@@ -1,12 +1,14 @@
-# This script prepares raster layers necessary to simulate the posterior occupancy probability for each 
-# species across Colombia at 2 km resolution for one posterior iteration
+# This script prepares raster layers necessary to simulate the posterior 
+# occupancy probability for each species across Colombia at 2 km resolution for 
+# one posterior iteration
 
 library(sf)
 library(reticulate)
 library(raster)
 
 `%ni%` <- Negate(`%in%`)
-AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 
+    +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
 ##### Get elevation raster across Colombia #####
 # Set up GEE session
@@ -15,6 +17,7 @@ ee <- import("ee")          # Import the Earth Engine library
 ee$Initialize()             # Trigger the authentication
 np <- import("numpy")       # Import Numpy        needed for converting gee raster to R raster object
 pd <- import("pandas")      # Import Pandas       ditto the above
+
 # Get elevations for Colombia
 countries <- ee$FeatureCollection('USDOS/LSIB_SIMPLE/2017')
 roi <- countries$filterMetadata('country_na', 'equals', 'Colombia')  
@@ -34,32 +37,31 @@ elevation <- data.frame(x = lngs, y = lats, elevation = elevs)
 raster_elev <- raster::rasterFromXYZ(elevation,crs="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
 # Reproject
 raster_elev_AEA <- raster::projectRaster(raster_elev, crs = sp::CRS(AEAstring))
+
 # Crop
-source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/GIS_processing/get_mainland.R")
+source("code/GIS_processing/get_mainland.R")
 mainland <- st_transform(mainland, AEAstring)
 raster_elev_AEA <- crop(raster_elev_AEA, extent(mainland))
 # Save raster
-raster::writeRaster(raster_elev, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev.grd", overwrite = T)
-raster::writeRaster(raster_elev_AEA, "/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev_AEA.grd", overwrite = T)
+raster::writeRaster(raster_elev, "outputs/elev_raster/raster_elev.grd", overwrite = T)
+raster::writeRaster(raster_elev_AEA, "outputs/elev_raster/raster_elev_AEA.grd", overwrite = T)
 
 ##### Rasterize the Ayerbe maps #####
-ayerbe_list_updated <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_list_updated.RDS')
-ayerbe_buffered_ranges_updated <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_buffered_ranges_updated.RDS")
+ayerbe_list_updated <- readRDS('outputs/ayerbe_list_updated.RDS')
+ayerbe_buffered_ranges_updated <- readRDS("outputs/ayerbe_buffered_ranges_updated.RDS")
 
 pb <- txtProgressBar(min = 0, max = length(ayerbe_buffered_ranges_updated), initial = 0, style = 3) 
 for(i in 1:length(ayerbe_buffered_ranges_updated)){
   setTxtProgressBar(pb,i)
   ayerbe_raster <- fasterize::fasterize(st_sf(st_union(ayerbe_list_updated[[i]])), raster_elev_AEA)
-  raster::writeRaster(ayerbe_raster, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/regular/', names(ayerbe_list_updated)[i], '.grd'))
+  raster::writeRaster(ayerbe_raster, paste0('outputs/Ayerbe_rasters/regular/', names(ayerbe_list_updated)[i], '.grd'))
   ayerbe_buffer_raster <- fasterize::fasterize(st_sf(ayerbe_buffered_ranges_updated[[i]]), raster_elev_AEA)
-  raster::writeRaster(ayerbe_buffer_raster, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/buffered/', names(ayerbe_list_updated)[i], '_buffered.grd'))
+  raster::writeRaster(ayerbe_buffer_raster, paste0('outputs/Ayerbe_rasters/buffered/', names(ayerbe_list_updated)[i], '_buffered.grd'))
 }
 
 ##### Distance-to-range raster for each species #####
-library(sf)
-library(raster)
-source("/Users/jacobsocolar/Dropbox/Work/Code/colombiaBeta/GIS_processing/get_mainland.R")
-AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+source("code/GIS_processing/get_mainland.R")
+
 mainland <- st_transform(mainland, AEAstring)
 mainland_inward <- st_buffer(mainland, -7000)
 ayerbe_list_updated <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_list_updated.RDS')
