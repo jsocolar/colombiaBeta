@@ -9,12 +9,9 @@
 # of the model. This script calculates the linear predictor for the 
 # species-level terms and extracts coefficients for generating the spatially 
 # varying terms
-#
-# TODO: currently this reads an old fit (ffit3_copy) from the outputs directory. 
-# This is to be deleted and replaced with the full fit from the final model run, 
-# once it is finished
-# TODO: where are unit_covariates generated? if this doesn't exist in pipeline, 
-# need to add. 
+
+# Model was fit from `more-models` branch
+#devtools::install_github("jsocolar/flocker@more-models")
 
 # packages
 library(flocker); library(dplyr); library(brms); library(data.table)
@@ -22,7 +19,7 @@ library(flocker); library(dplyr); library(brms); library(data.table)
 # Assemble dataframe to predict the spatially constant parts of the response
 uc1 <- readRDS("outputs/unit_covariates.RDS") %>%
   filter(!duplicated(species)) %>%
-  select(
+  dplyr::select(
     c(
       "species", "Family", "lowland",
       "mountain_barrier", "valley_barrier",
@@ -37,15 +34,8 @@ uc1 <- readRDS("outputs/unit_covariates.RDS") %>%
   )
 
 # Read in fitted flocker model
-fm3 <- readRDS("outputs/ffit3_copy.RDS")
-
-# Model was fit from `more-models` branch; we will switch so that we can
-# use `fitted_flocker()` which is not yet updated to work with that branch
-attributes(fm3)$lik_type <- "V"
-
-# Munging because when we built fm3 we thinned manually
-fm3$fit@sim$thin <- 100
-fm3$fit@sim$n_save[1] <- 10
+fm3 <- readRDS("outputs/fm3_thin_10.RDS")
+n_draws <- ndraws(fm3)
 
 # can save 1.6GB by only retaining essential info in $data
 fm3$data <- fm3$data %>%
@@ -117,7 +107,6 @@ compute_coefs <- function(uc1, fm3, iter = NULL){
         brms::posterior_linpred(
             fm3, 
             dpar = "occ",
-            draw_ids = 1:10,
             # TODO: make sure that when fm3 is multi-chain, the draw_ids is 
             # getting out the same iterations as iter does elsewhere!
             
@@ -134,38 +123,58 @@ compute_coefs <- function(uc1, fm3, iter = NULL){
     
     ## extract relev terms
     uc_index <- 1:nrow(uc1)
-    template_mat <- matrix(1, nrow = length(uc_index), ncol = 10)
+    template_mat <- matrix(1, nrow = length(uc_index), ncol = n_draws)
    
     relev_term1 <- template_mat %*%
         diag(as.vector(rstan::extract(fm3$fit, "b_occ_relev", permuted = FALSE))) 
     
-    relev_term2 <- matrix(uc$lowland[uc_index], ncol = 10, nrow = length(uc_index)) %*% 
+    relev_term2 <- matrix(uc$lowland[uc_index], ncol = n_draws, nrow = length(uc_index)) %*% 
         diag(as.vector(rstan::extract(fm3$fit, "b_occ_lowland_x_relev", permuted = FALSE)))
     
-    relev_term3 <- t(rstan::extract(fm3$fit, 
-                           paste0("r_species__occ[", uc$species[uc_index], ",relev]"), 
-                           permuted = FALSE)[1:10, 1, 1:1614])
+    # relev_term3 <- t(rstan::extract(fm3$fit, 
+    #                        paste0("r_species__occ[", uc$species[uc_index], ",relev]"), 
+    #                        permuted = FALSE)[1:n_draws, 1, 1:1614])
 
+    relev_term3_temp <- rstan::extract(fm3$fit, 
+                                       paste0("r_species__occ[", uc$species[uc_index], ",relev]"), 
+                                       permuted = FALSE)
+    relev_term3 <- cbind(t(relev_term3_temp[,1,1:1614]), 
+                         t(relev_term3_temp[,2,1:1614]), 
+                         t(relev_term3_temp[,3,1:1614]),
+                         t(relev_term3_temp[,4,1:1614]))
+    
     relev_term <- relev_term1 + relev_term2 + relev_term3
     
     ## extract relev2 terms
     relev2_term1 <- template_mat %*%
         diag(as.vector(rstan::extract(fm3$fit, "b_occ_relev2", permuted = FALSE))) 
     
-    relev2_term2 <- matrix(uc$lowland[uc_index], ncol = 10, nrow = length(uc_index)) %*% 
+    relev2_term2 <- matrix(uc$lowland[uc_index], ncol = n_draws, nrow = length(uc_index)) %*% 
         diag(as.vector(rstan::extract(fm3$fit, "b_occ_lowland_x_relev2", permuted = FALSE)))
     
-    relev2_term3 <- t(rstan::extract(fm3$fit, 
-                                  paste0("r_species__occ[", uc$species[uc_index], ",relev2]"), 
-                                  permuted = FALSE)[1:10, 1, 1:1614])
+    # relev2_term3 <- t(rstan::extract(fm3$fit, 
+    #                               paste0("r_species__occ[", uc$species[uc_index], ",relev2]"), 
+    #                               permuted = FALSE)[1:n_draws, 1, 1:1614])
+    relev2_term3_temp <- rstan::extract(fm3$fit, 
+                                        paste0("r_species__occ[", uc$species[uc_index], ",relev2]"), 
+                                        permuted = FALSE)
+    relev2_term3 <- cbind(t(relev2_term3_temp[,1,1:1614]), 
+                          t(relev2_term3_temp[,2,1:1614]), 
+                          t(relev2_term3_temp[,3,1:1614]),
+                          t(relev2_term3_temp[,4,1:1614]))
     
     relev2_term <- relev2_term1 + relev2_term2 + relev2_term3
     
     # extract monotonic distance effect
-    mos <- matrix(NA, ncol = 10, nrow = 12)
-    for(i in 1:10) {
+    mos <- matrix(NA, ncol = n_draws, nrow = 12)
+    for(i in 1:n_draws) {
         bsp <- rstan::extract(fm3$fit, "bsp_occ_modistance_bin", permuted = FALSE)[i]
-        simo <- rstan::extract(fm3$fit, paste0("simo_occ_modistance_bin1[", c(1:11), "]"), permuted = FALSE)[i,1,]
+        # simo <- rstan::extract(fm3$fit, paste0("simo_occ_modistance_bin1[", c(1:11), "]"), permuted = FALSE)[i,1,]
+        for(j in 1:11) {
+            simo_j <- rstan::extract(fm3$fit, paste0("simo_occ_modistance_bin1[", j, "]"), permuted = FALSE)
+            simo <- as.vector(simo_j)[i]
+        }
+        
         mos[,i] <- bsp * stan_mo(simo, c(0:11)) 
     }
     
@@ -183,4 +192,4 @@ compute_coefs <- function(uc1, fm3, iter = NULL){
 
 out <- compute_coefs(uc1, fm3)
 
-saveRDS(out, "outputs/lpo_and_coefs.rds")
+saveRDS(out, paste0("outputs/lpo_and_coefs_", n_draws, "draws.rds"))
