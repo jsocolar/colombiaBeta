@@ -50,13 +50,22 @@ raster::writeRaster(raster_elev_AEA, "outputs/elev_raster/raster_elev_AEA.grd", 
 ayerbe_list_updated <- readRDS('outputs/ayerbe_list_updated.RDS')
 ayerbe_buffered_ranges_updated <- readRDS("outputs/ayerbe_buffered_ranges_updated.RDS")
 
-pb <- txtProgressBar(min = 0, max = length(ayerbe_buffered_ranges_updated), initial = 0, style = 3) 
-for(i in 1:length(ayerbe_buffered_ranges_updated)){
-  setTxtProgressBar(pb,i)
-  ayerbe_raster <- fasterize::fasterize(st_sf(st_union(ayerbe_list_updated[[i]])), raster_elev_AEA)
-  raster::writeRaster(ayerbe_raster, paste0('outputs/Ayerbe_rasters/regular/', names(ayerbe_list_updated)[i], '.grd'))
-  ayerbe_buffer_raster <- fasterize::fasterize(st_sf(ayerbe_buffered_ranges_updated[[i]]), raster_elev_AEA)
-  raster::writeRaster(ayerbe_buffer_raster, paste0('outputs/Ayerbe_rasters/buffered/', names(ayerbe_list_updated)[i], '_buffered.grd'))
+n_files <- length(list.files('outputs/Ayerbe_rasters/buffered/', '.grd'))
+if(length(ayerbe_list_updated) != n_files) { 
+    
+    pb <- txtProgressBar(min = 0, max = length(ayerbe_buffered_ranges_updated), initial = 0, style = 3) 
+    for(i in 1:length(ayerbe_buffered_ranges_updated)){
+        setTxtProgressBar(pb,i)
+        ayerbe_raster <- fasterize::fasterize(st_sf(st_union(ayerbe_list_updated[[i]])), raster_elev_AEA)
+        
+        raster::writeRaster(ayerbe_raster, 
+                            paste0('outputs/Ayerbe_rasters/regular/', names(ayerbe_list_updated)[i], '.grd'), 
+                            overwrite = TRUE)
+        ayerbe_buffer_raster <- fasterize::fasterize(st_sf(ayerbe_buffered_ranges_updated[[i]]), raster_elev_AEA)
+        raster::writeRaster(ayerbe_buffer_raster, 
+                            paste0('outputs/Ayerbe_rasters/buffered/', names(ayerbe_list_updated)[i], '_buffered.grd'), 
+                            overwrite = TRUE)
+    }
 }
 
 ##### Distance-to-range raster for each species #####
@@ -64,15 +73,16 @@ source("code/GIS_processing/get_mainland.R")
 
 mainland <- st_transform(mainland, AEAstring)
 mainland_inward <- st_buffer(mainland, -7000)
-ayerbe_list_updated <- readRDS('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/ayerbe_maps/ayerbe_list_updated.RDS')
-bird_data <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/bird_stan_data6_package.RDS")
-birds <- readRDS("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/Analysis/birds.RDS")
+ayerbe_list_updated <- readRDS('outputs/ayerbe_list_updated.RDS')
+bird_data <- readRDS("outputs/bird_stan_data6_package.RDS")
+birds <- readRDS("outputs/birds.RDS")
+
 dtr_offset <-bird_data$means_and_sds$distance_to_range_offset
 dtr_sd <- bird_data$means_and_sds$distance_to_range_sd
 dtr_rescale <- bird_data$means_and_sds$distance_to_range_logit_rescale
 
 # get all points
-raster_elev_AEA <- raster::raster("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/elev_raster/raster_elev_AEA.grd")
+raster_elev_AEA <- raster::raster("outputs/raster_elev_AEA.grd")
 pfd <- raster::as.data.frame(raster_elev_AEA, xy=T)
 
 # now keep track of point indices that don't require distances
@@ -144,8 +154,4 @@ for(i in 1:length(sp_list)){
   ayerbe_dist_raster_i <- raster::rasterFromXYZ(td_df,crs=AEAstring)
   raster::writeRaster(ayerbe_dist_raster_i, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/transformed_distance_unmasked/', sp_list[i], '.grd'), overwrite = T)
 }
-
-
-
-
 
