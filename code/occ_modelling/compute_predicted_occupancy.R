@@ -11,7 +11,8 @@ xy_to_cell <- function(id_x, id_y, xy_dim = c(924, 679)) {
 }
 
 # inputs ----
-coefs <- readRDS("outputs/lpo_and_coefs.rds")
+coefs <- readRDS("outputs/lpo_and_coefs_40draws.rds")
+n_draws <- ncol(coefs$lpo_forest)
 
 # Read in info for spatial parts of prediction
 xy_info <- readRDS("outputs/xy_info_lookup.rds") %>%
@@ -44,9 +45,9 @@ sr_lookup <- unique(pred_dt[,c("species", "id_subregion")])
 pred_dt[,`:=`(N_forest_update = 0,
               N_pasture_update = 0)]
 
-# calculate predicted occupancy (including spatial random effects for 10 posterior)
-# iterations
-for(i in seq_len(10)) {
+# calculate predicted occupancy (including spatial random effects)
+# iterate across draws
+for(i in seq_len(n_draws)) {
     print(i)
     species_terms <- with(coefs,
                           data.table(
@@ -79,9 +80,9 @@ for(i in seq_len(10)) {
         print(paste0("cluster_", cluster))
         pred_dt[, `:=`(
             N_forest = N_forest + 
-                boot::inv.logit(logit_psi_forest_partial + rnorm(.N) * coefs$sd_cluster[i])*3,
+                boot::inv.logit(logit_psi_forest_partial + rnorm(.N) * coefs$sd_cluster[i]),
             N_pasture = N_pasture + 
-                boot::inv.logit(logit_psi_pasture_partial + rnorm(.N) * coefs$sd_cluster[i])*3
+                boot::inv.logit(logit_psi_pasture_partial + rnorm(.N) * coefs$sd_cluster[i])
             )]   
     }
     
@@ -106,9 +107,9 @@ for(i in seq_len(10)) {
     gc()
 }
 
-pred_dt[,`:=`(N_forest_update = N_forest_update/10, 
-              N_pasture_update = N_pasture_update/10)]
+pred_dt[,`:=`(N_forest_update = N_forest_update/n_draws, 
+              N_pasture_update = N_pasture_update/n_draws)]
 
 saveRDS(pred_dt[,c("N_forest_update", "N_pasture_update")], 
-        "outputs/predicted_occupancy_dts/averaged_posterior_10.rds", 
+        paste0("outputs/predicted_occupancy_dts/averaged_posterior_", n_draws, ".rds"), 
         compress = FALSE)
