@@ -330,6 +330,24 @@ Outputs:
 
 Code to fit occupancy model, run model checks, and extract covariates required for downstream processing.
 
+## Generate flocker data
+
+Note: have moved this outside of the model fitting script and it also generates a unit covariates file. TODO: update model fitting script accordingly (and move it within pipeline).
+
+```{r, }
+source("code/occ_modelling/make_flocker_data.R")
+```
+
+Inputs:
+
+-   outputs/bird_stan_data9_package.RDS
+
+Outputs:
+
+-   outputs/flocker_data.R
+
+-   outputs/unit_covariates.R
+
 ## Fit model
 
 ```{r, eval = FALSE}
@@ -356,7 +374,49 @@ diagnostics
 
 Code to extract coefficients and generate predictive rasters from model for use in downstream analysis etc.
 
-### Extract coefficients and generate linear predictor for species-level terms 
+### Generate prediction raster
+
+Generate raster of distances and elevations across Colombia for predicting over. First need to rasterize the input layers (distance to range and elevation) to a 2x2 km grid.
+
+```{r}
+source("code/GIS_processing/raster_layer_prep.R")
+```
+
+Inputs:
+
+-   outputs/ayerbe_list_updated.RDS
+
+-   outputs/bird_stan_data6_package.RDS
+
+-   outputs/birds.RDS
+
+-   inputs/mask.grd
+
+Outputs:
+
+-   outputs/raster_elev.grd
+
+-   outputs/raster_elev_AEA.grd
+
+With this in hand, then generate the data objects required for prediction
+
+```{r}
+source("code/occ_modelling/generate_prediction_raster.R")
+```
+
+Inputs:
+
+inputs from raster layer prep
+
+Outputs:
+
+-   outputs/prediction_info_dt.rds
+
+-   outputs/xy_info_lookup.rds
+
+### Extract coefficients and generate linear predictor for species-level terms
+
+Note that the script currently runs with thin_10 version of fm3, so generates a 400-draw object
 
 ```{r}
 source("code/occ_modelling/compute_coefficients.R")
@@ -364,13 +424,13 @@ source("code/occ_modelling/compute_coefficients.R")
 
 Inputs:
 
--   outputs/unit_covariates.RDS -- TODO: this needs updating
+-   outputs_old/unit_covariates.RDS -- TODO: can't find the place where unit_covariates.RDS is generated. Assuming it comes from flocker_model.R- need to confirm these are the same and place an explicit saveRDS call there.
 
--   outputs/ffit3_copy.rds- TODO: this needs updating with final model run
+-   outputs/fm3_thin_100.RDS
 
 Outputs:
 
--   outputs/lpo_and_coefs.rds
+-   outputs/lpo_and_coefs\_\<n_draws\>draws.rds
 
 ### Generate predicted occupancy rasters
 
@@ -382,17 +442,13 @@ Inputs:
 
 -   outputs/lpo_and_coefs.rds
 
--   outputs/xy_info_lookup.rds - TODO: where is this generated?
-
--   outputs/prediction_info_dt.rds - TODO: where is this generated?
-
 Outputs:
 
 -   outputs/predicted_occupancy_dts/posterior_pasture\_\<\<iteration id\>\>.rds
 
 -   outputs/predicted_occupancy_dts/posterior_forest\_\<\<iteration id\>\>.rds
 
--   outputs/predicted_occupancy_dts/averaged_posterior_10.rds - this is redundant so remove at some point.
+-   outputs/predicted_occupancy_dts/averaged_posterior\_\<\<number of draws\>\>.rds - this is redundant so remove at some point.
 
 ## Model predictive checks
 
@@ -403,8 +459,10 @@ PPCs: i.e. code currently residing in bird_analysis_plotting/posterior_predictiv
 ## Community sensitivity at varying spatial grain
 
 ```{r}
-source("code/analysis_and_plotting/regional_windowing_analysis.R")
+source("code/analysis_and_plotting/regional_windowing_analysis_original_version.R")
 ```
+
+Inputs:
 
 ## GDM analysis
 
