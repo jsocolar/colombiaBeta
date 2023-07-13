@@ -1,10 +1,13 @@
 # This script prepares raster layers necessary to simulate the posterior 
 # occupancy probability for each species across Colombia at 2 km resolution for 
 # one posterior iteration
+#
+# Note: the outputs from this get processed further in 
+# occ_modelling/generate_prediction_raster.R. It would be much more efficient 
+# to overhaul this and instead just have a single script (avoiding read/write 
+# overheads etc.). Possibly do this if this becomes a bottleneck..
 
-library(sf)
-library(reticulate)
-library(raster)
+library(sf); library(reticulate); library(raster)
 
 `%ni%` <- Negate(`%in%`)
 AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 
@@ -82,49 +85,57 @@ dtr_sd <- bird_data$means_and_sds$distance_to_range_sd
 dtr_rescale <- bird_data$means_and_sds$distance_to_range_logit_rescale
 
 # get all points
-raster_elev_AEA <- raster::raster("outputs/raster_elev_AEA.grd")
-pfd <- raster::as.data.frame(raster_elev_AEA, xy=T)
+raster_elev_AEA <- stars::read_stars("outputs/elev_raster/raster_elev_AEA.grd")
+mask <- readRDS("outputs/WWF_terr_ecoregions_mask.rds")
+cropped <- st_crop(raster_elev_AEA, mask)
+pfd <- raster::as.data.frame(cropped, xy=T)
+points <- st_as_sf(cropped, as_points = TRUE)
 
 # now keep track of point indices that don't require distances
-mask_raster <- raster::raster("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/mask_raster/mask.grd")
-mdf <- raster::as.data.frame(mask_raster, xy=T)
-all.equal(mdf[,c("x","y")], pfd[,c("x","y")])
-points <- st_as_sf(raster::coordinates(raster_elev_AEA, spatial = T))
-
-indices_include <- is.na(mdf$layer) & st_intersects(points, mainland, sparse = F)
+# NOTE: this is where the masking layer is applied
+# mask_raster <- raster::raster("/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/mask_raster/mask.grd")
+# mdf <- raster::as.data.frame(mask_raster, xy=T)
+# all.equal(mdf[,c("x","y")], pfd[,c("x","y")])
+# points <- st_as_sf(raster::coordinates(raster_elev_AEA, spatial = T))
+# 
+# indices_include <- is.na(mdf$layer) & st_intersects(points, mainland, sparse = F)
 
 coords <- st_coordinates(points)
 sp_list <- unique(birds$species)
 
-pb <- txtProgressBar(min = 0, max = length(sp_list), initial = 0, style = 3) 
-for(i in 1:length(sp_list)){
-  setTxtProgressBar(pb,i)
-  sp <- sp_list[i]
-  ayerbe_buffer_polygon <- st_union(ayerbe_buffered_ranges_updated[[gsub("_", " ", sp)]])
-  indices_sp <- st_intersects(points, ayerbe_buffer_polygon, sparse = F)
-  indices_m <- which(indices_sp & indices_include)
-  
-  points_m <- points[indices_m,]
+# pb <- txtProgressBar(min = 0, max = length(sp_list), initial = 0, style = 3) 
+# for(i in 1:length(sp_list)){
+#     i <- 1
+#   setTxtProgressBar(pb,i)
+#   sp <- sp_list[i]
+#   ayerbe_buffer_polygon <- st_union(ayerbe_buffered_ranges_updated[[gsub("_", " ", sp)]])
+#   indices_sp <- st_intersects(points, ayerbe_buffer_polygon, sparse = F)
+#   indices_m <- which(indices_sp & indices_include)
+#   points_m <- points[indices_sp,]
+# 
+#   ayerbe_polygon <- st_union(ayerbe_list_updated[[gsub("_", " ", sp)]])
+#   range_linestring <- st_cast(ayerbe_polygon, "MULTILINESTRING")
+#   range_linestring_cropped <- st_intersection(mainland_inward, range_linestring)  
+#   inside <- as.numeric(as.numeric(st_distance(points_m, ayerbe_polygon)) == 0)
+#   if(nrow(range_linestring_cropped) > 0){
+#     distance_inside <- -1*st_distance(points_m[as.logical(inside),], range_linestring_cropped)
+#   }else{
+#     distance_inside <- rep(-2e+06, sum(inside))
+#   }
+#   distance_outside <- st_distance(points_m[!inside,], range_linestring)
+#   distances <- rep(NA, nrow(points))
+#   distances[indices_sp][as.logical(inside)] <- distance_inside
+#   distances[indices_sp][!inside] <- distance_outside
+#   transformed_distances <- boot::inv.logit(dtr_rescale*(distances - dtr_offset)/dtr_sd)
+#   td_df <- cbind(coords, transformed_distances)
+#   ayerbe_dist_raster_i <- raster::rasterFromXYZ(td_df,crs=AEAstring)
+#   raster::writeRaster(ayerbe_dist_raster_i, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/transformed_distance/', sp_list[i], '.grd'), overwrite = T)
+# }
 
-  ayerbe_polygon <- st_union(ayerbe_list_updated[[gsub("_", " ", sp)]])
-  range_linestring <- st_cast(ayerbe_polygon, "MULTILINESTRING")
-  range_linestring_cropped <- st_intersection(mainland_inward, range_linestring)  
-  inside <- as.numeric(as.numeric(st_distance(points_m, ayerbe_polygon)) == 0)
-  if(nrow(range_linestring_cropped) > 0){
-    distance_inside <- -1*st_distance(points_m[as.logical(inside),], range_linestring_cropped)
-  }else{
-    distance_inside <- rep(-2e+06, sum(inside))
-  }
-  distance_outside <- st_distance(points_m[!inside,], range_linestring)
-  distances <- rep(NA, nrow(points))
-  distances[indices_m][as.logical(inside)] <- distance_inside
-  distances[indices_m][!inside] <- distance_outside
-  transformed_distances <- boot::inv.logit(dtr_rescale*(distances - dtr_offset)/dtr_sd)
-  td_df <- cbind(coords, transformed_distances)
-  ayerbe_dist_raster_i <- raster::rasterFromXYZ(td_df,crs=AEAstring)
-  raster::writeRaster(ayerbe_dist_raster_i, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/transformed_distance/', sp_list[i], '.grd'), overwrite = T)
+# replacement to the above..
+if(!dir.exists("outputs/distance_from_range_masked/")) {
+    dir.create("outputs/distance_from_range_masked/")
 }
-
 
 pb <- txtProgressBar(min = 0, max = length(sp_list), initial = 0, style = 3) 
 for(i in 1:length(sp_list)){
@@ -133,25 +144,23 @@ for(i in 1:length(sp_list)){
   ayerbe_buffer_polygon <- st_union(ayerbe_buffered_ranges_updated[[gsub("_", " ", sp)]])
   indices_sp <- st_intersects(points, ayerbe_buffer_polygon, sparse = F)
   indices_m <- which(indices_sp)
-  
   points_m <- points[indices_m,]
-  
+
   ayerbe_polygon <- st_union(ayerbe_list_updated[[gsub("_", " ", sp)]])
   range_linestring <- st_cast(ayerbe_polygon, "MULTILINESTRING")
-  range_linestring_cropped <- st_intersection(mainland_inward, range_linestring)  
-  inside <- as.numeric(as.numeric(st_distance(points_m, ayerbe_polygon)) == 0)
-  if(nrow(range_linestring_cropped) > 0){
-    distance_inside <- -1*st_distance(points_m[as.logical(inside),], range_linestring_cropped)
-  }else{
-    distance_inside <- rep(-2e+06, sum(inside))
-  }
-  distance_outside <- st_distance(points_m[!inside,], range_linestring)
-  distances <- rep(NA, nrow(points))
-  distances[indices_m][as.logical(inside)] <- distance_inside
-  distances[indices_m][!inside] <- distance_outside
-  transformed_distances <- boot::inv.logit(dtr_rescale*(distances - dtr_offset)/dtr_sd)
-  td_df <- cbind(coords, transformed_distances)
-  ayerbe_dist_raster_i <- raster::rasterFromXYZ(td_df,crs=AEAstring)
-  raster::writeRaster(ayerbe_dist_raster_i, paste0('/Users/jacobsocolar/Dropbox/Work/Colombia/Data/GIS/Ayerbe_rasters/transformed_distance_unmasked/', sp_list[i], '.grd'), overwrite = T)
-}
+  
+  range_linestring_cropped <- st_intersection(mainland_inward, range_linestring) 
+ 
+  points_m <- points_m %>%
+      mutate(distance = st_distance(., range_linestring_cropped),
+             inside = st_intersects(., ayerbe_polygon, sparse = F), 
+             distance2 = distance * c(1, -1)[inside + 1])
 
+  ayerbe_dist_raster_i <- cbind(st_coordinates(points_m), points_m$distance2) %>%
+      as.data.frame %>%
+      raster::rasterFromXYZ(.,crs=AEAstring)
+  
+  raster::writeRaster(ayerbe_dist_raster_i, 
+                      paste0('outputs/distance_from_range_masked/', sp_list[i], '.grd'), 
+                      overwrite = T)
+}
