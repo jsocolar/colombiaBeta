@@ -2,11 +2,12 @@
 # Trim WWF ecoregions to the limits of Colombia, select regions to predict over, 
 # simplify geometry of Amazonian regions, and clip unforested eastern region of
 # llanos. 
-#
-# TODO: remove dependency on xy_lookup (non-essential and is circular)
 
 # packages
 library(dplyr); library(sf); library(ggplot2); library(stars)
+
+AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 
+    +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
 # get Colombia outline
 CO_low <- rnaturalearth::ne_countries(country = "Colombia", 
@@ -15,12 +16,6 @@ CO_low <- rnaturalearth::ne_countries(country = "Colombia",
 CO <- rnaturalearth::ne_countries(country = "Colombia", 
                                   scale = "large", returnclass = "sf") %>%
     st_crop(., CO_low)
-
-# get xy lookup object
-xy_lookup <- read_stars("data/elev_raster/elev_raster/raster_elev_AEA.grd") %>%
-    # setNames("elevation") %>%
-    mutate(id_cell = 1:n()) %>%
-    select(id_cell)
 
 # read WWF ecoregions
 WWF_regions <- read_sf("data/official/wwf_terr_ecos.shp") %>%
@@ -64,7 +59,7 @@ WWF_subset <- WWF_CO %>%
     filter(ECO_NAME %in% region_subset) %>%
     group_by(ECO_NAME) %>%
     summarise(geometry = st_union(geometry)) %>%
-    st_transform(., crs=st_crs(xy_lookup))
+    st_transform(., crs=AEAstring)
 
 # save first draft of ecoregions
 WWF_subset %>%
@@ -123,8 +118,6 @@ WWF_subset3 %>%
 
 ## clip Llanos ----
 # for now just arbitrarily clip at 70 degrees west
-st_bbox(WWF_subset) %>% class(.)
-
 clip_coords <- c(xmin = -70.5, ymin=3, xmax = -60, ymax=20)
 class(clip_coords) <- "bbox"    
 clip <- st_as_sfc(clip_coords) %>%
@@ -132,12 +125,22 @@ clip <- st_as_sfc(clip_coords) %>%
     rename(geometry = x) %>%
     st_transform(., st_crs(WWF_subset3))
 
-WWF_subset4 <- WWF_subset3 %>% 
-    st_difference(., clip)
+
+Llanos_crop <- st_read("inputs/E_llanos_2.kml") %>%
+    st_transform(., st_crs(WWF_subset3))
+
+Llanos_cropped <- WWF_subset3 %>%
+    filter(ECO_NAME == "Llanos") %>%
+    st_difference(., smoothr::smooth(Llanos_crop)) %>%
+    select(-Name, -Description) %>%
+    st_zm(., drop=TRUE)
+    
+
+WWF_subset4 <- bind_rows(WWF_subset3 %>% filter(ECO_NAME != "Llanos"), 
+                         Llanos_cropped)
 
 # check
 ggplot(WWF_subset4) + geom_sf()
-
 
 # plot final map ----
 # save first draft of ecoregions
@@ -160,7 +163,6 @@ WWF_subset4 %>%
 ggsave("figures/map_WWF_terr_ecoregions.png")
 
 saveRDS(WWF_subset4, "outputs/WWF_terrestrial_ecoregions.rds")
-
 
 WWF_subset4 %>%
     summarise(geometry = st_union(geometry)) %>%
