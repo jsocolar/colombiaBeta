@@ -384,9 +384,9 @@ source("code/GIS_processing/clean_WWF_ecoregions.R")
 
 Inputs:
 
--   xy_lookup - TODO: remove this dependency.
-
 -   outputs/birds.RDS
+
+-   outputs/WWF_ecoregions2/wwf_terr_ecos.shp - TODO: check that these ecoregions are the same as in ecoregions and remove redundancy if so.
 
 Outputs:
 
@@ -396,10 +396,10 @@ Outputs:
 
 -   outputs/WWF_terr_ecoregions_mask.rds
 
-Generate raster of distances and elevations across Colombia for predicting over. First need to rasterize the input layers (distance to range and elevation) to a 2x2 km grid. Note that the mask generated in the above script used at this stage.
+Generate raster of distances and elevations across Colombia for predicting over (masked to regions of interest).
 
 ```{r}
-source("code/GIS_processing/raster_layer_prep.R")
+source("code/occ_modelling/generate_prediction_raster.R")
 ```
 
 Inputs:
@@ -410,29 +410,21 @@ Inputs:
 
 -   outputs/birds.RDS
 
--   inputs/mask.grd
-
 Outputs:
 
 -   outputs/raster_elev.grd
 
 -   outputs/raster_elev_AEA.grd
 
-With this in hand, then generate the data objects required for prediction
+-   outputs/elev_raster/raster_elev_AEA_masked.grd
 
-```{r}
-source("code/occ_modelling/generate_prediction_raster.R")
-```
+-   outputs/xy_lookup.rds
 
-Inputs:
+-   outputs/xy_lookup_stars.rds
 
-inputs from raster layer prep
-
-Outputs:
+-   outputs/pred_dt_species/\<\<species\>\>.rds
 
 -   outputs/prediction_info_dt.rds
-
--   outputs/xy_info_lookup.rds
 
 ### Extract coefficients and generate linear predictor for species-level terms
 
@@ -444,7 +436,7 @@ source("code/occ_modelling/compute_coefficients.R")
 
 Inputs:
 
--   outputs_old/unit_covariates.RDS -- TODO: can't find the place where unit_covariates.RDS is generated. Assuming it comes from flocker_model.R- need to confirm these are the same and place an explicit saveRDS call there.
+-   outputs/unit_covariates.RDS
 
 -   outputs/fm3_thin_100.RDS
 
