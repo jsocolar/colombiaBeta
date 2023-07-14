@@ -374,9 +374,29 @@ diagnostics
 
 Code to extract coefficients and generate predictive rasters from model for use in downstream analysis etc.
 
-### Generate prediction raster
+### Calculate regions to predict over and generate prediction raster
 
-Generate raster of distances and elevations across Colombia for predicting over. First need to rasterize the input layers (distance to range and elevation) to a 2x2 km grid.
+First, trim WWF ecoregions to boundaries of Colombia, and to only include regions that we intend to predict over.
+
+```{r}
+source("code/GIS_processing/clean_WWF_ecoregions.R")
+```
+
+Inputs:
+
+-   xy_lookup - TODO: remove this dependency.
+
+-   outputs/birds.RDS
+
+Outputs:
+
+-   outputs/WWF_terrestrial_ecoregions.rds
+
+-   figures/map_WWF_terr_ecoregions.png
+
+-   outputs/WWF_terr_ecoregions_mask.rds
+
+Generate raster of distances and elevations across Colombia for predicting over. First need to rasterize the input layers (distance to range and elevation) to a 2x2 km grid. Note that the mask generated in the above script used at this stage.
 
 ```{r}
 source("code/GIS_processing/raster_layer_prep.R")
