@@ -7,7 +7,8 @@
 # just run one loop and store prediction info..
 
 # housekeeping
-library(sf); library(reticulate); library(raster)
+library(sf); library(reticulate); library(raster); library(dplyr); 
+library(stars); library(data.table)
 
 `%ni%` <- Negate(`%in%`)
 AEAstring <- "+proj=aea +lat_1=-4.2 +lat_2=12.5 +lat_0=4.1 +lon_0=-73 +x_0=0 
@@ -77,6 +78,11 @@ if(length(ayerbe_list_updated) != n_files) {
     }
 }
 
+
+# ayerbe_list_updated <- readRDS('outputs/ayerbe_list_updated.RDS')
+# ayerbe_buffered_ranges_updated <- readRDS("outputs/ayerbe_buffered_ranges_updated.RDS")
+# raster_elev_AEA_masked <- read_stars("outputs/elev_raster/raster_elev_AEA_masked.grd")
+
 # extract indexing from stars object ----
 col_index_stars <- raster_elev_AEA_masked %>%
     setNames("elevation") %>%
@@ -108,9 +114,8 @@ bird_data <- readRDS("outputs/bird_stan_data6_package.RDS")
 birds <- readRDS("outputs/birds.RDS")
 sp_list <- unique(birds$species)
 
-dtr_offset <-bird_data$means_and_sds$distance_to_range_offset
-dtr_sd <- bird_data$means_and_sds$distance_to_range_sd
-dtr_rescale <- bird_data$means_and_sds$distance_to_range_logit_rescale
+relev_sd <- bird_data$means_and_sds$relev_sd
+relev_offset <- bird_data$means_and_sds$relev_offset
 
 # convert elevation raster to points
 points <- st_as_sf(raster_elev_AEA_masked, as_points = TRUE)
@@ -121,7 +126,7 @@ elev_sf <- st_as_sf(raster_elev_AEA_masked, as_points=TRUE, na.rm = FALSE)
 # add elevation to this for use below
 dt_template <- copy(col_index_dt)
 dt_template[,`:=`(id_x = NULL, id_y = NULL)]
-dt_template[,elev := elev_sf$raster_elev_AEA.grd]
+dt_template[, elev := elev_sf$raster_elev_AEA_masked.grd]
 
 ## blank grid for templating ----
 blank_grid <- raster_elev_AEA_masked %>%
@@ -133,7 +138,7 @@ dir.create("outputs/pred_dt_species/", showWarnings = FALSE)
 
 # do calculation ----
 pb <- txtProgressBar(min = 0, max = length(sp_list), initial = 0, style = 3) 
-for(i in 1:length(sp_list)){
+for(i in 1582:length(sp_list)){
   setTxtProgressBar(pb,i)
   sp <- sp_list[i]
   ayerbe_buffer_polygon <- st_union(ayerbe_buffered_ranges_updated[[gsub("_", " ", sp)]])
@@ -146,18 +151,22 @@ for(i in 1:length(sp_list)){
   
   range_linestring_cropped <- st_intersection(mainland_inward, range_linestring) 
   
-  points_m <- points_m %>%
-      mutate(distance = st_distance(., range_linestring_cropped),
-             inside = st_intersects(., ayerbe_polygon, sparse = F), 
-             distance2 = distance * c(1, -1)[inside + 1])
-
-  ayerbe_dist_raster_i <- cbind(st_coordinates(points_m), points_m$distance2) %>%
-      as.data.frame %>%
-      raster::rasterFromXYZ(.,crs=AEAstring)
-
+  # if there is no intersection between range margin and inward buffered 
+  # mainland, species is ubiquitous, and causes failure in rasterisation step.
+  # First failure case is Vireo olivaceous (i ==1583)
+  if(nrow(range_linestring_cropped) != 0) {
+      points_m <- points_m %>%
+          mutate(distance = st_distance(., range_linestring_cropped),
+                 inside = st_intersects(., ayerbe_polygon, sparse = F), 
+                 distance2 = distance * c(1, -1)[inside + 1])
+      
+  } else {
+      # set everywhere within range
+      points_m <- points_m %>%
+          mutate(distance2 = -999999)
+  }
   
   ayerbe_dist_raster_i <- st_rasterize(points_m["distance2"], template = blank_grid)
-
   ayerbe_dist_sf_i <- st_as_sf(ayerbe_dist_raster_i, as_points = TRUE, na.rm = FALSE)
     
   sp_lower <- unique(birds$lower[birds$species == sp])
