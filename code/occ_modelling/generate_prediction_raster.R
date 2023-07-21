@@ -138,7 +138,7 @@ dir.create("outputs/pred_dt_species/", showWarnings = FALSE)
 
 # do calculation ----
 pb <- txtProgressBar(min = 0, max = length(sp_list), initial = 0, style = 3) 
-for(i in 1582:length(sp_list)){
+for(i in 1:length(sp_list)){
   setTxtProgressBar(pb,i)
   sp <- sp_list[i]
   ayerbe_buffer_polygon <- st_union(ayerbe_buffered_ranges_updated[[gsub("_", " ", sp)]])
@@ -153,7 +153,9 @@ for(i in 1582:length(sp_list)){
   
   # if there is no intersection between range margin and inward buffered 
   # mainland, species is ubiquitous, and causes failure in rasterisation step.
-  # First failure case is Vireo olivaceous (i ==1583)
+  # First failure case is Vireo olivaceous (i ==1583). Actually, *only* failure
+  # case is Vireo olivaceous. Not sure why this fails and not other ubiquitous 
+  # species. Regardless, this fixes it.. 
   if(nrow(range_linestring_cropped) != 0) {
       points_m <- points_m %>%
           mutate(distance = st_distance(., range_linestring_cropped),
@@ -164,6 +166,7 @@ for(i in 1582:length(sp_list)){
       # set everywhere within range
       points_m <- points_m %>%
           mutate(distance2 = -999999)
+      class(points_m$distance2) <- "units"
   }
   
   ayerbe_dist_raster_i <- st_rasterize(points_m["distance2"], template = blank_grid)
@@ -180,16 +183,16 @@ for(i in 1582:length(sp_list)){
                            elev < (sp_upper + sp_breadth), 
                        elev, NA)]
   dt_i[, relev := ((elev - sp_lower)/sp_breadth - relev_offset)/relev_sd]
+  
+  # drop elevation (now redundant and add species column)
+  dt_i[, elev := NULL]
   dt_i[, species := sp]  
   
   saveRDS(dt_i[!is.na(relev)], paste0("outputs/pred_dt_species/", sp, ".rds"))
 }
 
-# source("code/analysis_and_plotting/helper_functions.R")
-# ggplot(dt_i[!is.na(relev)],
-#        aes(cell_to_x_pos(id_cell, c(712, 517)), 
-#            cell_to_y_pos(id_cell, c(712, 517)), fill=relev)) +
-#     geom_tile() +
-#     coord_equal()
-
 ## bind all dts together ----
+fnames <- list.files("outputs/pred_dt_species/", full.names=T)
+all_preds <- lapply(fnames, readRDS)
+all_preds <- rbindlist(all_preds)
+saveRDS(all_preds, "outputs/prediction_info_dt.rds")
