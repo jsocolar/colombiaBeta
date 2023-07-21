@@ -10,12 +10,13 @@
 # species-level terms and extracts coefficients for generating the spatially 
 # varying terms
 #
-
-
-# Model was fit from `more-models` branch
+# Note:
+# (1) currently assumes it is passed a 4 chain fit. Will break if passed a 
+# flocker fit with a different number of chains
+# (2) Model was fit from `more-models` branch: 
 # devtools::install_github("jsocolar/flocker@more-models")
 
-# packages
+# packages ----
 library(flocker); library(dplyr); library(brms); library(data.table)
 
 # Assemble dataframe to predict the spatially constant parts of the response
@@ -35,7 +36,7 @@ uc1 <- readRDS("outputs/unit_covariates.RDS") %>%
     )
   )
 
-# Read in fitted flocker model
+# read flocker model ----
 fm3 <- readRDS("outputs/fm3_thin_10.RDS")
 n_draws <- ndraws(fm3)
 
@@ -59,8 +60,7 @@ stan_mo <- function(scale, i) {
 }
 
 
-## TODO: update to run for varying number of iterations (at moment set to 10)
-# Linear predictor part that is constant within species 
+# format data for species-level linear predictor ----
 uc <- uc1 %>%
     mutate(
         distance_bin = 1,
@@ -105,6 +105,7 @@ ec <- list(
 obs <- matrix(0, nrow(uc), 4)
 newdata <- flocker::make_flocker_data(obs, uc, ec)
 
+# extract linear predictor ----
 lpo <- t(
     brms::posterior_linpred(
         fm3, 
@@ -118,7 +119,8 @@ lpo <- t(
     )
 )
 
-# Component of linear predictor that is variable across space
+
+# component of linear predictor that is variable across space ----
 ## extract subregion and cluster effects
 sd_subregion <- rstan::extract(fm3$fit,"sd_species_subregion__occ_Intercept", 
                                permuted = FALSE) %>%
@@ -127,7 +129,7 @@ sd_cluster <- rstan::extract(fm3$fit,"sd_species_cluster__occ_Intercept",
                              permuted = FALSE) %>%
     as.vector
 
-## extract relev terms
+## extract relev terms ----
 uc_index <- 1:nrow(uc1)
 template_mat <- matrix(1, nrow = length(uc_index), ncol = n_draws)
 
@@ -140,6 +142,7 @@ relev_term2 <- matrix(uc$lowland[uc_index], ncol = n_draws, nrow = length(uc_ind
 relev_term3_temp <- rstan::extract(fm3$fit, 
                                    paste0("r_species__occ[", uc$species[uc_index], ",relev]"), 
                                    permuted = FALSE)
+
 relev_term3 <- cbind(t(relev_term3_temp[,1,1:1614]), 
                      t(relev_term3_temp[,2,1:1614]), 
                      t(relev_term3_temp[,3,1:1614]),
@@ -147,7 +150,7 @@ relev_term3 <- cbind(t(relev_term3_temp[,1,1:1614]),
 
 relev_term <- relev_term1 + relev_term2 + relev_term3
 
-## extract relev2 terms
+## extract relev2 terms ----
 relev2_term1 <- template_mat %*%
     diag(as.vector(rstan::extract(fm3$fit, "b_occ_relev2", permuted = FALSE))) 
 
@@ -157,6 +160,7 @@ relev2_term2 <- matrix(uc$lowland[uc_index], ncol = n_draws, nrow = length(uc_in
 relev2_term3_temp <- rstan::extract(fm3$fit, 
                                     paste0("r_species__occ[", uc$species[uc_index], ",relev2]"), 
                                     permuted = FALSE)
+
 relev2_term3 <- cbind(t(relev2_term3_temp[,1,1:1614]), 
                       t(relev2_term3_temp[,2,1:1614]), 
                       t(relev2_term3_temp[,3,1:1614]),
@@ -164,21 +168,22 @@ relev2_term3 <- cbind(t(relev2_term3_temp[,1,1:1614]),
 
 relev2_term <- relev2_term1 + relev2_term2 + relev2_term3
 
-# extract monotonic distance effect
+## extract monotonic distance effect ----
 mos <- matrix(NA, ncol = n_draws, nrow = 12)
-for(i in 1:n_draws) {
-    bsp <- rstan::extract(fm3$fit, "bsp_occ_modistance_bin", permuted = FALSE)[i]
-    # simo <- rstan::extract(fm3$fit, paste0("simo_occ_modistance_bin1[", c(1:11), "]"), permuted = FALSE)[i,1,]
-    for(j in 1:11) {
-        simo_j <- rstan::extract(fm3$fit, paste0("simo_occ_modistance_bin1[", j, "]"), permuted = FALSE)
-        simo <- as.vector(simo_j)[i]
-    }
-    
-    mos[,i] <- bsp * stan_mo(simo, c(0:11)) 
-}
-as.vector(mos)
+bsp <- rstan::extract(fm3$fit, "bsp_occ_modistance_bin", permuted = FALSE) %>%
+    as.vector()
 
-# format and return list
+simo <- rstan::extract(fm3$fit, paste0("simo_occ_modistance_bin1[", c(1:11), "]"), permuted = FALSE)
+simo <- rbind(simo[,1,], simo[,2,], simo[,3,], simo[,4,])
+
+for(i in 1:n_draws) {
+    bsp_i <- bsp[i]
+    simo_i <- simo[i,]
+    mos[,i] <- bsp_i * stan_mo(simo_i, c(0:11)) 
+}
+
+
+# format and return list ----
 rownames(relev_term) <- rownames(relev2_term) <- uc$species[uc_index]
 out <- list(species = uc$species[uc_index],
             lpo_forest = lpo[1:(nrow(lpo)/2),],
@@ -189,4 +194,5 @@ out <- list(species = uc$species[uc_index],
             sd_subregion = sd_subregion,
             sd_cluster = sd_cluster)
 
+# save ----
 saveRDS(out, paste0("outputs/lpo_and_coefs_", n_draws, "draws.rds"))

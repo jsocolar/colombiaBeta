@@ -6,16 +6,16 @@
 # housekeeping ----
 library(data.table); library(dplyr)
 
-xy_to_cell <- function(id_x, id_y, xy_dim = c(924, 679)) {
+xy_to_cell <- function(id_x, id_y, xy_dim = c(712, 517)) {
     (id_y - 1) * xy_dim[2] + id_x
 }
 
 # inputs ----
-coefs <- readRDS("outputs/lpo_and_coefs_40draws.rds")
+coefs <- readRDS("outputs/lpo_and_coefs_400draws.rds")
 n_draws <- ncol(coefs$lpo_forest)
 
 # Read in info for spatial parts of prediction
-xy_info <- readRDS("outputs/xy_info_lookup.rds") %>%
+xy_info <- readRDS("outputs/xy_lookup.rds") %>%
     # calculate 20 km subregions
     dplyr::mutate(id_subregion_x = ceiling(id_x/10), 
                   id_subregion_y = ceiling(id_y/10), 
@@ -28,17 +28,17 @@ xy_info <- readRDS("outputs/xy_info_lookup.rds") %>%
 
 # read in dataframe for prediction
 pred_dt <- readRDS("outputs/prediction_info_dt.rds")
-
-# drop empty rows
-pred_dt <- pred_dt[!is.na(tdist) & !is.na(relev), ]
+pred_dt[,elev := NULL]
 
 # calculate distance bins
-pred_dt[, distance_bin := (boot::logit(tdist) * 14.9) %>%
-            cut(c(-Inf, seq(-60, 140, 20), Inf), include.lowest = T, ordered_result = T, labels = F)]
+pred_dt[, distance_bin := cut(distance/1000, 
+                              c(-Inf, seq(-60, 140, 20), Inf), 
+                              include.lowest = T, 
+                              ordered_result = T, 
+                              labels = F)]
 
 # merge with xy_info for cell indexing
 pred_dt <- xy_info[pred_dt, on = "id_cell"]
-pred_dt[, tdist := NULL]
 sr_lookup <- unique(pred_dt[,c("species", "id_subregion")])
 
 # columns to sum N across posteriors (division at end)
