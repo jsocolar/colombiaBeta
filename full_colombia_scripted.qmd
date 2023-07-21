@@ -446,6 +446,8 @@ Outputs:
 
 ### Generate predicted occupancy rasters
 
+Generates posterior pasture and forest predictions for N posterior draws.
+
 ```{r}
 source("code/occ_modelling/compute_predicted_occupancy.R")
 ```
@@ -479,3 +481,15 @@ Inputs:
 ## GDM analysis
 
 Analysis of raw data that doesn't rely on outputs from occupancy model.
+
+```{r}
+source("code/analysis_and_plotting/gdm/gdm_analysis.R")
+```
+
+Inputs:
+
+-   ...
+
+Outputs:
+
+-   ...
