@@ -18,7 +18,8 @@ CO <- rnaturalearth::ne_countries(country = "Colombia",
     st_crop(., CO_low)
 
 # read WWF ecoregions
-WWF_regions <- read_sf("data/official/wwf_terr_ecos.shp") %>%
+# check whether these are the same ecoregions as 1, and remove redundancy if so.
+WWF_regions <- read_sf("outputs/WWF_ecoregions2/wwf_terr_ecos.shp") %>%
     st_make_valid() %>%
     st_crop(CO)
 
