@@ -51,7 +51,9 @@ raster_elev_AEA <- crop(raster_elev_AEA, extent(mainland))
 raster::writeRaster(raster_elev, "outputs/elev_raster/raster_elev.grd", overwrite = T)
 raster::writeRaster(raster_elev_AEA, "outputs/elev_raster/raster_elev_AEA.grd", overwrite = T)
 
-raster_elev_AEA_masked <- st_crop(raster_elev_AEA, mask)
+raster_elev_AEA_masked <- stars::st_as_stars(raster_elev_AEA) %>%
+    st_crop(mask)
+
 write_stars(raster_elev_AEA_masked, 
             "outputs/elev_raster/raster_elev_AEA_masked.grd", 
             overwrite = T)
@@ -85,7 +87,6 @@ if(length(ayerbe_list_updated) != n_files) {
 
 # extract indexing from stars object ----
 col_index_stars <- raster_elev_AEA_masked %>%
-    setNames("elevation") %>%
     mutate(id_cell = 1:n(), id_x=NA, id_y = NA, elevation=NULL)
 
 xy_dim <- dim(col_index_stars)
@@ -104,8 +105,6 @@ saveRDS(col_index_stars, "outputs/xy_lookup_stars.rds")
 
 # calculate distance-to-range ----
 # get CO mainland 
-source("code/GIS_processing/get_mainland.R")
-mainland <- st_transform(mainland, AEAstring)
 mainland_inward <- st_buffer(mainland, -7000)
 
 # get elevation scaling info etc.
@@ -126,11 +125,10 @@ elev_sf <- st_as_sf(raster_elev_AEA_masked, as_points=TRUE, na.rm = FALSE)
 # add elevation to this for use below
 dt_template <- copy(col_index_dt)
 dt_template[,`:=`(id_x = NULL, id_y = NULL)]
-dt_template[, elev := elev_sf$raster_elev_AEA_masked.grd]
+dt_template[, elev := elev_sf$elevation]
 
 ## blank grid for templating ----
 blank_grid <- raster_elev_AEA_masked %>%
-    setNames("elevation") %>%
     mutate(elevation = NA)
 
 ## make write directory ----
@@ -167,6 +165,7 @@ for(i in 1:length(sp_list)){
       points_m <- points_m %>%
           mutate(distance2 = -999999)
       class(points_m$distance2) <- "units"
+      units(points_m$distance2) <- "m"
   }
   
   ayerbe_dist_raster_i <- st_rasterize(points_m["distance2"], template = blank_grid)
@@ -188,11 +187,14 @@ for(i in 1:length(sp_list)){
   dt_i[, elev := NULL]
   dt_i[, species := sp]  
   
+  # save 
+  # note: dropping NA relev rows- corresponding to pts far outside elev range- 
+  # at this point too)
   saveRDS(dt_i[!is.na(relev)], paste0("outputs/pred_dt_species/", sp, ".rds"))
 }
 
 ## bind all dts together ----
 fnames <- list.files("outputs/pred_dt_species/", full.names=T)
-all_preds <- lapply(fnames, readRDS)
-all_preds <- rbindlist(all_preds)
+all_preds <- lapply(fnames, readRDS) %>%
+    rbindlist(.)
 saveRDS(all_preds, "outputs/prediction_info_dt.rds")
