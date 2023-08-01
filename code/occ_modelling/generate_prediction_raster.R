@@ -104,8 +104,10 @@ saveRDS(col_index_dt, "outputs/xy_lookup.rds")
 saveRDS(col_index_stars, "outputs/xy_lookup_stars.rds")
 
 # calculate distance-to-range ----
-# get CO mainland 
-mainland_inward <- st_buffer(mainland, -7000)
+# buffer mainland inward by 8 km to prevent range margins being artificially 
+# created at Colombia borders. 8km is sufficient to handle minor mismatches 
+# between Colombia outline between the mainland polygon and Ayerbe polygons. 
+mainland_inward <- st_buffer(mainland, -8000)
 
 # get elevation scaling info etc.
 ayerbe_list_updated <- readRDS('outputs/ayerbe_list_updated.RDS')
@@ -151,10 +153,13 @@ for(i in 1:length(sp_list)){
   
   # if there is no intersection between range margin and inward buffered 
   # mainland, species is ubiquitous, and causes failure in rasterisation step.
-  # First failure case is Vireo olivaceous (i ==1583). Actually, *only* failure
-  # case is Vireo olivaceous. Not sure why this fails and not other ubiquitous 
-  # species. Regardless, this fixes it.. 
-  if(nrow(range_linestring_cropped) != 0) {
+  # Else statement captures species that are ubiquitous and sets all points to 
+  # be in range. 
+  #
+  # House wren has a small hole in its range (see 
+  # http://biomodelos.humboldt.org.co/es/species/visor?species_id=4924)
+  # but otherwise ubiquitous, so also skip this case. 
+  if(nrow(range_linestring_cropped) != 0 | sp == "Troglodytes_aedon") {
       points_m <- points_m %>%
           mutate(distance = st_distance(., range_linestring_cropped),
                  inside = st_intersects(., ayerbe_polygon, sparse = F), 
@@ -163,14 +168,13 @@ for(i in 1:length(sp_list)){
   } else {
       # set everywhere within range
       points_m <- points_m %>%
-          mutate(distance2 = -999999)
-      class(points_m$distance2) <- "units"
-      units(points_m$distance2) <- "m"
+          mutate(distance2 = NULL) %>%
+          mutate(distance2 = units::set_units(-999999, m))
   }
   
   ayerbe_dist_raster_i <- st_rasterize(points_m["distance2"], template = blank_grid)
   ayerbe_dist_sf_i <- st_as_sf(ayerbe_dist_raster_i, as_points = TRUE, na.rm = FALSE)
-    
+
   sp_lower <- unique(birds$lower[birds$species == sp])
   sp_upper <- unique(birds$upper[birds$species == sp])
   sp_breadth <- sp_upper - sp_lower
@@ -194,7 +198,7 @@ for(i in 1:length(sp_list)){
 }
 
 ## bind all dts together ----
-fnames <- list.files("outputs/pred_dt_species/", full.names=T)
+fnames <- list.files("outputs/pred_dt_species/", ".rds", full.names=T)
 all_preds <- lapply(fnames, readRDS) %>%
     rbindlist(.)
-saveRDS(all_preds, "outputs/prediction_info_dt.rds")
+saveRDS(all_preds, "outputs/prediction_info_dt.rds", compress = FALSE)
