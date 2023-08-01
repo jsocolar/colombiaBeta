@@ -5,6 +5,7 @@
 
 # housekeeping ----
 library(data.table); library(dplyr)
+n_post_preds <- 100
 
 xy_to_cell <- function(id_x, id_y, xy_dim = c(712, 517)) {
     (id_y - 1) * xy_dim[2] + id_x
@@ -28,7 +29,6 @@ xy_info <- readRDS("outputs/xy_lookup.rds") %>%
 
 # read in dataframe for prediction
 pred_dt <- readRDS("outputs/prediction_info_dt.rds")
-pred_dt[,elev := NULL]
 
 # calculate distance bins
 pred_dt[, distance_bin := cut(distance/1000, 
@@ -42,12 +42,12 @@ pred_dt <- xy_info[pred_dt, on = "id_cell"]
 sr_lookup <- unique(pred_dt[,c("species", "id_subregion")])
 
 # columns to sum N across posteriors (division at end)
-pred_dt[,`:=`(N_forest_update = 0,
-              N_pasture_update = 0)]
+pred_dt[,`:=`(p_forest_update = 0,
+              p_pasture_update = 0)]
 
 # calculate predicted occupancy (including spatial random effects)
 # iterate across draws
-for(i in seq_len(n_draws)) {
+for(i in 1:n_post_preds) {
     print(i)
     species_terms <- with(coefs,
                           data.table(
@@ -73,43 +73,37 @@ for(i in seq_len(n_draws)) {
                             logit_psi_forest_partial = logit_psi_forest_partial +
                                 sr_effects), on = c("species", "id_subregion")]
     
-    pred_dt[,`:=`(N_forest = 0,
-                  N_pasture = 0)]
+    pred_dt[,`:=`(p_forest = 0,
+                  p_pasture = 0)]
     
+    # average across cluster effect
     for(cluster in seq_len(16)) {
         print(paste0("cluster_", cluster))
         pred_dt[, `:=`(
-            N_forest = N_forest + 
+            p_forest = p_forest + 
                 boot::inv.logit(logit_psi_forest_partial + rnorm(.N) * coefs$sd_cluster[i]),
-            N_pasture = N_pasture + 
+            p_pasture = p_pasture + 
                 boot::inv.logit(logit_psi_pasture_partial + rnorm(.N) * coefs$sd_cluster[i])
             )]   
     }
+    pred_dt[,`:=`(p_forest = p_forest/16, 
+                  p_pasture = p_pasture/16)]
     
-    # save posterior (only save 2 cols for space- can change this later for 
-    # safety/redundancy)
+    # save posterior
     print("saving")
-    saveRDS(pred_dt[,"N_pasture"], 
-            paste0("outputs/predicted_occupancy_dts/posterior_pasture_", i, ".rds"), 
-            compress = FALSE)
-    
-    saveRDS(pred_dt[,"N_forest"], 
-            paste0("outputs/predicted_occupancy_dts/posterior_forest_", i, ".rds"), 
+    saveRDS(pred_dt[,.(id_cell, species, p_forest, p_pasture)], 
+            paste0("outputs/predicted_occupancy_dts/posterior_", i, ".rds"), 
             compress = FALSE)
     
     # update sum
-    pred_dt[,`:=`(N_forest_update = N_forest_update + N_forest, 
-                  N_pasture_update = N_pasture_update + N_pasture)]
-    
-    
-    pred_dt[,`:=`(N_forest = NULL, 
-                  N_pasture = NULL)]
+    pred_dt[,`:=`(p_forest_update = p_forest_update + p_forest, 
+                  p_pasture_update = p_pasture_update + p_pasture)]
     gc()
 }
 
-pred_dt[,`:=`(N_forest_update = N_forest_update/n_draws, 
-              N_pasture_update = N_pasture_update/n_draws)]
+pred_dt[,`:=`(p_forest_update = p_forest_update/n_post_preds, 
+              p_pasture_update = p_pasture_update/n_post_preds)]
 
-saveRDS(pred_dt[,c("N_forest_update", "N_pasture_update")], 
-        paste0("outputs/predicted_occupancy_dts/averaged_posterior_", n_draws, ".rds"), 
+saveRDS(pred_dt[,.(id_cell, p_forest = p_forest_update, p_pasture = p_pasture_update)], 
+        paste0("outputs/predicted_occupancy_dts/averaged_posterior_", n_post_preds, ".rds"), 
         compress = FALSE)
